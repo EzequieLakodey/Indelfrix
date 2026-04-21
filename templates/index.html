@@ -1,19 +1,411 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+
 <head>
-    <title>{{ title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Indelfrix cuenta con mas de 30 años ofreciendo asesoramiento integral libre de cargos para el desarrollo de intercambiadores de calor a medida, unidades condensadoras, y compresores, con calidad garantizada y personalizacion a medida, teniendo alcance en mercados gastrononomicos, logisticos, farmaceuticos y agropecuarios.">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="INDELFRIX S.A.">
+
+    <title> Indelfrix </title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+</head>
 
 <body>
-    <div class="App">
-        <header class="App-header">
-            <img src="{{ url_for('static', filename='Octocat.png') }}" class="App-logo" alt="logo" />
-            <p>
-                GitHub Codespaces <span class="heart">♥️</span> Flask
+    <nav class="navbar sticky-nav navbar-expand-lg px-4 py-3">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold mb-0 bungee-shade-regular f" href="#" id="navbar-title">INDELFRIX S.A.</a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-center gap-3">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#catalogo">Catálogo</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#sobre-nosotros">Nosotros</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contacto">Contacto</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="snowflakes" aria-hidden="true"></div>
+
+    <section class="hero-top">
+        <div class="hero-top-bg"></div>
+
+        <h1 class="visually-hidden">INDELFRIX S.A.</h1>
+
+        <div class="container text-center" style="z-index: 1;">
+            <img src="{{ url_for('static', filename='img/header.jpg') }}" alt="Logo Indelfrix S.A." class="img-fluid"
+                style="max-height: 60vh; object-fit: contain; width: 100%; max-width: 800px;">
+        </div>
+    </section>
+
+    <section id="sobre-nosotros"
+        class="hero-section d-flex flex-column align-items-center justify-content-center text-center">
+        <div class="hero-bg"></div>
+        <div class="hero-overlay"></div>
+
+        <div class="container position-relative z-index-1 py-5">
+            <h1 class="company-name" data-aos="fade-up">INDELFRIX</h1>
+
+            <p class="fs-4 text-white-50 mb-4" data-aos="fade-up" data-aos-delay="100">
+                Más de 30 años brindando asesoramiento integral y soluciones de frío industrial a medida con la mejor
+                calidad del mercado.
             </p>
-            <p class="small">
-                Edit <code>templates/index.html</code> and refresh to see your changes!
+
+            <p class="lead text-white mb-4" data-aos="fade-up" data-aos-delay="200">
+                Somos proveedores de riabilidad y eficiencia para sectores gastronómicos, logísticos, farmacéuticos y
+                agropecuarios. Ofreciendo soluciones personalizadas que garanticen el éxito de tu proyecto.
             </p>
-        </header>
+
+            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                <button onclick="smoothScroll('catalogo')"
+                    class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill">
+                    Ver Catálogo
+                </button>
+                <button onclick="smoothScroll('contacto')"
+                    class="btn btn-outline-light btn-lg px-5 py-3 fw-bold rounded-pill">
+                    Contacto
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <div id="catalogo" class="pt-5"></div>
+
+    <main class="container mt-5">
+        <section class="mb-5 container">
+            <div class="row g-4">
+                {% for cat in categorias %}
+                <div class="col-12" data-aos="fade-up">
+                    <div class="card shadow-lg border-0 overflow-hidden">
+
+                        <div class="card-header bg-primary text-white p-3">
+                            <h3 class="mb-0 fw-bold text-uppercase">{{ cat.nombre }}</h3>
+                        </div>
+
+                        {% if cat.subcategorias %}
+                        <ul class="nav nav-tabs bg-light border-bottom-0 px-3 pt-2" id="tabs-{{ cat.id_categoria }}"
+                            role="tablist">
+                            {% for sub in cat.subcategorias %}
+                            <li class="nav-item" role="presentation">
+                                <button
+                                    class="nav-link {% if loop.first %}active{% endif %} small text-uppercase fw-bold"
+                                    data-bs-toggle="tab" data-bs-target="#content-sub-{{ sub.id_subcategoria }}"
+                                    type="button" role="tab">
+                                    {{ sub.nombre }}
+                                </button>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+
+                        <div class="tab-content">
+                            {% for sub in cat.subcategorias %}
+                            <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                                id="content-sub-{{ sub.id_subcategoria }}" role="tabpanel">
+
+                                <div id="carouselSub{{ sub.id_subcategoria }}" class="carousel slide"
+                                    data-bs-ride="carousel">
+                                    <div class="carousel-inner">
+                                        {% for img in sub.imagenes %}
+                                        <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                            <img src="{{ url_for('static', filename='img/' + img.url) }}"
+                                                class="d-block w-100" alt="{{ sub.nombre }}">
+                                        </div>
+                                        {% else %}
+                                        <div class="carousel-item active text-center p-5 bg-light">
+                                            <span class="text-muted">No hay imágenes disponibles para {{ sub.nombre
+                                                }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+
+                                    {% if sub.imagenes|length > 1 %}
+                                    <button class="carousel-control-prev" type="button"
+                                        data-bs-target="#carouselSub{{ sub.id_subcategoria }}" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon bg-dark rounded-circle"
+                                            aria-hidden="true"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button"
+                                        data-bs-target="#carouselSub{{ sub.id_subcategoria }}" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon bg-dark rounded-circle"
+                                            aria-hidden="true"></span>
+                                    </button>
+                                    {% endif %}
+                                </div>
+
+                                <div class="card-body p-4 border-top">
+                                    <h5 class="fw-bold text-primary">{{ sub.nombre }}</h5>
+                                    <p class="fs-5 text-muted mb-0" style="text-align: justify;">
+                                        {{ sub.descripcion }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="contacto" class="bg-light p-4 rounded shadow-sm mb-5" data-aos="fade-up">
+            <h3 class="mb-4">Contacto</h3>
+            <form id="miFormulario" enctype="multipart/form-data">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Nombre *</label>
+                        <input type="text" class="form-control" name="nombre" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Apellido *</label>
+                        <input type="text" class="form-control" name="apellido" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>CUIT (Opcional)</label>
+                        <input type="text" class="form-control" name="cuit">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Razón Social (Opcional)</label>
+                        <input type="text" class="form-control" name="razon_social">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Tu Email *</label>
+                        <input type="email" class="form-control" name="email_usuario" required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label>Telefono (Opcional)</label>
+                        <input type="tel" class="form-control" name="telefono" pattern="[0-9+\-\s()]+"
+                            title="Solo números y caracteres telefónicos válidos">
+                    </div>
+
+                </div>
+
+                <div class="mb-3">
+                    <label>Asunto *</label>
+                    <select class="form-select" name="asunto" required>
+                        <option value="Solicitud de Presupuesto">Solicitud Presupuesto</option>
+                        <option value="Asesoramiento">Asesoramiento</option>
+                        <!-- <option value="Solicitud Lista Precios">Solicitud Lista de Precios</option> -->
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Su consulta *</label>
+                    <textarea class="form-control" rows="4" name="detalles" required></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label>Adjuntar imagen/plano (Opcional)</label>
+                    <input type="file" class="form-control" name="archivo_adjunto" accept="image/*,.pdf">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100">Enviar</button>
+            </form>
+        </section>
+    </main>
+
+    <div class="floating-socials">
+        <a href="https://wa.me/5491144471684" target="_blank" class="btn-social bg-wpp">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+        <a href="https://www.instagram.com/indelfrixs.a" target="_blank" class="btn-social bg-ig">
+            <i class="fab fa-instagram"></i>
+        </a>
     </div>
+
+    <footer class="bg-dark text-white pt-5 pb-2 mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 mb-4 text-start">
+                    <h5 class="text-uppercase d-flex align-items-center text-white">Nosotros</h5>
+                    <div id="detallesEmpresa">
+                        <div class="card card-body bg-transparent border-0 text-white p-0 pt-2">
+                            <p class="small mb-0">
+                                INDELFRIX S.A. se especializa en soluciones de frío industrial.
+                                Fabricamos equipos personalizados para sectores clave de la industria nacional.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4 text-start">
+                    <h5 class="text-uppercase">Contacto</h5>
+                    <ul class="list-unstyled p-0 m-0">
+                        <li class="mb-2">
+                            <a href="https://maps.app.goo.gl/aaN9RNn9kvFtcVTLA" target="_blank"
+                                class="text-white text-decoration-none hover-link">
+                                <i class="fas fa-map-marker-alt me-2 text-primary"></i> Maria Mazzarelo 3470, Villa
+                                Tesei, Buenos Aires, Argentina.
+                            </a>
+                        </li>
+                        <li class="mb-2"><i class="fas fa-phone me-2"></i> 4450-3040</li>
+                        <li class="mb-2"><i class="fas fa-phone me-2"></i> 4459-1895</li>
+                        <li class="mb-2"><i class="fas fa-envelope me-2"></i> indelfrix.ventas@gmail.com </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-copyright text-center py-3 border-top border-secondary mt-3">
+            <small>© 2026 INDELFRIX S.A. - Todos los derechos reservados.</small>
+        </div>
+    </footer>
+
+    <div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0 text-center position-relative">
+                    <img src="" id="lightboxImg" class="img-fluid rounded shadow-lg" style="max-height: 90vh;">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                        data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        // Inicializar animaciones de scroll
+        AOS.init({
+            duration: 1000, // Duración de la animación en milisegundos
+            once: true      // La animación ocurre solo una vez al bajar
+        });
+    </script>
+
+
+    <script>
+        (function () {
+            const form = document.getElementById('miFormulario');
+            if (!form) return;
+            form.addEventListener('submit', function (e) {
+                e.preventDefault(); // Evita que la página se recargue
+
+                let formData = new FormData(form);
+
+                fetch('/enviar_mail', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        alert("¡Mensaje enviado con éxito!");
+                        form.reset(); // Limpia el formulario
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+        })();
+    </script>
+
+    <script>
+
+        function smoothScroll(targetId) {
+            const target = document.getElementById(targetId);
+            if (target) {
+                // window.scrollTo con behavior: 'smooth' suele ser bloqueado por el SO, 
+                // pero element.scrollIntoView suele tener mejor compatibilidad.
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }
+
+        (function () {
+            function initSnowflakes() {
+                const snowWrapper = document.querySelector('.snowflakes');
+                if (!snowWrapper) return;
+                if (snowWrapper.dataset.inited) return;
+                snowWrapper.dataset.inited = '1';
+                const totalSnowflakes = 40;
+                for (let i = 0; i < totalSnowflakes; i++) {
+                    const span = document.createElement('span');
+                    span.className = 'snowflake';
+
+                    const left = Math.random() * 100;
+                    const top = Math.random() * 100;
+                    const size = 0.6 + Math.random() * 1.4;
+                    const opacity = 0.25 + Math.random() * 0.6;
+                    const duration = 12 + Math.random() * 10;
+                    const delay = -Math.random() * 10;
+                    const drift = (Math.random() - 0.5) * 18;
+
+                    span.style.left = `${left}%`;
+                    span.style.top = `${top}%`;
+                    span.style.fontSize = `${size}rem`;
+                    span.style.opacity = opacity.toString();
+                    span.style.animationDuration = `${duration}s, ${3 + Math.random() * 2.5}s`;
+                    span.style.animationDelay = `${delay}s, ${delay / 2}s`;
+                    span.style.setProperty('--drift-x', `${drift}vw`);
+
+                    snowWrapper.appendChild(span);
+                }
+            }
+
+            function initLightbox() {
+                const modal = document.getElementById('lightboxModal');
+                const modalImg = document.getElementById('lightboxImg');
+                if (!modal || !modalImg || typeof bootstrap === 'undefined') return;
+                const lightboxModal = new bootstrap.Modal(modal);
+                document.querySelectorAll('.carousel-item img').forEach(img => {
+                    img.addEventListener('click', function () {
+                        if (this.src) {
+                            modalImg.src = this.src;
+                            lightboxModal.show();
+                        }
+                    });
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    initSnowflakes();
+                    initLightbox();
+                });
+            } else {
+                initSnowflakes();
+                initLightbox();
+            }
+        })();
+
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+
+        window.addEventListener('beforeunload', function () {
+            window.scrollTo(0, 0);
+        });
+
+        window.addEventListener('load', function () {
+            window.scrollTo(0, 0);
+        });
+    </script>
+
 </body>
 
 </html>

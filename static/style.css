@@ -1,0 +1,409 @@
+  @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bungee+Shade&display=swap');
+
+  * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      text-decoration: none;
+      list-style: none;
+      font-family: 'Roboto Mono', monospace;
+  }
+
+  body {
+      background-image: url('/static/img/background.webp');
+      background-attachment: scroll;
+      background-position: center;
+      background-repeat: repeat;
+  }
+
+  .sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(13, 77, 68, 0.12);
+  }
+
+  .sticky-nav .navbar-brand,
+  .sticky-nav .nav-link {
+      color: #074845;
+      transition: color 0.25s ease;
+  }
+
+  .sticky-nav .nav-link {
+      position: relative;
+      padding-bottom: 0.25rem;
+  }
+
+  .sticky-nav .nav-link::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 0;
+      height: 2px;
+      background: #4dd0e1;
+      transition: width 0.3s ease;
+  }
+
+  .sticky-nav .nav-link:hover::after,
+  .sticky-nav .nav-link.active::after {
+      width: 100%;
+  }
+
+  .sticky-nav .nav-link:hover {
+      color: #0f4e4a;
+      text-decoration: none;
+  }
+
+  .sticky-nav .navbar-toggler {
+      border-color: rgba(7, 72, 69, 0.35);
+  }
+
+  .sticky-nav .navbar-toggler-icon {
+      background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(7, 72, 69, 0.9)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+  }
+
+  .bungee-shade-regular {
+      font-family: 'Bungee Shade', cursive;
+      font-weight: 400;
+      font-style: normal;
+  }
+
+  .hero-top {
+      height: 100vh;
+      min-height: 520px;
+      width: 100%;
+      background-color: #f8fbff;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+  }
+
+  .hero-top-bg {
+      position: absolute;
+      inset: 0;
+      background-image: url('/static/img/header.webp');
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      z-index: 0;
+  }
+
+  @media (max-width: 992px) {
+      .hero-top {
+          height: 100vh;
+          min-height: 380px;
+      }
+
+      .hero-top::before,
+      .hero-top::after {
+          height: 8%;
+      }
+
+      .snowflake {
+          width: 10px;
+          height: 10px;
+      }
+  }
+
+  @media (max-width: 576px) {
+      .hero-top {
+          height: 100vh;
+          min-height: 320px;
+      }
+
+      .hero-top::before,
+      .hero-top::after {
+          height: 6%;
+      }
+  }
+
+  .hero-top::before,
+  .hero-top::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 12%;
+      background: #f5f3ef;
+      pointer-events: none;
+  }
+
+  .hero-top::before {
+      top: 0;
+  }
+
+  .hero-top::after {
+      bottom: 0;
+  }
+
+  .snowflakes {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 2;
+  }
+
+  footer,
+  main,
+  .floating-socials {
+      position: relative;
+      z-index: 20;
+  }
+
+  .snowflake {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      font-size: 1rem;
+      color: rgba(77, 208, 225, 0.95);
+      opacity: 0.85;
+      transform-origin: center;
+      animation: fall var(--fall-duration, 18s) linear infinite,
+          flickr var(--flickr-duration, 3.4s) ease-in-out infinite alternate;
+      will-change: transform, opacity;
+      pointer-events: none;
+  }
+
+  .snowflake::before {
+      content: '❄';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: inherit;
+      text-shadow: 0 0 12px rgba(77, 208, 225, 0.28);
+      filter: drop-shadow(0 0 8px rgba(77, 208, 225, 0.16));
+  }
+
+  @keyframes flickr {
+
+      0%,
+      100% {
+          opacity: 0.95;
+      }
+
+      50% {
+          opacity: 0.3;
+      }
+  }
+
+  @keyframes fall {
+      0% {
+          transform: translateX(0) translateY(0) rotate(0deg);
+      }
+
+      100% {
+          transform: translateX(var(--drift-x, 8vw)) translateY(110vh) rotate(360deg);
+      }
+  }
+
+  .hero-section {
+      min-height: 65vh;
+      width: 100%;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 5rem 0;
+  }
+
+  .hero-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+          url('/static/img/header.webp'),
+          url('/static/img/background.webp');
+      background-position: center center, center center;
+      background-repeat: no-repeat, no-repeat;
+      background-size: cover, cover;
+      z-index: 0;
+  }
+
+  /* Asegurar que el contenido dentro del hero esté por encima de los copos */
+  .hero-section>.container.position-relative {
+      z-index: 30;
+  }
+
+  /* Oscurecemos un poco la imagen para que el texto blanco sea legible */
+  .hero-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+  }
+
+  /* Animaciones Progresivas */
+  @keyframes fadeIn {
+      from {
+          opacity: 0;
+          transform: translateY(20px);
+      }
+
+      to {
+          opacity: 1;
+          transform: translateY(0);
+      }
+  }
+
+  .animate-fade-in {
+      animation: fadeIn 1s ease-out forwards;
+  }
+
+  .animate-fade-in-delay {
+      animation: fadeIn 1s ease-out 0.5s forwards;
+      opacity: 0;
+  }
+
+  .animate-fade-in-up {
+      animation: fadeIn 1s ease-out 1s forwards;
+      opacity: 0;
+  }
+
+
+  /* Desplazamiento Suave */
+  html {
+      scroll-behavior: smooth;
+  }
+
+  /* Para que el z-index funcione bien */
+  .z-index-1 {
+      z-index: 1;
+  }
+
+  /* Ajuste de imágenes para que NO se recorten */
+  .carousel-item img {
+      height: 450px;
+      width: 100%;
+      object-fit: contain;
+      /* Mantiene la proporción original sin recortar */
+      background-color: #f8f9fa;
+      /* Rellena el espacio sobrante con gris claro */
+      cursor: zoom-in;
+  }
+
+  .floating-socials {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+  }
+
+  .btn-social {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s;
+  }
+
+  .btn-social:hover {
+      transform: scale(1.1);
+      color: white;
+  }
+
+  /* 
+Para que la imagen ocupe todo el espacio de la card
+  .carousel-item img {
+      height: 450px;
+      object-fit: cover;
+      Cambiado de contain a cover 
+      cursor: zoom-in;
+      Indica que se puede ampliar 
+  } 
+*/
+
+  .bg-wpp {
+      background-color: #25D366;
+  }
+
+  .bg-ig {
+      background-color: #E1306C;
+  }
+
+  /* Quita el subrayado de los botones sociales */
+  .btn-social {
+      text-decoration: none !important;
+      /* El !important asegura que Bootstrap no lo sobreescriba */
+  }
+
+  /* Opcional: Quita el subrayado de cualquier enlace dentro de las redes */
+  .floating-socials a {
+      text-decoration: none;
+  }
+
+  /* --- Animación Universal de Collapse (Footer y Cards) --- */
+
+  /* 1. La flecha: Funciona para FontAwesome (footer) y Bootstrap Icons (cards) */
+  .btn-collapse-arrow i,
+  .btn-expand i {
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-block;
+  }
+
+  /* Rotación cuando está abierto */
+  .btn-collapse-arrow:not(.collapsed) i,
+  .btn-expand:not(.collapsed) i {
+      transform: rotate(180deg);
+  }
+
+  /* 2. El contenedor: Suavizamos el movimiento de altura */
+  .collapsing {
+      transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  /* 3. El contenido: Efecto de difuminado (Fade) */
+  .collapse-inner-fade {
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+      opacity: 0;
+      transform: translateY(-10px);
+      /* Pequeño movimiento hacia arriba al ocultar */
+  }
+
+  /* Cuando el padre se está abriendo o ya está abierto, mostramos el contenido */
+  .collapsing .collapse-inner-fade,
+  .collapse.show .collapse-inner-fade {
+      opacity: 1;
+      transform: translateY(0);
+  }
+
+  /* --- Mejoras extras para las Cards --- */
+  .card-hover {
+      transition: all 0.3s ease;
+  }
+
+  .card-hover:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .carousel-inner {
+      background-color: #ffffff;
+      /* O un gris muy sutil #fdfdfd */
+      border-radius: 8px;
+  }
+
+  .carousel-item img {
+      height: 450px;
+      object-fit: contain;
+      /* Mantiene la imagen completa */
+      padding: 20px;
+      /* Le da "aire" para que no toque los bordes de la card */
+  }
