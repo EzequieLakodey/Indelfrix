@@ -1,270 +1,257 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
-  @import url('https://fonts.googleapis.com/css2?family=Bungee+Shade&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bungee+Shade&display=swap');
 
-  * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      text-decoration: none;
-      list-style: none;
-      font-family: 'Roboto Mono', monospace;
-  }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    text-decoration: none;
+    list-style: none;
+    font-family: 'Roboto Mono', monospace;
+}
 
-  body {
-      background-image: url('/static/img/background.webp');
-      background-attachment: scroll;
-      background-position: center;
-      background-repeat: repeat;
-  }
-
-  .sticky-nav {
-      position: sticky;
-      top: 0;
-      z-index: 1030;
-      background: rgba(255, 255, 255, 0.18);
-      backdrop-filter: blur(18px);
-      border-bottom: 1px solid rgba(13, 77, 68, 0.12);
-  }
-
-  .sticky-nav .navbar-brand,
-  .sticky-nav .nav-link {
-      color: #074845;
-      transition: color 0.25s ease;
-  }
-
-  .sticky-nav .nav-link {
-      position: relative;
-      padding-bottom: 0.25rem;
-  }
-
-  .sticky-nav .nav-link::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      width: 0;
-      height: 2px;
-      background: #4dd0e1;
-      transition: width 0.3s ease;
-  }
-
-  .sticky-nav .nav-link:hover::after,
-  .sticky-nav .nav-link.active::after {
-      width: 100%;
-  }
-
-  .sticky-nav .nav-link:hover {
-      color: #0f4e4a;
-      text-decoration: none;
-  }
-
-  .sticky-nav .navbar-toggler {
-      border-color: rgba(7, 72, 69, 0.35);
-  }
-
-  .sticky-nav .navbar-toggler-icon {
-      background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(7, 72, 69, 0.9)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
-  }
-
-  .bungee-shade-regular {
-      font-family: 'Bungee Shade', cursive;
-      font-weight: 400;
-      font-style: normal;
-  }
+body {
+    min-height: 100vh;
+    background-image: url('/static/img/background.webp');
+    background-attachment: scroll;
+    background-position: center;
+    background-repeat: repeat;
+}
 
 
-  .snowflakes {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 2;
-  }
+.sticky-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(13, 77, 68, 0.12);
+}
 
-  footer,
-  main,
-  .floating-socials {
-      position: relative;
-      z-index: 20;
-  }
+.sticky-nav .navbar-brand,
+.sticky-nav .nav-link {
+    color: #074845;
+    transition: color 0.25s ease;
+}
 
-  main {
-      background-image: url('/static/img/background.webp');
-      background-attachment: scroll;
-      background-position: center;
-      background-repeat: repeat;
-  }
+.sticky-nav .nav-link {
+    position: relative;
+    padding-bottom: 0.25rem;
+}
 
-  .snowflake {
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      font-size: 1rem;
-      color: rgba(77, 208, 225, 0.95);
-      opacity: 0.85;
-      transform-origin: center;
-      animation: fall var(--fall-duration, 18s) linear infinite,
-          flickr var(--flickr-duration, 3.4s) ease-in-out infinite alternate;
-      will-change: transform, opacity;
-      pointer-events: none;
-  }
+.sticky-nav .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 0;
+    height: 2px;
+    background: #4dd0e1;
+    transition: width 0.3s ease;
+}
 
-  .snowflake::before {
-      content: '❄';
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: inherit;
-      text-shadow: 0 0 12px rgba(77, 208, 225, 0.28);
-      filter: drop-shadow(0 0 8px rgba(77, 208, 225, 0.16));
-  }
+.sticky-nav .nav-link:hover::after,
+.sticky-nav .nav-link.active::after {
+    width: 100%;
+}
 
-  @keyframes flickr {
+.sticky-nav .nav-link:hover {
+    color: #0f4e4a;
+    text-decoration: none;
+}
 
-      0%,
-      100% {
-          opacity: 0.95;
-      }
+.sticky-nav .navbar-toggler {
+    border-color: rgba(7, 72, 69, 0.35);
+}
 
-      50% {
-          opacity: 0.3;
-      }
-  }
+.sticky-nav .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(7, 72, 69, 0.9)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}
 
-  @keyframes fall {
-      0% {
-          transform: translateX(0) translateY(0) rotate(0deg);
-      }
-
-      100% {
-          transform: translateX(var(--drift-x, 8vw)) translateY(110vh) rotate(360deg);
-      }
-  }
-
-  .hero-section {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background-color: #f8fbff;
-      background-image: url('/static/img/background.webp');
-      background-attachment: scroll;
-      background-position: center;
-      background-repeat: repeat;
-      padding: 20px 0;
-  }
-
-  /* Logo: imagen sin recortes, se ajusta dinámicamente */
-  .hero-logo {
-      max-width: 100%;
-      max-height: 90vh;
-      object-fit: contain;
-      padding: 20px;
-  }
-
-  /* Sección de contenido debajo del banner */
-  .hero-content {
-      background-color: #ffffff;
-      padding: 3rem 0;
-      position: relative;
-      z-index: 20;
-  }
-
-  .hero-content .company-name {
-      color: #074845;
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      margin-top: 0;
-  }
-
-  .hero-content p {
-      color: #495057;
-      text-align: justify;
-  }
-
-  /* Animaciones Progresivas */
-  @keyframes fadeIn {
-      from {
-          opacity: 0;
-          transform: translateY(20px);
-      }
-
-      to {
-          opacity: 1;
-          transform: translateY(0);
-      }
-  }
-
-  .animate-fade-in {
-      animation: fadeIn 1s ease-out forwards;
-  }
-
-  .animate-fade-in-delay {
-      animation: fadeIn 1s ease-out 0.5s forwards;
-      opacity: 0;
-  }
-
-  .animate-fade-in-up {
-      animation: fadeIn 1s ease-out 1s forwards;
-      opacity: 0;
-  }
+.bungee-shade-regular {
+    font-family: 'Bungee Shade', cursive;
+    font-weight: 400;
+    font-style: normal;
+}
 
 
-  /* Desplazamiento Suave */
-  html {
-      scroll-behavior: smooth;
-  }
+.snowflakes {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
 
-  /* Para que el z-index funcione bien */
-  .z-index-1 {
-      z-index: 1;
-  }
+footer,
+main,
+.floating-socials {
+    position: relative;
+    z-index: 20;
+}
 
-  /* Ajuste de imágenes para que NO se recorten */
-  .carousel-item img {
-      height: 450px;
-      width: 100%;
-      object-fit: contain;
-      background-color: #f8f9fa;
-      background-image: url('/static/img/background.webp');
-      background-attachment: scroll;
-      background-position: center;
-      background-repeat: repeat;
-      cursor: zoom-in;
-  }
+.snowflake {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    font-size: 1rem;
+    color: rgba(77, 208, 225, 0.95);
+    opacity: 0.85;
+    transform-origin: center;
+    animation: fall var(--fall-duration, 18s) linear infinite,
+        flickr var(--flickr-duration, 3.4s) ease-in-out infinite alternate;
+    will-change: transform, opacity;
+    pointer-events: none;
+}
 
-  .floating-socials {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-  }
+.snowflake::before {
+    content: '❄';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: inherit;
+    text-shadow: 0 0 12px rgba(77, 208, 225, 0.28);
+    filter: drop-shadow(0 0 8px rgba(77, 208, 225, 0.16));
+}
 
-  .btn-social {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      color: white;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      transition: transform 0.3s;
-  }
+@keyframes flickr {
 
-  .btn-social:hover {
-      transform: scale(1.1);
-      color: white;
-  }
+    0%,
+    100% {
+        opacity: 0.95;
+    }
 
-  /* 
+    50% {
+        opacity: 0.3;
+    }
+}
+
+@keyframes fall {
+    0% {
+        transform: translateX(0) translateY(0) rotate(0deg);
+    }
+
+    100% {
+        transform: translateX(var(--drift-x, 8vw)) translateY(110vh) rotate(360deg);
+    }
+}
+
+.hero-section {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 20px 0;
+ 
+    /* Ajuste para que la imagen cubra el área del hero */
+}
+
+/* Logo: imagen sin recortes, se ajusta dinámicamente */
+.hero-logo {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    padding: 20px;
+}
+
+/* Sección de contenido debajo del banner */
+.hero-content {
+    padding: 3rem 0;
+    position: relative;
+    z-index: 20;
+}
+
+.hero-content .company-name {
+    color: #074845;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    margin-top: 0;
+}
+
+.hero-content p {
+    color: #495057;
+    text-align: justify;
+}
+
+/* Animaciones Progresivas */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 1s ease-out forwards;
+}
+
+.animate-fade-in-delay {
+    animation: fadeIn 1s ease-out 0.5s forwards;
+    opacity: 0;
+}
+
+.animate-fade-in-up {
+    animation: fadeIn 1s ease-out 1s forwards;
+    opacity: 0;
+}
+
+
+/* Desplazamiento Suave */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Para que el z-index funcione bien */
+.z-index-1 {
+    z-index: 1;
+}
+
+/* Ajuste de imágenes para que NO se recorten */
+.carousel-item img {
+    height: 450px;
+    width: 100%;
+    object-fit: contain;
+    background-color: #ffffff;
+    cursor: zoom-in;
+}
+
+.floating-socials {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-social {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s;
+}
+
+.btn-social:hover {
+    transform: scale(1.1);
+    color: white;
+}
+
+/* 
 Para que la imagen ocupe todo el espacio de la card
   .carousel-item img {
       height: 450px;
@@ -275,92 +262,211 @@ Para que la imagen ocupe todo el espacio de la card
   } 
 */
 
-  .bg-wpp {
-      background-color: #25D366;
-  }
+.bg-wpp {
+    background-color: #25D366;
+}
 
-  .bg-ig {
-      background-color: #E1306C;
-  }
+.bg-ig {
+    background-color: #E1306C;
+}
 
-  /* Quita el subrayado de los botones sociales */
-  .btn-social {
-      text-decoration: none !important;
-      /* El !important asegura que Bootstrap no lo sobreescriba */
-  }
+/* Quita el subrayado de los botones sociales */
+.btn-social {
+    text-decoration: none !important;
+    /* El !important asegura que Bootstrap no lo sobreescriba */
+}
 
-  /* Opcional: Quita el subrayado de cualquier enlace dentro de las redes */
-  .floating-socials a {
-      text-decoration: none;
-  }
+/* Opcional: Quita el subrayado de cualquier enlace dentro de las redes */
+.floating-socials a {
+    text-decoration: none;
+}
 
-  /* --- Animación Universal de Collapse (Footer y Cards) --- */
+/* --- Animación Universal de Collapse (Footer y Cards) --- */
 
-  /* 1. La flecha: Funciona para FontAwesome (footer) y Bootstrap Icons (cards) */
-  .btn-collapse-arrow i,
-  .btn-expand i {
-      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      display: inline-block;
-  }
+/* 1. La flecha: Funciona para FontAwesome (footer) y Bootstrap Icons (cards) */
+.btn-collapse-arrow i,
+.btn-expand i {
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+}
 
-  /* Rotación cuando está abierto */
-  .btn-collapse-arrow:not(.collapsed) i,
-  .btn-expand:not(.collapsed) i {
-      transform: rotate(180deg);
-  }
+/* Rotación cuando está abierto */
+.btn-collapse-arrow:not(.collapsed) i,
+.btn-expand:not(.collapsed) i {
+    transform: rotate(180deg);
+}
 
-  /* 2. El contenedor: Suavizamos el movimiento de altura */
-  .collapsing {
-      transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
+/* 2. El contenedor: Suavizamos el movimiento de altura */
+.collapsing {
+    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
 
-  /* 3. El contenido: Efecto de difuminado (Fade) */
-  .collapse-inner-fade {
-      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
-      opacity: 0;
-      transform: translateY(-10px);
-      /* Pequeño movimiento hacia arriba al ocultar */
-  }
+/* 3. El contenido: Efecto de difuminado (Fade) */
+.collapse-inner-fade {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    opacity: 0;
+    transform: translateY(-10px);
+    /* Pequeño movimiento hacia arriba al ocultar */
+}
 
-  /* Cuando el padre se está abriendo o ya está abierto, mostramos el contenido */
-  .collapsing .collapse-inner-fade,
-  .collapse.show .collapse-inner-fade {
-      opacity: 1;
-      transform: translateY(0);
-  }
+/* Cuando el padre se está abriendo o ya está abierto, mostramos el contenido */
+.collapsing .collapse-inner-fade,
+.collapse.show .collapse-inner-fade {
+    opacity: 1;
+    transform: translateY(0);
+}
 
-  /* --- Mejoras extras para las Cards --- */
-  .card-hover {
-      transition: all 0.3s ease;
-  }
+/* --- Mejoras extras para las Cards --- */
+.card-hover {
+    transition: all 0.3s ease;
+}
 
-  .card-hover:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
-  }
+.card-hover:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+}
 
-  .carousel-inner {
-      background-color: #ffffff;
-      background-image: url('/static/img/background.webp');
-      background-attachment: scroll;
-      background-position: center;
-      background-repeat: repeat;
-      border-radius: 8px;
-  }
+.carousel-inner {
+    background-color: #ffffff;
+    border-radius: 8px;
+}
 
-  .carousel-item img {
-      height: 450px;
-      object-fit: contain;
-      /* Mantiene la imagen completa */
-      padding: 20px;
-      /* Le da "aire" para que no toque los bordes de la card */
-  }
+.carousel-item img {
+    height: 450px;
+    object-fit: contain;
+    /* Mantiene la imagen completa */
+    padding: 20px;
+    /* Le da "aire" para que no toque los bordes de la card */
+}
 
-  /* Agregar background.webp a elementos específicos, NO a cards o forms */
-  .nav-tabs.bg-light,
-  .carousel-item.bg-light {
-      background-image: url('/static/img/background.webp') !important;
-      background-attachment: scroll;
-      background-position: center;
-      background-repeat: repeat;
-  }
+/* Agregar background.webp a elementos específicos, NO a cards o forms */
+/* Reglas responsive: ocultar logo y navbar en pantallas pequeñas
+   y mostrar el h1 accesible dentro de #sobre-nosotros */
+@media (max-width: 767.98px) {
+
+    .hero-logo,
+    .sticky-nav {
+        display: none !important;
+    }
+
+    /* Hacer visible el h1 reservado para accesibilidad dentro de sobre-nosotros */
+    #sobre-nosotros > h1.visually-hidden {
+        position: static !important;
+        width: auto !important;
+        height: auto !important;
+        margin-bottom: 1rem !important;
+        overflow: visible !important;
+        clip: auto !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+        display: block !important;
+        color: #074845;
+        font-size: clamp(1.6rem, 9vw, 2.6rem);
+        text-align: center;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+    }
+
+    /* Colores para partes del h1 */
+    #sobre-nosotros > h1.visually-hidden .brand-name {
+        color: #0d6efd; /* azul */
+    }
+    #sobre-nosotros > h1.visually-hidden .brand-suffix {
+        color: #000;
+    }
+
+    /* Ajustes de tamaño de fuente para el contenido de la sección sobre-nosotros */
+    .hero-content .company-name {
+        font-size: 1.6rem;
+    }
+    .hero-content p {
+        font-size: 0.95rem;
+    }
+
+    .hero-section {
+        padding: 12px 0;
+        background-size: cover;
+    }
+
+    /* Ajustes para el nav de categorías en móvil: permitir scroll horizontal si hay muchas categorías */
+    .category-filter {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 6px;
+    }
+    .category-filter .nav-item {
+        display: inline-flex;
+    }
+    .category-filter .nav-link {
+        white-space: nowrap;
+        margin-right: 0.4rem;
+    }
+}
+
+/* Estilos para el selector de categorías (botones, sin background image) */
+.category-filter {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: rgba(255,255,255,0.95);
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    -webkit-overflow-scrolling: touch;
+}
+
+.category-filter .nav-item {
+    display: inline-flex;
+}
+
+.category-filter .nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    border: 1px solid rgba(7,72,69,0.12);
+    color: #074845;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    margin: 0 0.25rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    background-image: none;
+}
+
+.category-filter .nav-link:hover {
+    transform: translateY(-2px);
+    background-color: #f8f9fa;
+    color: #0f4e4a;
+    text-decoration: none;
+}
+
+.category-filter .nav-link.active {
+    background-color: #074845;
+    color: #fff;
+    border-color: rgba(0,0,0,0.08);
+    box-shadow: 0 6px 12px rgba(7,72,69,0.08);
+}
+
+.category-filter .nav-link::after { display: none; }
+
+@media (max-width: 767.98px) {
+    .category-filter {
+        overflow-x: auto;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        padding: 0.25rem 0.35rem;
+    }
+}
+
+/* Clases para controlar los colores de la marca cuando el h1 está visible */
+.brand-name {
+    color: #0d6efd;
+    font-weight: 700;
+}
+.brand-suffix {
+    color: #000;
+    font-weight: 700;
+}

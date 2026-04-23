@@ -53,7 +53,7 @@
 
     <!-- Section 2: Contenido -->
     <section id="sobre-nosotros" class="hero-content">
-        <h1 class="visually-hidden">INDELFRIX S.A.</h1>
+        <h1 class="visually-hidden"><span class="brand-name">Indelfrix</span><span class="brand-suffix"> S.A.</span></h1>
 
         <div class="container">
             <div class="border-start border-primary border-4 ps-4 py-3">
@@ -74,10 +74,19 @@
     <div id="catalogo" class="pt-5"></div>
 
     <main class="container mt-5">
+        <!-- Selector de categorías (filtro) -->
+        <nav aria-label="Selector de categorías" class="mb-4">
+            <ul class="nav nav-pills justify-content-center category-filter" id="categoryFilter">
+                <li class="nav-item"><a class="nav-link active" href="#" data-cat="all">Todos</a></li>
+                {% for cat in categorias %}
+                <li class="nav-item"><a class="nav-link" href="#" data-cat="{{ cat.id_categoria }}">{{ cat.nombre }}</a></li>
+                {% endfor %}
+            </ul>
+        </nav>
         <section class="mb-5 container">
             <div class="row g-4">
                 {% for cat in categorias %}
-                <div class="col-12" data-aos="fade-up">
+                <div class="col-12 category-card" data-cat="{{ cat.id_categoria }}" data-aos="fade-up">
                     <div class="card shadow-lg border-0 overflow-hidden">
 
                         <div class="card-header bg-primary text-white p-3">
