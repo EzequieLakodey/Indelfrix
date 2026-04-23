@@ -44,44 +44,29 @@
 
     <div class="snowflakes" aria-hidden="true"></div>
 
-    <section class="hero-top">
-        <div class="hero-top-bg"></div>
-
-        <h1 class="visually-hidden">INDELFRIX S.A.</h1>
-
-        <div class="container text-center" style="z-index: 1;">
-            <img src="{{ url_for('static', filename='img/header.jpg') }}" alt="Logo Indelfrix S.A." class="img-fluid"
-                style="max-height: 60vh; object-fit: contain; width: 100%; max-width: 800px;">
-        </div>
+    <!-- Section 1: Banner Hero con estructura de capas -->
+    <section class="hero-section">
+        <img src="{{ url_for('static', filename='img/header.webp') }}"
+             alt="Logo Indelfrix S.A."
+             class="hero-logo">
     </section>
 
-    <section id="sobre-nosotros"
-        class="hero-section d-flex flex-column align-items-center justify-content-center text-center">
-        <div class="hero-bg"></div>
-        <div class="hero-overlay"></div>
+    <!-- Section 2: Contenido -->
+    <section id="sobre-nosotros" class="hero-content">
+        <h1 class="visually-hidden">INDELFRIX S.A.</h1>
 
-        <div class="container position-relative z-index-1 py-5">
-            <h1 class="company-name" data-aos="fade-up">INDELFRIX</h1>
+        <div class="container">
+            <div class="border-start border-primary border-4 ps-4 py-3">
+                <h1 class="company-name" data-aos="fade-up">Quienes Somos</h1>
 
-            <p class="fs-4 text-white-50 mb-4" data-aos="fade-up" data-aos-delay="100">
-                Más de 30 años brindando asesoramiento integral y soluciones de frío industrial a medida con la mejor
-                calidad del mercado.
-            </p>
+                <p class="fs-4 text-muted mb-4" data-aos="fade-up" data-aos-delay="100">
+                    Indelfrix cuenta con mas de 30 anios brindando asesoramiento integral para el desarrollo de equipos frigorificos industriales a medida, ofreciendo unas de las mejores calidades del mercado Argentino a lo largo y ancho de todo el pais. Nuestro objetivo es proporcionar bienes de maxima calidad para satisfacer las necesidades de nuestros clientes y contribuir a la prolongacion  de la excelencia y la innovación en los proyectos de cada uno.
+                </p>
 
-            <p class="lead text-white mb-4" data-aos="fade-up" data-aos-delay="200">
-                Somos proveedores de riabilidad y eficiencia para sectores gastronómicos, logísticos, farmacéuticos y
-                agropecuarios. Ofreciendo soluciones personalizadas que garanticen el éxito de tu proyecto.
-            </p>
-
-            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                <button onclick="smoothScroll('catalogo')"
-                    class="btn btn-primary btn-lg px-5 py-3 fw-bold rounded-pill">
-                    Ver Catálogo
-                </button>
-                <button onclick="smoothScroll('contacto')"
-                    class="btn btn-outline-light btn-lg px-5 py-3 fw-bold rounded-pill">
-                    Contacto
-                </button>
+                <p class="lead text-muted mb-4" data-aos="fade-up" data-aos-delay="200">
+                    Somos proveedores de riabilidad y eficiencia para sectores gastronómicos, logísticos, farmacéuticos y
+                    agropecuarios. Ofreciendo soluciones personalizadas que garanticen el éxito de tu proyecto.
+                </p>
             </div>
         </div>
     </section>
