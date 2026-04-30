@@ -418,6 +418,30 @@ Para que la imagen ocupe todo el espacio de la card
     }
 }
 
+/* Ocultar selectores y ajustar hero en pantallas menores a 1024px (móviles y tablets) */
+@media (max-width: 1023.98px) {
+
+    .filters-wrapper,
+    .category-filter,
+    .subcategory-filter {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    /* Reducir tamaño del hero y justificar a la izquierda para evitar grandes espacios en blanco */
+    .hero-content .company-name {
+        font-size: 1.5rem;
+    }
+
+    .hero-content p,
+    .hero-content p.lead {
+        font-size: 0.95rem;
+        text-align: left;
+    }
+}
+
 /* Estilos para el selector de categorías (botones, sin background image) */
 .category-filter {
     display: flex;
