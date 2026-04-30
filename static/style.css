@@ -183,7 +183,7 @@ main,
 
 .hero-content p {
     color: #495057;
-    text-align: justify;
+    text-align: left;
 }
 
 /* Animaciones Progresivas */
@@ -570,12 +570,22 @@ Para que la imagen ocupe todo el espacio de la card
     /* Separación del texto */
     left: 0;
     background-color: #0d6efd;
-    /* Color primario de Bootstrap (azul). Cámbialo si tu theme usa otro */
+    /* Color primario de Bootstrap (azul). */
     transform-origin: bottom right;
-    transition: transform 0.4s ease-out;
+    /* Animación al render: se expande y se mantiene */
+    animation: underline-in 0.45s ease-out forwards;
 }
 
-.animated-underline:hover::after {
-    transform: scaleX(1);
-    transform-origin: bottom left;
+@keyframes underline-in {
+    0% {
+        transform: scaleX(0);
+        transform-origin: bottom right;
+        opacity: 0.95;
+    }
+
+    100% {
+        transform: scaleX(1);
+        transform-origin: bottom left;
+        opacity: 1;
+    }
 }
