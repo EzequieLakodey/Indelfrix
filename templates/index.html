@@ -63,13 +63,19 @@
 
                 <p class="fs-4 text-muted mb-4" data-aos="fade-up" data-aos-delay="100">
                     <strong class="texto-borde-hielo">
-                        Indelfrix cuenta con <span class="animated-underline">más de 3 décadas</span> brindando
-                        asesoramiento integral y abasteciendo a toda la República Argentina en el desarrollo de <span
-                            class="animated-underline">equipamiento frigorífico industrial 100 % personalizado</span>.
-                        Nuestro principal propósito es proveer soluciones de excelencia, concebidas para satisfacer las
-                        exigencias de nuestros clientes e impulsar la innovación en todos los sectores que demanden
-                        <span class="animated-underline">refrigeración de máxima eficiencia</span>.
-                    </strong>
+                        Indelfrix cuenta con
+                        <span class="animated-underline">más de 3 décadas</span> brindando
+                        asesoramiento integral y abasteciendo a toda la República Argentina en el desarrollo de
+                        <span class="animated-underline">equipamiento frigorífico industrial 100 %
+                            personalizado</strong></span>.
+                <p class="fs-4 text-muted mb-4" data-aos="fade-up" data-aos-delay="100">
+                    Nuestro principal propósito es proveer soluciones de excelencia, concebidas para satisfacer
+                    las
+                    exigencias de nuestros clientes e impulsar la innovación en todos los sectores que demanden
+                    <span class="animated-underline">refrigeración de máxima eficiencia</span>.
+                </p>
+
+
                 </p>
 
                 <p class="lead text-muted mb-4" data-aos="fade-up" data-aos-delay="200">
@@ -117,7 +123,7 @@
                     <div class="card shadow-lg border-0 overflow-hidden">
 
                         <div class="card-header bg-primary text-white p-3">
-                            <h3 class="mb-0 fw-bold text-uppercase">{{ cat.nombre }}</h3>
+                            <h3 class="mb-0 fw-bold text-uppercase text-center">{{ cat.nombre }}</h3>
                         </div>
 
                         {% if cat.subcategorias %}
@@ -514,7 +520,7 @@
                         const catId = this.dataset.cat;
                         if (catId === 'all') {
                             populateSubmenu('all');
-                            if (sectionCatalogo) scrollToElement(sectionCatalogo);
+                            if (sectionCatalogo) scrollToSectionStart(sectionCatalogo);
                         } else {
                             populateSubmenu(catId);
                             const card = document.querySelector(`.category-card[data-cat="${catId}"]`);
@@ -546,6 +552,24 @@
                 if (targetY < 0) targetY = 0;
                 if (targetY > maxScroll) targetY = maxScroll;
 
+                window.scrollTo({ top: targetY, behavior: 'smooth' });
+            }
+
+            // Scroll to the very start/top of a section, accounting for navbar and (optional) filters height
+            function scrollToSectionStart(el) {
+                if (!el) return;
+                const navbarHeight = navbar ? navbar.offsetHeight : 0;
+                const filtersStuck = filtersWrapper && filtersWrapper.classList.contains('filters-stuck');
+                const wrapperHeight = filtersStuck ? filtersWrapper.offsetHeight : (filtersWrapper ? filtersWrapper.offsetHeight : 0);
+
+                const rect = el.getBoundingClientRect();
+                const elementAbsoluteTop = window.scrollY + rect.top;
+
+                // Target is element top minus navbar and filters (so it appears just below navbar)
+                let targetY = elementAbsoluteTop - navbarHeight - (filtersStuck ? wrapperHeight : 0) - 6;
+                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                if (targetY < 0) targetY = 0;
+                if (targetY > maxScroll) targetY = maxScroll;
                 window.scrollTo({ top: targetY, behavior: 'smooth' });
             }
 

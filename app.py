@@ -38,7 +38,7 @@ subcategorias_imagenes = db.Table('subcategorias_imagenes',
     db.Column('id_imagen', db.Integer, db.ForeignKey('imagenes.id_imagen'), primary_key=True)
 )
 
-categorias_subcategorias=db.Table('categorias_subcategorias',
+categorias_subcategorias = db.Table('categorias_subcategorias',
     db.Column('id_categoria', db.Integer, db.ForeignKey('categorias.id_categoria'), primary_key=True),
     db.Column('id_subcategoria', db.Integer, db.ForeignKey('subcategorias.id_subcategoria'), primary_key=True)
 )
@@ -75,7 +75,9 @@ def inicio():
     # Consultamos todas las categorías y sus imágenes asociadas
     categorias_db = Categoria.query.all()
     subcategorias_db = Subcategoria.query.all()
-    return render_template('index.html', categorias=categorias_db, subcategorias=subcategorias_db)
+    # Pasamos el año actual para el footer
+    current_year = datetime.now().year
+    return render_template('index.html', categorias=categorias_db, subcategorias=subcategorias_db, current_year=current_year)
 
 @app.route('/enviar_mail', methods=['POST'])
 def enviar_mail():

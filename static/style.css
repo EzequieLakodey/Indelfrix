@@ -402,14 +402,15 @@ Para que la imagen ocupe todo el espacio de la card
     }
 
     /* Ajustes para el nav de categorías en móvil: permitir scroll horizontal si hay muchas categorías */
-    .category-filter {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 6px;
-    }
-
-    .category-filter .nav-item {
-        display: inline-flex;
+    .subcategory-filter {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        gap: 0.4rem;
+        background-color: rgba(255, 255, 255, 0.95);
+        padding: 0.2rem 0.4rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
     }
 
     .category-filter .nav-link {
