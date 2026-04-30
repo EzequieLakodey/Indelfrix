@@ -1,6 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Bungee+Shade&display=swap');
 
+.texto-borde-hielo {
+    color: #000000;
+    /* Relleno del texto en color negro */
+    -webkit-text-stroke: 1.5px #a0e0ff;
+    /* Grosor de 1.5px y color celeste hielo para el borde */
+
+    /* Opcional: Un ligero brillo celeste alrededor para dar efecto de frío/hielo */
+    text-shadow: 0px 0px 8px rgba(160, 224, 255, 0.6);
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -145,7 +155,7 @@ main,
     justify-content: center;
     overflow: hidden;
     padding: 20px 0;
- 
+
     /* Ajuste para que la imagen cubra el área del hero */
 }
 
@@ -350,7 +360,7 @@ Para que la imagen ocupe todo el espacio de la card
     }
 
     /* Hacer visible el h1 reservado para accesibilidad dentro de sobre-nosotros */
-    #sobre-nosotros > h1.visually-hidden {
+    #sobre-nosotros>h1.visually-hidden {
         position: static !important;
         width: auto !important;
         height: auto !important;
@@ -368,10 +378,12 @@ Para que la imagen ocupe todo el espacio de la card
     }
 
     /* Colores para partes del h1 */
-    #sobre-nosotros > h1.visually-hidden .brand-name {
-        color: #0d6efd; /* azul */
+    #sobre-nosotros>h1.visually-hidden .brand-name {
+        color: #0d6efd;
+        /* azul */
     }
-    #sobre-nosotros > h1.visually-hidden .brand-suffix {
+
+    #sobre-nosotros>h1.visually-hidden .brand-suffix {
         color: #000;
     }
 
@@ -379,6 +391,7 @@ Para que la imagen ocupe todo el espacio de la card
     .hero-content .company-name {
         font-size: 1.6rem;
     }
+
     .hero-content p {
         font-size: 0.95rem;
     }
@@ -394,9 +407,11 @@ Para que la imagen ocupe todo el espacio de la card
         -webkit-overflow-scrolling: touch;
         padding-bottom: 6px;
     }
+
     .category-filter .nav-item {
         display: inline-flex;
     }
+
     .category-filter .nav-link {
         white-space: nowrap;
         margin-right: 0.4rem;
@@ -409,10 +424,10 @@ Para que la imagen ocupe todo el espacio de la card
     justify-content: space-around;
     align-items: center;
     gap: 0.5rem;
-    background-color: rgba(255,255,255,0.95);
+    background-color: rgba(255, 255, 255, 0.95);
     padding: 0.35rem 0.5rem;
     border-radius: 0.5rem;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
     -webkit-overflow-scrolling: touch;
 }
 
@@ -425,12 +440,12 @@ Para que la imagen ocupe todo el espacio de la card
     align-items: center;
     justify-content: center;
     background-color: #fff;
-    border: 1px solid rgba(7,72,69,0.12);
+    border: 1px solid rgba(7, 72, 69, 0.12);
     color: #074845;
     padding: 0.5rem 0.9rem;
     border-radius: 999px;
     margin: 0 0.25rem;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
     transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease;
     white-space: nowrap;
     background-image: none;
@@ -446,11 +461,50 @@ Para que la imagen ocupe todo el espacio de la card
 .category-filter .nav-link.active {
     background-color: #074845;
     color: #fff;
-    border-color: rgba(0,0,0,0.08);
-    box-shadow: 0 6px 12px rgba(7,72,69,0.08);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 12px rgba(7, 72, 69, 0.08);
 }
 
-.category-filter .nav-link::after { display: none; }
+.category-filter .nav-link::after {
+    display: none;
+}
+
+/* Wrapper that contains both category and subcategory filters */
+.filters-wrapper {
+    width: 100%;
+}
+
+/* Subcategory filter styling (smaller chips) */
+.subcategory-filter {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.subcategory-filter .nav-link {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.78rem;
+    border-radius: 999px;
+    color: #074845;
+    background-color: #fff;
+    border: 1px solid rgba(7, 72, 69, 0.08);
+}
+
+.subcategory-filter .nav-link.active {
+    background-color: #074845;
+    color: #fff;
+}
+
+/* When filters are stuck we give a subtle backdrop and shadow */
+.filters-stuck {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    background-color: rgba(255, 255, 255, 0.98);
+}
 
 @media (max-width: 767.98px) {
     .category-filter {
@@ -466,7 +520,37 @@ Para que la imagen ocupe todo el espacio de la card
     color: #0d6efd;
     font-weight: 700;
 }
+
 .brand-suffix {
     color: #000;
     font-weight: 700;
+}
+
+/* Estilos para el subrayado animado */
+.animated-underline {
+    position: relative;
+    display: inline-block;
+    color: #212529;
+    /* Opcional: oscurece un poco el texto resaltado para que destaque del text-muted */
+}
+
+.animated-underline::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    transform: scaleX(0);
+    height: 3px;
+    /* Grosor de la línea */
+    bottom: -2px;
+    /* Separación del texto */
+    left: 0;
+    background-color: #0d6efd;
+    /* Color primario de Bootstrap (azul). Cámbialo si tu theme usa otro */
+    transform-origin: bottom right;
+    transition: transform 0.4s ease-out;
+}
+
+.animated-underline:hover::after {
+    transform: scaleX(1);
+    transform-origin: bottom left;
 }

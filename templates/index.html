@@ -46,47 +46,71 @@
 
     <!-- Section 1: Banner Hero con estructura de capas -->
     <section class="hero-section">
-        <img src="{{ url_for('static', filename='img/header.webp') }}"
-             alt="Logo Indelfrix S.A."
-             class="hero-logo">
+        <img src="{{ url_for('static', filename='img/header.webp') }}" alt="Logo Indelfrix S.A." class="hero-logo">
     </section>
 
     <!-- Section 2: Contenido -->
     <section id="sobre-nosotros" class="hero-content">
-        <h1 class="visually-hidden"><span class="brand-name">Indelfrix</span><span class="brand-suffix"> S.A.</span></h1>
+        <h1 class="visually-hidden"><span class="brand-name">Indelfrix</span><span class="brand-suffix"> S.A.</span>
+        </h1>
 
         <div class="container">
             <div class="border-start border-primary border-4 ps-4 py-3">
-                <h1 class="company-name" data-aos="fade-up">Quienes Somos</h1>
+                <h1 class="company-name" data-aos="fade-up">Quiénes Somos</h1>
 
                 <p class="fs-4 text-muted mb-4" data-aos="fade-up" data-aos-delay="100">
-                    Indelfrix cuenta con mas de 30 anios brindando asesoramiento integral para el desarrollo de equipos frigorificos industriales a medida, ofreciendo unas de las mejores calidades del mercado Argentino a lo largo y ancho de todo el pais. Nuestro objetivo es proporcionar bienes de maxima calidad para satisfacer las necesidades de nuestros clientes y contribuir a la prolongacion  de la excelencia y la innovación en los proyectos de cada uno.
+                    <strong class="texto-borde-hielo">
+                        Indelfrix cuenta con <span class="animated-underline">más de 3 décadas</span> brindando
+                        asesoramiento integral y abasteciendo a toda la República Argentina en el desarrollo de <span
+                            class="animated-underline">equipamiento frigorífico industrial 100 % personalizado</span>.
+                        Nuestro principal propósito es proveer soluciones de excelencia, concebidas para satisfacer las
+                        exigencias de nuestros clientes e impulsar la innovación en todos los sectores que demanden
+                        <span class="animated-underline">refrigeración de máxima eficiencia</span>.
+                    </strong>
                 </p>
 
                 <p class="lead text-muted mb-4" data-aos="fade-up" data-aos-delay="200">
-                    Somos proveedores de riabilidad y eficiencia para sectores gastronómicos, logísticos, farmacéuticos y
-                    agropecuarios. Ofreciendo soluciones personalizadas que garanticen el éxito de tu proyecto.
+                    <em>
+                        Contamos con un equipo de profesionales altamente calificado, lo que nos permite ofrecer
+                        soluciones a medida que garantizan el éxito de cada proyecto. Nuestra vasta trayectoria abarca
+                        la fabricación y distribución de <span class="animated-underline">evaporadores</span>, <span
+                            class="animated-underline">aeroevaporadores</span>, <span
+                            class="animated-underline">condensadores</span>, <span class="animated-underline">paneles
+                            intercambiadores</span>, <span class="animated-underline">unidades condensadoras</span> y
+                        <span class="animated-underline">compresores</span>. Efectuamos envíos a todo el territorio
+                        nacional.
+                    </em>
                 </p>
             </div>
         </div>
     </section>
 
-    <div id="catalogo" class="pt-5"></div>
+    <div class="pt-5"></div>
 
     <main class="container mt-5">
         <!-- Selector de categorías (filtro) -->
-        <nav aria-label="Selector de categorías" class="mb-4">
-            <ul class="nav nav-pills justify-content-center category-filter" id="categoryFilter">
-                <li class="nav-item"><a class="nav-link active" href="#" data-cat="all">Todos</a></li>
-                {% for cat in categorias %}
-                <li class="nav-item"><a class="nav-link" href="#" data-cat="{{ cat.id_categoria }}">{{ cat.nombre }}</a></li>
-                {% endfor %}
-            </ul>
+        <nav aria-label="Selector de categorías" class="mb-4" id="catalogo">
+            <div id="filtersWrapper" class="filters-wrapper">
+                <ul class="nav nav-pills justify-content-center category-filter" id="categoryFilter">
+                    <li class="nav-item"><a class="nav-link active" href="#" data-cat="all">Todos</a></li>
+                    {% for cat in categorias %}
+                    <li class="nav-item"><a class="nav-link" href="#" data-cat="{{ cat.id_categoria }}"
+                            data-cat-name="{{ cat.nombre|e }}">{{ cat.nombre }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <!-- Submenu de subcategorías (se popula dinámicamente al elegir una categoría) -->
+                <ul class="nav nav-pills justify-content-center subcategory-filter d-none mt-2" id="subcategoryFilter"
+                    aria-hidden="true"></ul>
+            </div>
         </nav>
-        <section class="mb-5 container">
+        <section class="mb-5 container" id="section-catalogo">
             <div class="row g-4">
                 {% for cat in categorias %}
-                <div class="col-12 category-card" data-cat="{{ cat.id_categoria }}" data-aos="fade-up">
+                <div class="col-12 category-card" data-cat="{{ cat.id_categoria }}"
+                    id="categoria-{{ cat.nombre|lower|replace(' ', '-')|replace('/', '-') }}-{{ cat.id_categoria }}"
+                    data-aos="fade-up">
                     <div class="card shadow-lg border-0 overflow-hidden">
 
                         <div class="card-header bg-primary text-white p-3">
@@ -100,8 +124,10 @@
                             <li class="nav-item" role="presentation">
                                 <button
                                     class="nav-link {% if loop.first %}active{% endif %} small text-uppercase fw-bold"
-                                    data-bs-toggle="tab" data-bs-target="#content-sub-{{ sub.id_subcategoria }}"
-                                    type="button" role="tab">
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#content-sub-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
+                                    type="button" role="tab" data-subid="{{ sub.id_subcategoria }}"
+                                    data-subname="{{ sub.nombre|e }}">
                                     {{ sub.nombre }}
                                 </button>
                             </li>
@@ -112,10 +138,10 @@
                         <div class="tab-content">
                             {% for sub in cat.subcategorias %}
                             <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
-                                id="content-sub-{{ sub.id_subcategoria }}" role="tabpanel">
+                                id="content-sub-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}" role="tabpanel">
 
-                                <div id="carouselSub{{ sub.id_subcategoria }}" class="carousel slide"
-                                    data-bs-ride="carousel">
+                                <div id="carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
+                                    class="carousel slide" data-bs-ride="carousel">
                                     <div class="carousel-inner">
                                         {% for img in sub.imagenes %}
                                         <div class="carousel-item {% if loop.first %}active{% endif %}">
@@ -132,12 +158,14 @@
 
                                     {% if sub.imagenes|length > 1 %}
                                     <button class="carousel-control-prev" type="button"
-                                        data-bs-target="#carouselSub{{ sub.id_subcategoria }}" data-bs-slide="prev">
+                                        data-bs-target="#carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
+                                        data-bs-slide="prev">
                                         <span class="carousel-control-prev-icon bg-dark rounded-circle"
                                             aria-hidden="true"></span>
                                     </button>
                                     <button class="carousel-control-next" type="button"
-                                        data-bs-target="#carouselSub{{ sub.id_subcategoria }}" data-bs-slide="next">
+                                        data-bs-target="#carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
+                                        data-bs-slide="next">
                                         <span class="carousel-control-next-icon bg-dark rounded-circle"
                                             aria-hidden="true"></span>
                                     </button>
@@ -266,7 +294,10 @@
             </div>
         </div>
         <div class="footer-copyright text-center py-3 border-top border-secondary mt-3">
-            <small>© 2026 INDELFRIX S.A. - Todos los derechos reservados.</small>
+            <p class="small mb-0">
+                Con más de 30 años de trayectoria, <strong>INDELFRIX S.A.</strong> lidera la fabricación y distribución
+                de equipamiento frigorífico industrial a nivel nacional. Diseñamos soluciones 100 % a medida.
+            </p>
         </div>
     </footer>
 
@@ -398,6 +429,140 @@
         window.addEventListener('load', function () {
             window.scrollTo(0, 0);
         });
+    </script>
+
+    <script>
+        (function () {
+            const filtersWrapper = document.getElementById('filtersWrapper');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const subcategoryFilter = document.getElementById('subcategoryFilter');
+            const sectionCatalogo = document.getElementById('section-catalogo');
+            const navbar = document.querySelector('.sticky-nav');
+
+            // Build a client-side map of categories -> subcategories from the DOM
+            const catMap = {};
+            document.querySelectorAll('.category-card').forEach(card => {
+                const catId = card.dataset.cat;
+                const catName = card.querySelector('.card-header h3')?.textContent.trim() || card.dataset.catName || '';
+                const subs = [];
+                const tabs = card.querySelectorAll(`#tabs-${catId} button`);
+                tabs.forEach(btn => {
+                    subs.push({
+                        id: btn.dataset.subid,
+                        name: btn.dataset.subname || btn.textContent.trim(),
+                        target: btn.getAttribute('data-bs-target')
+                    });
+                });
+                catMap[catId] = { id: catId, name: catName, slug: card.id, subs };
+            });
+
+            function populateSubmenu(catId) {
+                if (!catId || catId === 'all') {
+                    subcategoryFilter.innerHTML = '';
+                    subcategoryFilter.classList.add('d-none');
+                    subcategoryFilter.setAttribute('aria-hidden', 'true');
+                    return;
+                }
+                const data = catMap[catId];
+                if (!data) return;
+                subcategoryFilter.innerHTML = '';
+                data.subs.forEach((sub, idx) => {
+                    const li = document.createElement('li');
+                    li.className = 'nav-item';
+                    const a = document.createElement('a');
+                    a.className = 'nav-link small text-uppercase fw-bold';
+                    if (idx === 0) a.classList.add('active');
+                    a.href = '#';
+                    a.dataset.cat = data.id;
+                    a.dataset.subid = sub.id;
+                    a.dataset.target = sub.target;
+                    a.textContent = sub.name;
+                    a.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        subcategoryFilter.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+                        this.classList.add('active');
+                        const card = document.querySelector(`.category-card[data-cat="${this.dataset.cat}"]`);
+                        if (card) {
+                            scrollToElement(card);
+                            setTimeout(() => {
+                                const tabBtn = document.querySelector(`#tabs-${this.dataset.cat} button[data-subid="${this.dataset.subid}"]`);
+                                if (tabBtn) {
+                                    const bsTab = new bootstrap.Tab(tabBtn);
+                                    bsTab.show();
+                                }
+                            }, 420);
+                        }
+                    });
+                    li.appendChild(a);
+                    subcategoryFilter.appendChild(li);
+                });
+                subcategoryFilter.classList.remove('d-none');
+                subcategoryFilter.setAttribute('aria-hidden', 'false');
+            }
+
+            // Category clicks
+            if (categoryFilter) {
+                categoryFilter.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        categoryFilter.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+                        const catId = this.dataset.cat;
+                        if (catId === 'all') {
+                            populateSubmenu('all');
+                            if (sectionCatalogo) scrollToElement(sectionCatalogo);
+                        } else {
+                            populateSubmenu(catId);
+                            const card = document.querySelector(`.category-card[data-cat="${catId}"]`);
+                            if (card) scrollToElement(card);
+                        }
+                    });
+                });
+            }
+
+            function scrollToElement(el) {
+                if (!el) return;
+                const navbarHeight = navbar ? navbar.offsetHeight : 0;
+                const wrapperHeight = (filtersWrapper && filtersWrapper.classList.contains('filters-stuck')) ? filtersWrapper.offsetHeight : (filtersWrapper ? filtersWrapper.offsetHeight : 0);
+                const extraOffset = navbarHeight + wrapperHeight;
+                const rect = el.getBoundingClientRect();
+                const targetY = window.scrollY + rect.top - extraOffset - 10;
+                window.scrollTo({ top: targetY, behavior: 'smooth' });
+            }
+
+            // Sticky behavior for filtersWrapper: pega debajo del navbar cuando el usuario está dentro de #section-catalogo
+            function updateSticky() {
+                if (!sectionCatalogo || !filtersWrapper) return;
+                const rect = sectionCatalogo.getBoundingClientRect();
+                const navbarHeight = navbar ? navbar.offsetHeight : 0;
+                const inSection = rect.top <= navbarHeight && rect.bottom > navbarHeight + 10;
+                if (inSection) {
+                    if (!filtersWrapper.classList.contains('filters-stuck')) {
+                        const container = document.querySelector('main.container') || document.querySelector('.container');
+                        const cRect = container ? container.getBoundingClientRect() : { left: 0, width: window.innerWidth };
+                        filtersWrapper.style.position = 'fixed';
+                        filtersWrapper.style.top = `${navbarHeight}px`;
+                        filtersWrapper.style.left = `${cRect.left}px`;
+                        filtersWrapper.style.width = `${cRect.width}px`;
+                        filtersWrapper.style.zIndex = '1035';
+                        filtersWrapper.classList.add('filters-stuck');
+                    }
+                } else {
+                    if (filtersWrapper.classList.contains('filters-stuck')) {
+                        filtersWrapper.classList.remove('filters-stuck');
+                        filtersWrapper.style.position = '';
+                        filtersWrapper.style.top = '';
+                        filtersWrapper.style.left = '';
+                        filtersWrapper.style.width = '';
+                        filtersWrapper.style.zIndex = '';
+                    }
+                }
+            }
+
+            window.addEventListener('scroll', updateSticky, { passive: true });
+            window.addEventListener('resize', updateSticky);
+            updateSticky();
+        })();
     </script>
 
 </body>
