@@ -91,6 +91,22 @@ def enviar_mail():
         asunto_form = request.form.get('asunto')
         detalles = request.form.get('detalles')
         telefono = request.form.get('telefono', 'No especificado')
+        # Campos adicionales del formulario (medidas, producto, temperaturas, aislación, etc.)
+        camara_largo = request.form.get('camara_largo', '')
+        camara_ancho = request.form.get('camara_ancho', '')
+        camara_alto = request.form.get('camara_alto', '')
+        producto_tipo = request.form.get('producto_tipo', 'No especificado')
+        frecuencia_apertura = request.form.get('frecuencia_apertura', 'No especificada')
+        temp_entrada = request.form.get('temp_entrada', '')
+        temp_deseada = request.form.get('temp_deseada', '')
+        tiempo_objetivo = request.form.get('tiempo_objetivo', '')
+        tipo_camara = request.form.get('tipo_camara', 'No especificado')
+        aislacion_tipo = request.form.get('aislacion_tipo', 'No especificado')
+        aislacion_espesor = request.form.get('aislacion_espesor', '')
+        aislacion_densidad = request.form.get('aislacion_densidad', '')
+        posee_antecamara = request.form.get('posee_antecamara', 'No especificado')
+        producto_envoltorio = request.form.get('producto_envoltorio', 'No')
+        tipo_envoltorio = request.form.get('tipo_envoltorio', 'No aplica')
 
         # 2. Guardar en DB para generar el número secuencial
         nueva_solicitud = Solicitud(tipo=asunto_form)
@@ -118,6 +134,23 @@ def enviar_mail():
         DETALLES:
         {detalles}
         """
+
+        # Agregar especificaciones técnicas al cuerpo del mail
+        cuerpo_mail += "\nESPECIFICACIONES TÉCNICAS:\n"
+        cuerpo_mail += f"- Dimensiones cámara (L x A x H m): {camara_largo or '-'} x {camara_ancho or '-'} x {camara_alto or '-'}\n"
+        cuerpo_mail += f"- Tipo de producto: {producto_tipo}\n"
+        cuerpo_mail += f"- Temperatura entrada (°C): {temp_entrada or '-'}\n"
+        cuerpo_mail += f"- Temperatura deseada (°C): {temp_deseada or '-'}\n"
+        cuerpo_mail += f"- Tiempo objetivo (horas): {tiempo_objetivo or '-'}\n"
+        cuerpo_mail += f"- Tipo de cámara: {tipo_camara}\n"
+        cuerpo_mail += f"- Aislación: {aislacion_tipo} — Espesor: {aislacion_espesor or '-'} mm — Densidad: {aislacion_densidad or '-'} kg/m3\n"
+        cuerpo_mail += f"- Posee antecámara: {posee_antecamara}\n"
+        cuerpo_mail += f"- Producto con envoltura: {producto_envoltorio}"
+        if producto_envoltorio == 'Si':
+            cuerpo_mail += f" — Tipo de envoltura: {tipo_envoltorio}\n"
+        else:
+            cuerpo_mail += "\n"
+        cuerpo_mail += f"- Frecuencia apertura puertas: {frecuencia_apertura}\n"
 
         # 5. Configurar y enviar el mensaje
         msg = Message(

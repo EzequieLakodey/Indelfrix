@@ -183,6 +183,7 @@ main,
 
 .hero-content p {
     color: #495057;
+    /* No justificar en ninguna resolución; alineado a la izquierda */
     text-align: left;
 }
 
@@ -439,6 +440,7 @@ Para que la imagen ocupe todo el espacio de la card
     .hero-content p,
     .hero-content p.lead {
         font-size: 0.95rem;
+        /* Evitar justificado en móvil */
         text-align: left;
     }
 }
@@ -554,38 +556,129 @@ Para que la imagen ocupe todo el espacio de la card
 /* Estilos para el subrayado animado */
 .animated-underline {
     position: relative;
-    display: inline-block;
+    display: inline;
     color: #212529;
-    /* Opcional: oscurece un poco el texto resaltado para que destaque del text-muted */
 }
 
 .animated-underline::after {
     content: '';
     position: absolute;
-    width: 100%;
-    transform: scaleX(0);
-    height: 3px;
-    /* Grosor de la línea */
-    bottom: -2px;
-    /* Separación del texto */
     left: 0;
+    bottom: -2px;
+    height: 3px;
+    width: 100%;
     background-color: #0d6efd;
-    /* Color primario de Bootstrap (azul). */
-    transform-origin: bottom right;
-    /* Animación al render: se expande y se mantiene */
+    transform-origin: left center;
+    transform: scaleX(0);
     animation: underline-in 0.45s ease-out forwards;
 }
 
 @keyframes underline-in {
     0% {
         transform: scaleX(0);
-        transform-origin: bottom right;
+        transform-origin: left center;
         opacity: 0.95;
     }
 
     100% {
         transform: scaleX(1);
-        transform-origin: bottom left;
+        transform-origin: left center;
         opacity: 1;
     }
+}
+
+/* Category header: centered title between two blue horizontal lines */
+.category-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    margin: 1.25rem 0;
+}
+
+.category-line {
+    border: 0;
+    height: 3px;
+    background: #0d6efd;
+    width: 60%;
+    margin: 0.5rem auto;
+}
+
+.category-title {
+    color: #000;
+    font-weight: 700;
+    margin: 0.35rem 0;
+    font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+}
+
+/* Dropdown mega styles and hover (desktop) */
+.dropdown-mega {
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    background: #fff;
+    border: 0;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    z-index: 1040;
+}
+
+.dropdown-mega .cat-row,
+.dropdown-mega .sub-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 1rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    min-height: 48px;
+}
+
+@media (min-width: 1024px) {
+    .navbar-nav .dropdown:hover .dropdown-menu {
+        display: block;
+        margin-top: 0;
+    }
+}
+
+.catalog-link {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid rgba(7, 72, 69, 0.08);
+    color: #074845;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.catalog-link:hover {
+    background: #f8f9fa;
+}
+
+/* Hide category nav items on tablet and smaller */
+@media (max-width: 1023.98px) {
+    .nav-categories {
+        display: none !important;
+    }
+}
+
+/* Subcategory card: fixed carousel dimensions so all cards match */
+.subcategory-card .carousel-inner {
+    height: 420px;
+}
+
+.subcategory-card .carousel-item img {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    padding: 12px;
+    background-color: #fff;
+}
+
+.subcategory-card .card-header h5 {
+    font-size: 0.95rem;
 }
