@@ -1,22 +1,27 @@
+import os
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-indelfrix-123')
 
 # --- CONFIGURACIÓN DE BASE DE DATOS (Para el contador) ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///indelfrix.db'
 db = SQLAlchemy(app)
 
-# --- CONFIGURACIÓN DE FLASK-MABIL ---
+# --- CONFIGURACIÓN DE FLASK-MAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_USERNAME'] = 'indelfrix.ventas@gmail.com'
-# OJO: Aquí no va tu contraseña normal de Gmail, sino una "Contraseña de Aplicación"
-app.config['MAIL_PASSWORD'] = 'hrrb irdw qgpy ongg'
-app.config['MAIL_DEFAULT_SENDER'] = 'indelfrix.ventas@gmail.com'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', os.environ.get('MAIL_USERNAME'))
 
 mail = Mail(app)
 
@@ -172,4 +177,6 @@ def enviar_mail():
             return f"Hubo un error al enviar el correo: {str(e)}"
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Usar el puerto que asigne el hosting o 5000 por defecto
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_DEBUG', 'False') == 'True')
