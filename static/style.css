@@ -227,12 +227,18 @@ html {
 
 /* Ajuste de imágenes para que NO se recorten */
 .carousel-item img {
-    height: 450px;
-    width: 100%;
+    display: block;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 500px;
+    margin: 0 auto;
     object-fit: contain;
     background-color: #ffffff;
     cursor: zoom-in;
 }
+
+
 
 .floating-socials {
     position: fixed;
@@ -340,15 +346,22 @@ Para que la imagen ocupe todo el espacio de la card
 .carousel-inner {
     background-color: #ffffff;
     border-radius: 8px;
+    height: auto;
 }
 
 .carousel-item img {
-    height: 450px;
+    display: block;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 500px;
+    margin: 0 auto;
     object-fit: contain;
     /* Mantiene la imagen completa */
     padding: 20px;
     /* Le da "aire" para que no toque los bordes de la card */
 }
+
 
 /* Agregar background.webp a elementos específicos, NO a cards o forms */
 /* Reglas responsive: ocultar logo y navbar en pantallas pequeñas
@@ -666,12 +679,25 @@ Para que la imagen ocupe todo el espacio de la card
 
 /* Subcategory card: fixed carousel dimensions so all cards match */
 .subcategory-card .carousel-inner {
-    height: 420px;
+    height: auto;
+    min-height: 300px;
+    overflow: visible;
+    display: block;
+    text-align: center;
+}
+
+.subcategory-card .carousel-item {
+    display: block;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .subcategory-card .carousel-item img {
-    max-height: 100%;
-    max-width: 100%;
+    display: block;
+    max-width: 95%;
+    max-height: 400px;
     width: auto;
     height: auto;
     object-fit: contain;

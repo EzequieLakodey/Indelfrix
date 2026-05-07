@@ -138,11 +138,12 @@
                                             {% for img in sub.imagenes %}
                                             <div class="carousel-item {% if loop.first %}active{% endif %}">
                                                 <img src="{{ url_for('static', filename='img/' + img.url) }}"
-                                                    class="d-block w-100" alt="{{ sub.nombre }}">
+                                                    class="d-block" alt="{{ sub.nombre }}">
                                             </div>
                                             {% else %}
                                             <div class="carousel-item active text-center p-5 bg-light">
-                                                <span class="text-muted">No hay imágenes disponibles para {{ sub.nombre
+                                                <span class="text-muted">No hay imágenes disponibles para {{
+                                                    sub.descripcion
                                                     }}</span>
                                             </div>
                                             {% endfor %}
@@ -227,7 +228,7 @@
                     </div>
 
                 </div>
-
+                <h5 class="mt-3 mb-2">Dimensiones de la cámara</h5>
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label>Largo (m)</label>
@@ -348,8 +349,8 @@
                 </div>
 
                 <div class="mb-3">
-                    <label>Su consulta *</label>
-                    <textarea class="form-control" rows="4" name="detalles" required></textarea>
+                    <label>Observaciones o Detalles Adicionales (Opcional)</label>
+                    <textarea class="form-control" rows="4" name="detalles"></textarea>
                 </div>
 
                 <div class="mb-4">
