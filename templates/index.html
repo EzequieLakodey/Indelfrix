@@ -5,11 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="Indelfrix cuenta con mas de 30 años ofreciendo asesoramiento integral libre de cargos para el desarrollo de intercambiadores de calor a medida, unidades condensadoras, y compresores, con calidad garantizada y personalizacion a medida, teniendo alcance en mercados gastrononomicos, logisticos, farmaceuticos y agropecuarios.">
+        content="Indelfrix S.A. - Más de 30 años ofreciendo asesoramiento integral en intercambiadores de calor a medida, unidades condensadoras y compresores para mercados gastronómicos, logísticos y agropecuarios.">
     <meta name="robots" content="index, follow">
     <meta name="author" content="INDELFRIX S.A.">
 
-    <title> Indelfrix </title>
+    <!-- OpenGraph (WhatsApp, Facebook, LinkedIn) -->
+    <meta property="og:title" content="Indelfrix S.A. | Refrigeración Industrial a Medida">
+    <meta property="og:description"
+        content="Especialistas en equipamiento frigorífico con más de 3 décadas de experiencia en toda Argentina.">
+    <meta property="og:image" content="{{ url_for('static', filename='img/header.webp') }}">
+    <meta property="og:url" content="https://indelfrix.onrender.com">
+    <meta property="og:type" content="website">
+
+    <title>Indelfrix S.A. | Equipamiento Frigorífico Industrial</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.webp') }}">
@@ -127,7 +135,7 @@
                             <div class="col-xl-4 col-lg-6 col-md-6">
                                 {% endif %}
                                 <div class="card h-100 card-hover subcategory-card"
-                                    id="subcategoria-{{ sub.id_subcategoria }}">
+                                    id="subcategoria-{{ sub.id_subcategoria }}" data-cat-name="{{ cat.nombre }}">
                                     <div class="card-header bg-primary text-white p-3">
                                         <h5 class="mb-0 fw-bold text-uppercase text-center">{{ sub.nombre }}</h5>
                                     </div>
@@ -189,176 +197,182 @@
             {% endfor %}
         </section>
 
-        <section id="contacto" class="bg-light p-4 rounded shadow-sm mb-5" data-aos="fade-up">
-            <h3 class="mb-4">Contacto</h3>
-            <form id="miFormulario" enctype="multipart/form-data">
+        <!-- SECCIÓN DE CONTACTO / FORMULARIO -->
+        <section id="contacto" class="container py-5" data-aos="fade-up">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold text-primary">CONTACTO</h2>
+                <p class="text-muted">Solicitá tu presupuesto o asesoramiento técnico sin cargo</p>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>Nombre *</label>
-                        <input type="text" class="form-control" name="nombre" required>
+            <form id="miFormulario" class="mx-auto p-4 bg-white shadow rounded" style="max-width: 850px;"
+                enctype="multipart/form-data">
+                <!-- 1. Datos de Contacto -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <h5 class="border-bottom pb-2 text-secondary"><i class="fas fa-user-circle me-2"></i>1. Datos de
+                            Contacto</h5>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label>Apellido *</label>
-                        <input type="text" class="form-control" name="apellido" required>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Nombre Completo *</label>
+                        <input type="text" class="form-control" name="nombre" required placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Email *</label>
+                        <input type="email" class="form-control" name="email" required placeholder="juan@ejemplo.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Teléfono / WhatsApp</label>
+                        <input type="text" class="form-control" name="telefono" placeholder="+54 11 ...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Empresa / Razón Social</label>
+                        <input type="text" class="form-control" name="empresa" placeholder="Nombre de su empresa">
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>CUIT (Opcional)</label>
-                        <input type="text" class="form-control" name="cuit">
+                <!-- 2. Su Consulta -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <h5 class="border-bottom pb-2 text-secondary"><i class="fas fa-comment-alt me-2"></i>2. Su
+                            Consulta</h5>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label>Razón Social (Opcional)</label>
-                        <input type="text" class="form-control" name="razon_social">
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>Tu Email *</label>
-                        <input type="email" class="form-control" name="email_usuario" required>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label>Telefono (Opcional)</label>
-                        <input type="tel" class="form-control" name="telefono" pattern="[0-9+\-\s()]+"
-                            title="Solo números y caracteres telefónicos válidos">
-                    </div>
-
-                </div>
-                <h5 class="mt-3 mb-2">Dimensiones de la cámara</h5>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label>Largo (m)</label>
-                        <input type="number" step="0.01" class="form-control" name="camara_largo"
-                            placeholder="Ej: 5.00">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label>Ancho (m)</label>
-                        <input type="number" step="0.01" class="form-control" name="camara_ancho"
-                            placeholder="Ej: 3.20">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label>Alto (m)</label>
-                        <input type="number" step="0.01" class="form-control" name="camara_alto" placeholder="Ej: 2.50">
-                    </div>
-                </div>
-
-                <h5 class="mt-3 mb-2">Datos del producto</h5>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>Tipo de producto a enfriar</label>
-                        <input type="text" class="form-control" name="producto_tipo" placeholder="Ej: Carne congelada">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label>Frecuencia apertura puertas</label>
-                        <select class="form-select" name="frecuencia_apertura">
-                            <option value="Poca">Poca</option>
-                            <option value="Mediana">Mediana</option>
-                            <option value="Intensa">Intensa</option>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold">Asunto / Motivo *</label>
+                        <select class="form-select" name="asunto" required>
+                            <option value="Solicitud de Presupuesto">Solicitud de Presupuesto</option>
+                            <option value="Asesoramiento Técnico">Asesoramiento Técnico</option>
+                            <option value="Consulta General">Consulta General</option>
+                            <option value="Otros">Otros</option>
                         </select>
                     </div>
-                </div>
-
-                <h5 class="mt-3 mb-2">Temperaturas y tiempo</h5>
-
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label>Temperatura de entrada (°C)</label>
-                        <input type="number" step="0.1" class="form-control" name="temp_entrada" placeholder="Ej: 20">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label>Temperatura deseada (°C)</label>
-                        <input type="number" step="0.1" class="form-control" name="temp_deseada" placeholder="Ej: -18">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label>Tiempo objetivo (horas)</label>
-                        <input type="number" step="0.1" class="form-control" name="tiempo_objetivo" placeholder="Ej: 5">
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Mensaje / Observaciones *</label>
+                        <textarea class="form-control" rows="3" name="detalles" required
+                            placeholder="Describa qué necesita..."></textarea>
                     </div>
                 </div>
 
-                <h5 class="mt-3 mb-2">Cámara y aislamiento</h5>
+                <!-- 3. Detalles Técnicos (Colapsable) -->
+                <div class="mb-4">
+                    <button
+                        class="btn btn-outline-primary w-100 d-flex justify-content-between align-items-center fw-bold"
+                        type="button" data-bs-toggle="collapse" data-bs-target="#collapseTecnico">
+                        <span><i class="fas fa-tools me-2"></i> ESPECIFICACIONES TÉCNICAS (OPCIONAL)</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
 
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label>Tipo de cámara</label>
-                        <select class="form-select" name="tipo_camara">
-                            <option value="Mamposteria">Mampostería</option>
-                            <option value="Desarmable">Desarmable</option>
-                        </select>
+                    <div class="collapse" id="collapseTecnico">
+                        <div class="card card-body mt-3 bg-light border-0 shadow-sm">
+                            <!-- Subgrupo: Dimensiones y Congelado -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <h6 class="fw-bold text-dark border-bottom pb-1">Dimensiones y Congelado</h6>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Largo Cámara (m)</label>
+                                    <input type="number" step="0.1" class="form-control" name="camara_largo">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Ancho Cámara (m)</label>
+                                    <input type="number" step="0.1" class="form-control" name="camara_ancho">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Alto Cámara (m)</label>
+                                    <input type="number" step="0.1" class="form-control" name="camara_alto">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Producto / Tipo a enfriar</label>
+                                    <input type="text" class="form-control" name="producto_tipo"
+                                        placeholder="Ej: Carne, Pollo, Helados...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Tiempo de congelado objetivo (horas)</label>
+                                    <input type="number" class="form-control" name="tiempo_objetivo">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Temperatura de Entrada (°C)</label>
+                                    <input type="number" class="form-control" name="temp_entrada">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Temperatura Final Deseada (°C)</label>
+                                    <input type="number" class="form-control" name="temp_deseada">
+                                </div>
+                            </div>
+
+                            <!-- Subgrupo: Cámara y Aislamiento -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <h6 class="fw-bold text-dark border-bottom pb-1">Cámara y Aislamiento</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Tipo de Cámara</label>
+                                    <select class="form-select" name="tipo_camara">
+                                        <option value="Mampostería">Mampostería</option>
+                                        <option value="Desarmable/Panel">Desarmable / Panel</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Material Aislación</label>
+                                    <select class="form-select" name="aislacion_tipo">
+                                        <option value="Poliuretano">Poliuretano</option>
+                                        <option value="Poliestireno">Poliestireno</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Espesor Aislación (mm)</label>
+                                    <input type="number" class="form-control" name="aislacion_espesor">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Densidad Aislación (kg/m³)</label>
+                                    <input type="number" class="form-control" name="aislacion_densidad">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">¿Posee antecámara?</label>
+                                    <select class="form-select" name="posee_antecamara">
+                                        <option value="No">No</option>
+                                        <option value="Si">Sí</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Apertura de puertas (Frecuencia)</label>
+                                    <select class="form-select" name="frecuencia_apertura">
+                                        <option value="Poca">Poca</option>
+                                        <option value="Mediana">Mediana</option>
+                                        <option value="Intensa">Intensa</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Subgrupo: Empaque -->
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <h6 class="fw-bold text-dark border-bottom pb-1">Empaque y Envoltura</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">¿El producto lleva envoltura?</label>
+                                    <select class="form-select" name="producto_envoltorio" id="producto_envoltorio">
+                                        <option value="No">No</option>
+                                        <option value="Si">Sí</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6" id="tipo_envoltorio_wrapper" style="display:none;">
+                                    <label class="form-label small">Tipo de envoltura</label>
+                                    <input type="text" class="form-control" name="tipo_envoltorio"
+                                        placeholder="Ej: Plástico, Papel, Aluminio...">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="col-md-4 mb-3">
-                        <label>Aislación (material)</label>
-                        <select class="form-select" name="aislacion_tipo">
-                            <option value="Poliuretano">Poliuretano</option>
-                            <option value="Poliestireno">Poliestireno</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-2 mb-3">
-                        <label>Espesor (mm)</label>
-                        <input type="number" step="1" class="form-control" name="aislacion_espesor"
-                            placeholder="Eg: 80">
-                    </div>
-
-                    <div class="col-md-2 mb-3">
-                        <label>Densidad (kg/m3)</label>
-                        <input type="number" step="1" class="form-control" name="aislacion_densidad"
-                            placeholder="Eg: 40">
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label>Posee antecámara?</label>
-                        <select class="form-select" name="posee_antecamara">
-                            <option value="No">No</option>
-                            <option value="Si">Sí</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
-                        <label>El producto lleva envoltura?</label>
-                        <select class="form-select" name="producto_envoltorio" id="producto_envoltorio">
-                            <option value="No">No</option>
-                            <option value="Si">Sí</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-4 mb-3" id="tipo_envoltorio_wrapper" style="display:none;">
-                        <label>Tipo de envoltura</label>
-                        <select class="form-select" name="tipo_envoltorio" id="tipo_envoltorio">
-                            <option value="Plastico">Plástico</option>
-                            <option value="Papel">Papel</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label>Asunto *</label>
-                    <select class="form-select" name="asunto" required>
-                        <option value="Solicitud de Presupuesto">Solicitud Presupuesto</option>
-                        <option value="Asesoramiento">Asesoramiento</option>
-                        <!-- <option value="Solicitud Lista Precios">Solicitud Lista de Precios</option> -->
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label>Observaciones o Detalles Adicionales (Opcional)</label>
-                    <textarea class="form-control" rows="4" name="detalles"></textarea>
                 </div>
 
                 <div class="mb-4">
-                    <label>Adjuntar imagen/plano (Opcional)</label>
+                    <label class="form-label small fw-bold">Adjuntar Plano o Imagen (Opcional)</label>
                     <input type="file" class="form-control" name="archivo_adjunto" accept="image/*,.pdf">
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-lg w-100">Enviar</button>
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow">
+                    <i class="fas fa-paper-plane me-2"></i> ENVIAR SOLICITUD
+                </button>
             </form>
         </section>
     </main>
@@ -425,17 +439,7 @@
         </div>
     </footer>
 
-    <div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content bg-transparent border-0">
-                <div class="modal-body p-0 text-center position-relative">
-                    <img src="" id="lightboxImg" class="img-fluid rounded shadow-lg" style="max-height: 90vh;">
-                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
-                        data-bs-dismiss="modal"></button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Modal para mostrar card ampliada (Ver descripción) -->
     <div class="modal fade" id="subcardModal" tabindex="-1" aria-hidden="true">
@@ -476,10 +480,15 @@
                 })
                     .then(response => response.text())
                     .then(data => {
-                        alert("¡Mensaje enviado con éxito!");
-                        form.reset(); // Limpia el formulario
+                        alert(data); // Muestra el mensaje real del servidor (éxito o error)
+                        if (data.includes("éxito")) {
+                            form.reset(); // Solo limpia si fue exitoso
+                        }
                     })
-                    .catch(error => console.error('Error:', error));
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert("Error de conexión al intentar enviar el mensaje.");
+                    });
             });
 
             // Show/hide tipo_envoltorio based on producto_envoltorio
@@ -539,29 +548,12 @@
                 }
             }
 
-            function initLightbox() {
-                const modal = document.getElementById('lightboxModal');
-                const modalImg = document.getElementById('lightboxImg');
-                if (!modal || !modalImg || typeof bootstrap === 'undefined') return;
-                const lightboxModal = new bootstrap.Modal(modal);
-                document.querySelectorAll('.carousel-item img').forEach(img => {
-                    img.addEventListener('click', function () {
-                        if (this.src) {
-                            modalImg.src = this.src;
-                            lightboxModal.show();
-                        }
-                    });
-                });
-            }
-
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', function () {
                     initSnowflakes();
-                    initLightbox();
                 });
             } else {
                 initSnowflakes();
-                initLightbox();
             }
         })();
 
@@ -622,66 +614,94 @@
                 });
             }
 
-            // Handle "Ver descripción" - open modal with full card content
+            // --- Manejo de Galería Ampliada (Modal) ---
             const subcardModalEl = document.getElementById('subcardModal');
             let subcardModal = null;
             if (subcardModalEl && typeof bootstrap !== 'undefined') subcardModal = new bootstrap.Modal(subcardModalEl);
 
-            document.body.addEventListener('click', function (e) {
-                const btn = e.target.closest('.btn-view-desc');
-                if (!btn) return;
-                e.preventDefault();
-                const catId = btn.dataset.catId;
-                const subId = btn.dataset.subId;
-                // find the corresponding card
-                const card = document.querySelector(`#subcategoria-${subId}`);
+            function openGallery(targetId, startImageSrc = null) {
+                const card = document.querySelector(`#subcategoria-${targetId}`);
                 if (!card) return;
+
+                const catName = card.dataset.catName || '';
                 const title = card.querySelector('.card-header h5')?.textContent || '';
-                // collect image srcs
                 const imgs = [];
                 card.querySelectorAll('.carousel-inner img').forEach(img => imgs.push(img.src));
                 const desc = card.querySelector('.desc-content')?.innerHTML || '';
 
-                // build modal content
                 const modalBody = document.getElementById('subcardModalBody');
                 const modalTitle = document.getElementById('subcardModalLabel');
-                modalTitle.textContent = title;
-                const carouselId = `modalCarousel-${catId}-${subId}`;
+                modalTitle.textContent = `${catName} - ${title}`;
+
+                // Determinar el índice de la imagen clickeada (si existe)
+                let startIndex = 0;
+                if (startImageSrc) {
+                    startIndex = imgs.findIndex(src => src === startImageSrc);
+                    if (startIndex === -1) startIndex = 0;
+                }
+
+                const carouselId = `modalCarousel-${targetId}`;
                 const carouselHtml = `
-                    <div id="${carouselId}" class="carousel slide modal-carousel" data-bs-ride="carousel">
-                        <div class="carousel-inner">
-                            ${imgs.length === 0
+                    <div class="row g-0">
+                        <div class="col-lg-8 bg-dark d-flex align-items-center" style="min-height: 50vh;">
+                            <div id="${carouselId}" class="carousel slide modal-carousel w-100" data-bs-ride="false">
+                                <div class="carousel-inner">
+                                    ${imgs.length === 0
                         ? '<div class="carousel-item active text-center p-5 bg-light"><span class="text-muted">No hay imágenes disponibles</span></div>'
                         : imgs.map((s, i) => `
-                                    <div class="carousel-item ${i === 0 ? 'active' : ''}">
-                                        <img src="${s}" class="d-block" alt="Imagen del producto">
-                                    </div>
-                                  `).join('')
+                                            <div class="carousel-item ${i === startIndex ? 'active' : ''}">
+                                                <img src="${s}" class="d-block w-100 modal-img-full" alt="Imagen ampliada">
+                                            </div>
+                                          `).join('')
                     }
+                                </div>
+                                ${imgs.length > 1 ? `
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon bg-white rounded-circle shadow-sm" aria-hidden="true"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon bg-white rounded-circle shadow-sm" aria-hidden="true"></span>
+                                    </button>
+                                ` : ''}
+                            </div>
                         </div>
-                        ${imgs.length > 1 ? `
-                            <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon bg-dark rounded-circle" aria-hidden="true"></span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
-                                <span class="carousel-control-next-icon bg-dark rounded-circle" aria-hidden="true"></span>
-                            </button>
-                        ` : ''}
+                        <div class="col-lg-4 p-4 bg-white d-flex flex-column">
+                            <h4 class="fw-bold mb-3 text-primary border-bottom pb-2">Descripción</h4>
+                            <div class="desc-modal-scroll flex-grow-1">
+                                ${desc ? desc : '<p class="text-muted">Sin descripción disponible.</p>'}
+                            </div>
+                            <div class="mt-4 pt-3 border-top">
+                                <a href="#" class="btn btn-outline-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-2" onclick="alert('Ficha técnica en preparación...'); return false;">
+                                    <i class="fas fa-file-pdf"></i> Descargar Ficha Técnica
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    ${desc ? `<div class="mt-3 desc-modal">${desc}</div>` : ''}
                 `;
 
                 modalBody.innerHTML = carouselHtml;
+                // Ajustar el título del modal principal si es necesario (ya lo pusimos dentro de la columna)
+                modalTitle.textContent = "Detalles del Producto";
+                if (subcardModal) subcardModal.show();
+            }
 
-                if (subcardModal) {
-                    subcardModal.show();
-                    // Reinicializar el carousel de Bootstrap para que los controles funcionen
-                    const carouselEl = document.getElementById(carouselId);
-                    if (carouselEl) {
-                        new bootstrap.Carousel(carouselEl, {
-                            ride: 'carousel',
-                            interval: 3000
-                        });
+            // Delegación de eventos para clicks en imágenes y botones
+            document.body.addEventListener('click', function (e) {
+                // Caso 1: Click en botón "Ver descripción"
+                const btn = e.target.closest('.btn-view-desc');
+                if (btn) {
+                    e.preventDefault();
+                    openGallery(btn.dataset.subId);
+                    return;
+                }
+
+                // Caso 2: Click en imagen de un carrusel de card
+                const img = e.target.closest('.subcategory-card .carousel-item img');
+                if (img) {
+                    const card = img.closest('.subcategory-card');
+                    if (card) {
+                        const subId = card.id.replace('subcategoria-', '');
+                        openGallery(subId, img.src);
                     }
                 }
             });

@@ -17,8 +17,9 @@ db = SQLAlchemy(app)
 
 # --- CONFIGURACIÓN DE FLASK-MAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', os.environ.get('MAIL_USERNAME'))
@@ -88,15 +89,14 @@ def inicio():
 def enviar_mail():
     if request.method == 'POST':
         # 1. Capturar los datos del formulario
-        nombre = request.form.get('nombre')
-        apellido = request.form.get('apellido')
-        cuit = request.form.get('cuit', 'No especificado')
-        razon_social = request.form.get('razon_social', 'No especificada')
-        email_usuario = request.form.get('email_usuario')
-        asunto_form = request.form.get('asunto')
-        detalles = request.form.get('detalles')
+        nombre = request.form.get('nombre', '')
+        email_usuario = request.form.get('email', '') # Coincide con 'name="email"'
+        empresa = request.form.get('empresa', 'No especificada') # Coincide con 'name="empresa"'
+        asunto_form = request.form.get('asunto', 'Consulta Web')
+        detalles = request.form.get('detalles', '')
         telefono = request.form.get('telefono', 'No especificado')
-        # Campos adicionales del formulario (medidas, producto, temperaturas, aislación, etc.)
+
+        # Campos adicionales técnicos
         camara_largo = request.form.get('camara_largo', '')
         camara_ancho = request.form.get('camara_ancho', '')
         camara_alto = request.form.get('camara_alto', '')
@@ -119,21 +119,19 @@ def enviar_mail():
         db.session.commit()
 
         # 3. Formatear los datos para el Asunto
-        numero_solicitud = f"{nueva_solicitud.id:05d}" # Convierte 1 en 00001
-        fecha_actual = datetime.now().strftime("%d/%m/%Y") # Ej: 27/03/2026
+        numero_solicitud = f"{nueva_solicitud.id:05d}"
+        fecha_actual = datetime.now().strftime("%d/%m/%Y")
         
-        # Resultado ej: "Solicitud Presupuesto #00001 ~ 27/03/2026 ~ Juan Gonzalez"
-        asunto_final = f"{asunto_form} #{numero_solicitud} ~ {fecha_actual} ~ {nombre} {apellido}"
+        asunto_final = f"{asunto_form} #{numero_solicitud} ~ {fecha_actual} ~ {nombre}"
 
         # 4. Construir el cuerpo del mail
         cuerpo_mail = f"""
         NUEVA CONSULTA DESDE LA WEB DE INDELFRIX:
         -----------------------------------------
         DATOS DEL CLIENTE:
-        - Nombre y Apellido: {nombre} {apellido}
+        - Nombre Completo: {nombre}
         - Email: {email_usuario}
-        - CUIT: {cuit}
-        - Razón Social: {razon_social}
+        - Empresa / Razón Social: {empresa}
         - Teléfono: {telefono}
         
         DETALLES:
