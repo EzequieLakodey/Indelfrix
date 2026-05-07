@@ -225,16 +225,13 @@ html {
     z-index: 1;
 }
 
-/* Ajuste de imágenes para que NO se recorten */
+/* Estilos base para imágenes del carousel */
 .carousel-item img {
     display: block;
     max-width: 100%;
-    width: auto;
     height: auto;
-    max-height: 500px;
-    margin: 0 auto;
     object-fit: contain;
-    background-color: #ffffff;
+    margin: 0 auto;
     cursor: zoom-in;
 }
 
@@ -349,18 +346,7 @@ Para que la imagen ocupe todo el espacio de la card
     height: auto;
 }
 
-.carousel-item img {
-    display: block;
-    max-width: 100%;
-    width: auto;
-    height: auto;
-    max-height: 500px;
-    margin: 0 auto;
-    object-fit: contain;
-    /* Mantiene la imagen completa */
-    padding: 20px;
-    /* Le da "aire" para que no toque los bordes de la card */
-}
+/* (Eliminado por redundancia con .subcategory-card) */
 
 
 /* Agregar background.webp a elementos específicos, NO a cards o forms */
@@ -679,30 +665,52 @@ Para que la imagen ocupe todo el espacio de la card
 
 /* Subcategory card: fixed carousel dimensions so all cards match */
 .subcategory-card .carousel-inner {
-    height: auto;
-    min-height: 300px;
-    overflow: visible;
-    display: block;
-    text-align: center;
+    height: 400px;
+    /* Consistencia en la altura de las imágenes */
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .subcategory-card .carousel-item {
-    display: block;
-    min-height: 300px;
-    display: flex;
+    height: 100%;
+}
+
+/* Solo aplicamos flex a los ítems que deben ser visibles para no romper el JS de Bootstrap */
+.subcategory-card .carousel-item.active,
+.subcategory-card .carousel-item-next,
+.subcategory-card .carousel-item-prev,
+.modal-carousel .carousel-item.active,
+.modal-carousel .carousel-item-next,
+.modal-carousel .carousel-item-prev {
+    display: flex !important;
     align-items: center;
     justify-content: center;
 }
 
+.modal-carousel .carousel-inner {
+    height: 60vh; /* Mayor altura para el modal */
+    background-color: #fff;
+}
+
+.modal-carousel .carousel-item {
+    height: 100%;
+}
+
+.modal-carousel .carousel-item img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
 .subcategory-card .carousel-item img {
-    display: block;
-    max-width: 95%;
-    max-height: 400px;
+    max-width: 100%;
+    max-height: 100%;
     width: auto;
     height: auto;
     object-fit: contain;
-    padding: 12px;
-    background-color: #fff;
+    padding: 15px;
+    cursor: zoom-in;
 }
 
 .subcategory-card .card-header h5 {

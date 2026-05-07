@@ -44,9 +44,9 @@ categorias_subcategorias = db.Table('categorias_subcategorias',
 )
 
 class Categoria(db.Model):
-    __tablename__ = 'categorias'  # <--- ESTO ES CLAVE: vincula con tu tabla de DBeaver
+    __tablename__ = 'categorias' 
     id_categoria = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column('nombre', db.String(100), nullable=False) # Si en la DB la columna se llama 'categoria'
+    nombre = db.Column('nombre', db.String(100), nullable=False)
     descripcion = db.Column(db.Text)
     
     # Relación muchos a muchos
