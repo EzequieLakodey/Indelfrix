@@ -1,0 +1,44 @@
+{% extends 'base_admin.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>Panel de Administración</h2>
+
+  <div class="row mt-3">
+    <div class="col-md-6">
+      <h4>Categorías</h4>
+      <a href="{{ url_for('admin_create_categoria') }}" class="btn btn-sm btn-primary mb-2">Nueva Categoría</a>
+      <ul class="list-group">
+        {% for cat in categorias %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          {{ cat.nombre }}
+          <div>
+            <a href="{{ url_for('admin_edit_categoria', id=cat.id_categoria) }}"
+              class="btn btn-sm btn-outline-secondary">Editar</a>
+            <a href="{{ url_for('admin_delete_categoria', id=cat.id_categoria) }}"
+              class="btn btn-sm btn-outline-danger">Eliminar</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="col-md-6">
+      <h4>Subcategorías</h4>
+      <a href="{{ url_for('admin_create_subcategoria') }}" class="btn btn-sm btn-primary mb-2">Nueva Subcategoría</a>
+      <ul class="list-group">
+        {% for sub in subcategorias %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          {{ sub.nombre }}
+          <div>
+            <a href="{{ url_for('admin_edit_subcategoria', id=sub.id_subcategoria) }}"
+              class="btn btn-sm btn-outline-secondary">Editar</a>
+            <a href="{{ url_for('admin_delete_subcategoria', id=sub.id_subcategoria) }}"
+              class="btn btn-sm btn-outline-danger">Eliminar</a>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

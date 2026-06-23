@@ -1,9 +1,24 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from datetime import datetime
+from dotenv import load_dotenv
+import os
+import cloudinary
+import cloudinary.uploader
+
+load_dotenv()
+
+# Configuración mínima para Cloudinary (usar variables de entorno en .env)
+cloudinary.config(
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+    secure=True
+)
 
 app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET', 'dev-secret')
 
 # --- CONFIGURACIÓN DE BASE DE DATOS (Para el contador) ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///indelfrix.db'
@@ -79,6 +94,50 @@ def inicio():
     current_year = datetime.now().year
     return render_template('index.html', categorias=categorias_db, subcategorias=subcategorias_db, current_year=current_year)
 
+
+# ------------------ RUTAS DE ADMIN ------------------
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        # Credenciales simples desde variables de entorno
+        ADMIN_USER = os.getenv('ADMIN_USER', 'admin')
+        ADMIN_PASS = os.getenv('ADMIN_PASS', 'password')
+        if username == ADMIN_USER and password == ADMIN_PASS:
+            session['admin_logged_in'] = True
+            flash('Acceso concedido', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Credenciales inválidas', 'danger')
+    return render_template('admin_login.html')
+
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('Sesión cerrada', 'info')
+    return redirect(url_for('inicio'))
+
+
+def admin_required(fn):
+    from functools import wraps
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            flash('Debes iniciar sesión', 'warning')
+            return redirect(url_for('admin_login'))
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    categorias_db = Categoria.query.all()
+    subcategorias_db = Subcategoria.query.all()
+    return render_template('admin/dashboard.html', categorias=categorias_db, subcategorias=subcategorias_db)
+
 @app.route('/enviar_mail', methods=['POST'])
 def enviar_mail():
     if request.method == 'POST':
@@ -137,6 +196,44 @@ def enviar_mail():
             return "¡Mensaje enviado con éxito! Nos contactaremos a la brevedad."
         except Exception as e:
             return f"Hubo un error al enviar el correo: {str(e)}"
+
+
+# --- RUTAS CRUD (ejemplo: crear/editar/eliminar Categoría) ---
+@app.route('/admin/categorias/nueva', methods=['GET', 'POST'])
+@admin_required
+def admin_create_categoria():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        descripcion = request.form.get('descripcion')
+        nueva = Categoria(nombre=nombre, descripcion=descripcion)
+        db.session.add(nueva)
+        db.session.commit()
+        flash('Categoría creada', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return render_template('admin/create_categoria.html')
+
+
+@app.route('/admin/categorias/<int:id>/editar', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_categoria(id):
+    cat = Categoria.query.get_or_404(id)
+    if request.method == 'POST':
+        cat.nombre = request.form.get('nombre')
+        cat.descripcion = request.form.get('descripcion')
+        db.session.commit()
+        flash('Categoría actualizada', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return render_template('admin/edit_categoria.html', categoria=cat)
+
+
+@app.route('/admin/categorias/<int:id>/eliminar')
+@admin_required
+def admin_delete_categoria(id):
+    cat = Categoria.query.get_or_404(id)
+    db.session.delete(cat)
+    db.session.commit()
+    flash('Categoría eliminada', 'info')
+    return redirect(url_for('admin_dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=True)
