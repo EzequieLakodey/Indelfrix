@@ -31,7 +31,7 @@ Crea un archivo `.env` en la raíz del proyecto con al menos las siguientes vari
 
 ```
 FLASK_APP=app.py
-FLASK_ENV=development
+FLASK_ENV=developmentgit merge main
 FLASK_SECRET=una_clave_secreta_larga
 ADMIN_USER=admin
 ADMIN_PASS=changeme

@@ -11,8 +11,11 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">Indelfrix Admin</a>
-      <div class="d-flex">
+      <a class="navbar-brand" href="{{ url_for('admin_dashboard') }}">Indelfrix Admin</a>
+      <div class="d-flex align-items-center">
+        {% if admin_email %}
+        <span class="text-white-50 small me-3">{{ admin_email }}</span>
+        {% endif %}
         <a class="btn btn-outline-light btn-sm me-2" href="{{ url_for('inicio') }}">Ver sitio</a>
         <a class="btn btn-outline-light btn-sm" href="{{ url_for('admin_logout') }}">Salir</a>
       </div>

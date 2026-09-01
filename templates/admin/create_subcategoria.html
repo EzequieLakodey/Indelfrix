@@ -1,0 +1,44 @@
+{% extends 'admin/base_admin.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width:720px;">
+  <h3>Nueva Subcategoría</h3>
+  <form method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Nombre</label>
+      <input class="form-control" name="nombre" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Descripción</label>
+      <textarea class="form-control" name="descripcion" rows="4"></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Categorías</label>
+      {% for cat in categorias %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="categorias" value="{{ cat.id_categoria }}"
+          id="cat-{{ cat.id_categoria }}">
+        <label class="form-check-label" for="cat-{{ cat.id_categoria }}">{{ cat.nombre }}</label>
+      </div>
+      {% else %}
+      <p class="text-muted small">No hay categorías. Creá una primero.</p>
+      {% endfor %}
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Imágenes</label>
+      <input class="form-control" type="file" name="imagenes" accept="image/*" multiple>
+      <div class="form-text">Podés seleccionar varias imágenes a la vez (Ctrl+click). Formatos: JPG, PNG, GIF, WebP, SVG.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Ficha técnica (PDF)</label>
+      {% if can_edit_fichas %}
+      <input class="form-control" type="file" name="ficha_tecnica" accept="application/pdf,.pdf">
+      <div class="form-text">Modelos, datos técnicos y tablas de la subcategoría. Máximo 25 MB.</div>
+      {% else %}
+      <p class="text-muted small mb-0">Solo {{ ficha_editor_email }} puede cargar fichas técnicas.</p>
+      {% endif %}
+    </div>
+    <button class="btn btn-success">Crear</button>
+    <a class="btn btn-link" href="{{ url_for('admin_dashboard') }}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,22 +1,28 @@
 {% extends 'admin/base_admin.html' %}
 {% block content %}
 <div class="container mt-4" style="max-width:720px;">
-  <h3>Nueva Categoría</h3>
+  <h3>Nuevo Producto</h3>
   <form method="post" enctype="multipart/form-data">
     <div class="mb-3">
       <label class="form-label">Nombre</label>
       <input class="form-control" name="nombre" required>
     </div>
     <div class="mb-3">
-      <label class="form-label">Descripción</label>
-      <textarea class="form-control" name="descripcion"></textarea>
+      <label class="form-label">Subcategoría</label>
+      <select class="form-select" name="id_subcategoria" required>
+        <option value="">-- Seleccionar subcategoría --</option>
+        {% for sub in subcategorias %}
+        <option value="{{ sub.id_subcategoria }}">{{ sub.nombre }}</option>
+        {% endfor %}
+      </select>
     </div>
     <div class="mb-3">
       <label class="form-label">Imágenes</label>
       <input class="form-control" type="file" name="imagenes" accept="image/*" multiple>
-      <div class="form-text">Podés seleccionar varias imágenes a la vez (Ctrl+click). Formatos: JPG, PNG, GIF, WebP, SVG.</div>
+      <div class="form-text">Imágenes del producto (opcional).</div>
     </div>
     <button class="btn btn-success">Crear</button>
+    <a class="btn btn-link" href="{{ url_for('admin_dashboard') }}">Cancelar</a>
   </form>
 </div>
 {% endblock %}

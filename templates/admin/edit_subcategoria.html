@@ -1,0 +1,83 @@
+{% extends 'admin/base_admin.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width:720px;">
+  <h3>Editar Subcategoría</h3>
+  <form method="post" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Nombre</label>
+      <input class="form-control" name="nombre" value="{{ subcategoria.nombre }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Descripción</label>
+      <textarea class="form-control" name="descripcion" rows="4">{{ subcategoria.descripcion or '' }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Categorías</label>
+      {% set ids = subcategoria.categorias | map(attribute='id_categoria') | list %}
+      {% for cat in categorias %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="categorias" value="{{ cat.id_categoria }}"
+          id="cat-{{ cat.id_categoria }}" {% if cat.id_categoria in ids %}checked{% endif %}>
+        <label class="form-check-label" for="cat-{{ cat.id_categoria }}">{{ cat.nombre }}</label>
+      </div>
+      {% else %}
+      <p class="text-muted small">No hay categorías. Creá una primero.</p>
+      {% endfor %}
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Imágenes actuales</label>
+      {% if subcategoria.imagenes %}
+      <div class="row g-2 mb-2">
+        {% for img in subcategoria.imagenes %}
+        <div class="col-md-4 col-6">
+          <div class="card position-relative">
+            {% if img.url.startswith('http') %}
+            <img src="{{ img.url }}" class="card-img-top" alt="Imagen" style="max-height:150px; object-fit:cover;">
+            {% else %}
+            <img src="{{ url_for('static', filename='img/' + img.url) }}" class="card-img-top" alt="Imagen" style="max-height:150px; object-fit:cover;">
+            {% endif %}
+            <div class="form-check m-2">
+              <input class="form-check-input" type="checkbox" name="eliminar_imagen" value="{{ img.id_imagen }}" id="elim-img-{{ img.id_imagen }}">
+              <label class="form-check-label small text-danger" for="elim-img-{{ img.id_imagen }}">Eliminar</label>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted small">No hay imágenes cargadas.</p>
+      {% endif %}
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Agregar nuevas imágenes</label>
+      <input class="form-control" type="file" name="imagenes" accept="image/*" multiple>
+      <div class="form-text">Podés seleccionar varias imágenes a la vez (Ctrl+click).</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Ficha técnica (PDF)</label>
+      {% if subcategoria.tiene_ficha() %}
+      <p class="small mb-2">
+        Hay una ficha cargada.
+        <a href="{{ subcategoria.ficha_public_url() }}" target="_blank" rel="noopener">Ver PDF actual</a>
+      </p>
+      {% else %}
+      <p class="text-muted small">Todavía no hay un PDF asociado.</p>
+      {% endif %}
+      {% if can_edit_fichas %}
+      {% if subcategoria.tiene_ficha() %}
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="quitar_ficha" value="1" id="quitar_ficha">
+        <label class="form-check-label" for="quitar_ficha">Quitar ficha técnica</label>
+      </div>
+      {% endif %}
+      <input class="form-control" type="file" name="ficha_tecnica" accept="application/pdf,.pdf">
+      <div class="form-text">Subí un PDF para reemplazar o agregar la ficha. Máximo 25 MB.</div>
+      {% else %}
+      <p class="text-muted small mb-0">Solo {{ ficha_editor_email }} puede cargar o quitar fichas técnicas.</p>
+      {% endif %}
+    </div>
+    <button class="btn btn-primary">Guardar</button>
+    <a class="btn btn-link" href="{{ url_for('admin_dashboard') }}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

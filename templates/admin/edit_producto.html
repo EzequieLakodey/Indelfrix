@@ -1,21 +1,25 @@
 {% extends 'admin/base_admin.html' %}
 {% block content %}
 <div class="container mt-4" style="max-width:720px;">
-  <h3>Editar Categoría</h3>
+  <h3>Editar Producto</h3>
   <form method="post" enctype="multipart/form-data">
     <div class="mb-3">
       <label class="form-label">Nombre</label>
-      <input class="form-control" name="nombre" value="{{ categoria.nombre }}" required>
+      <input class="form-control" name="nombre" value="{{ producto.nombre }}" required>
     </div>
     <div class="mb-3">
-      <label class="form-label">Descripción</label>
-      <textarea class="form-control" name="descripcion">{{ categoria.descripcion }}</textarea>
+      <label class="form-label">Subcategoría</label>
+      <select class="form-select" name="id_subcategoria" required>
+        {% for sub in subcategorias %}
+        <option value="{{ sub.id_subcategoria }}" {% if sub.id_subcategoria == producto.id_subcategoria %}selected{% endif %}>{{ sub.nombre }}</option>
+        {% endfor %}
+      </select>
     </div>
     <div class="mb-3">
       <label class="form-label">Imágenes actuales</label>
-      {% if categoria.imagenes %}
+      {% if producto.imagenes %}
       <div class="row g-2 mb-2">
-        {% for img in categoria.imagenes %}
+        {% for img in producto.imagenes %}
         <div class="col-md-4 col-6">
           <div class="card position-relative">
             {% if img.url.startswith('http') %}
@@ -38,9 +42,9 @@
     <div class="mb-3">
       <label class="form-label">Agregar nuevas imágenes</label>
       <input class="form-control" type="file" name="imagenes" accept="image/*" multiple>
-      <div class="form-text">Podés seleccionar varias imágenes a la vez (Ctrl+click).</div>
     </div>
     <button class="btn btn-primary">Guardar</button>
+    <a class="btn btn-link" href="{{ url_for('admin_dashboard') }}">Cancelar</a>
   </form>
 </div>
 {% endblock %}

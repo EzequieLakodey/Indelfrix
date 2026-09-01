@@ -1,37 +1,41 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from datetime import datetime
 from dotenv import load_dotenv
+from functools import wraps
+from sqlalchemy import inspect, text
+from werkzeug.utils import secure_filename
 import os
+import json
 import cloudinary
 import cloudinary.uploader
 
 load_dotenv()
+cloudinary.reset_config()  # recarga CLOUDINARY_URL / claves luego de dotenv
+cloudinary.config(secure=True)
 
-# Configuración mínima para Cloudinary (usar variables de entorno en .env)
-cloudinary.config(
-    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
-    api_key=os.getenv('CLOUDINARY_API_KEY'),
-    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
-    secure=True
-)
+FICHA_EDITOR_EMAIL = os.getenv('FICHA_EDITOR_EMAIL', 'indelfrix.ventas@gmail.com').strip().lower()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET', 'dev-secret')
+app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25 MB para fichas técnicas PDF
 
 # --- CONFIGURACIÓN DE BASE DE DATOS (Para el contador) ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///indelfrix.db'
 db = SQLAlchemy(app)
 
-# --- CONFIGURACIÓN DE FLASK-MABIL ---
+FICHAS_DIR = os.path.join(app.instance_path, 'fichas')
+os.makedirs(FICHAS_DIR, exist_ok=True)
+
+# --- CONFIGURACIÓN DE FLASK-MAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_USERNAME'] = 'indelfrix.ventas@gmail.com'
-# OJO: Aquí no va tu contraseña normal de Gmail, sino una "Contraseña de Aplicación"
-app.config['MAIL_PASSWORD'] = 'hrrb irdw qgpy ongg'
-app.config['MAIL_DEFAULT_SENDER'] = 'indelfrix.ventas@gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'indelfrix.ventas@gmail.com')
 
 mail = Mail(app)
 
@@ -58,10 +62,15 @@ categorias_subcategorias = db.Table('categorias_subcategorias',
     db.Column('id_subcategoria', db.Integer, db.ForeignKey('subcategorias.id_subcategoria'), primary_key=True)
 )
 
+productos_imagenes = db.Table('productos_imagenes',
+    db.Column('id_producto', db.Integer, db.ForeignKey('productos.id_producto'), primary_key=True),
+    db.Column('id_imagen', db.Integer, db.ForeignKey('imagenes.id_imagen'), primary_key=True)
+)
+
 class Categoria(db.Model):
-    __tablename__ = 'categorias'  # <--- ESTO ES CLAVE: vincula con tu tabla de DBeaver
+    __tablename__ = 'categorias' 
     id_categoria = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column('nombre', db.String(100), nullable=False) # Si en la DB la columna se llama 'categoria'
+    nombre = db.Column('nombre', db.String(100), nullable=False)
     descripcion = db.Column(db.Text)
     
     # Relación muchos a muchos
@@ -74,15 +83,35 @@ class Subcategoria(db.Model):
     id_subcategoria = db.Column(db.Integer, primary_key=True)
     nombre = db.Column('nombre', db.String(100), nullable=False) # Si en la DB la columna se llama 'subcategoria'
     descripcion = db.Column(db.Text)
-    
+    ficha_tecnica_url = db.Column(db.String(500))
+    ficha_tecnica_public_id = db.Column(db.String(255))
+
     # Relación muchos a muchos
     imagenes = db.relationship('Imagen', secondary=subcategorias_imagenes, backref='subcategorias')
+    productos = db.relationship('Producto', backref='subcategoria', lazy=True, cascade='all, delete-orphan')
+
+    def tiene_ficha(self):
+        return bool(self.ficha_tecnica_url)
+
+    def ficha_public_url(self):
+        if not self.ficha_tecnica_url:
+            return None
+        return url_for('ficha_tecnica', sub_id=self.id_subcategoria)
 
 
 class Imagen(db.Model):
     __tablename__ = 'imagenes'    # <--- Vincula con tu tabla 'imagenes'
     id_imagen = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String(200), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    public_id = db.Column(db.String(255), nullable=True)
+
+
+class Producto(db.Model):
+    __tablename__ = 'productos'
+    id_producto = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(200), nullable=False)
+    id_subcategoria = db.Column(db.Integer, db.ForeignKey('subcategorias.id_subcategoria'), nullable=False)
+    imagenes = db.relationship('Imagen', secondary=productos_imagenes, backref='productos')
 
 # --- RUTAS ---
 @app.route('/')
@@ -95,40 +124,197 @@ def inicio():
     return render_template('index.html', categorias=categorias_db, subcategorias=subcategorias_db, current_year=current_year)
 
 
+def _ensure_schema():
+    db.create_all()
+    inspector = inspect(db.engine)
+    if 'subcategorias' in inspector.get_table_names():
+        cols = {col['name'] for col in inspector.get_columns('subcategorias')}
+        statements = []
+        if 'ficha_tecnica_url' not in cols:
+            statements.append('ALTER TABLE subcategorias ADD COLUMN ficha_tecnica_url VARCHAR(500)')
+        if 'ficha_tecnica_public_id' not in cols:
+            statements.append('ALTER TABLE subcategorias ADD COLUMN ficha_tecnica_public_id VARCHAR(255)')
+        for stmt in statements:
+            db.session.execute(text(stmt))
+        if statements:
+            db.session.commit()
+    if 'imagenes' in inspector.get_table_names():
+        cols = {col['name'] for col in inspector.get_columns('imagenes')}
+        if 'public_id' not in cols:
+            db.session.execute(text('ALTER TABLE imagenes ADD COLUMN public_id VARCHAR(255)'))
+            db.session.commit()
+    if 'productos' in inspector.get_table_names():
+        cols = {col['name'] for col in inspector.get_columns('productos')}
+        if 'nombre' not in cols:
+            db.session.execute(text('DROP TABLE IF EXISTS productos_imagenes'))
+            db.session.execute(text('DROP TABLE IF EXISTS productos'))
+            db.session.commit()
+            db.create_all()
+
+
+def _cloudinary_ready():
+    cfg = cloudinary.config()
+    return bool(cfg.cloud_name and cfg.api_key and cfg.api_secret)
+
+
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'}
+
+
+def _is_image(file_storage):
+    if not file_storage or not file_storage.filename:
+        return False
+    ext = os.path.splitext(file_storage.filename)[1].lower()
+    return ext in ALLOWED_IMAGE_EXTENSIONS
+
+
+def upload_imagen(file_storage, folder='indelfrix/imagenes', entity_type='general', entity_id=None):
+    if not _cloudinary_ready():
+        filename = secure_filename(file_storage.filename)
+        path = os.path.join(app.static_folder, 'img', filename)
+        file_storage.save(path)
+        return {'url': filename, 'public_id': None}
+    public_id = f'{entity_type}_{entity_id}_{secure_filename(os.path.splitext(file_storage.filename)[0])}' if entity_id else None
+    result = cloudinary.uploader.upload(
+        file_storage,
+        folder=folder,
+        public_id=public_id,
+        resource_type='image',
+        overwrite=True if public_id else False,
+    )
+    return {'url': result.get('secure_url'), 'public_id': result.get('public_id')}
+
+
+def delete_imagen(imagen):
+    if imagen.public_id and _cloudinary_ready():
+        try:
+            cloudinary.uploader.destroy(imagen.public_id, resource_type='image')
+        except Exception:
+            pass
+    elif imagen.url and not imagen.url.startswith('http'):
+        path = os.path.join(app.static_folder, 'img', imagen.url)
+        if os.path.isfile(path):
+            os.remove(path)
+
+
+def _normalize_email(value):
+    return (value or '').strip().lower()
+
+
+def can_edit_fichas():
+    return bool(
+        session.get('admin_logged_in')
+        and _normalize_email(session.get('admin_email')) == FICHA_EDITOR_EMAIL
+    )
+
+
+def _is_pdf(file_storage):
+    if not file_storage or not file_storage.filename:
+        return False
+    ext = os.path.splitext(file_storage.filename)[1].lower()
+    return ext == '.pdf'
+
+
+def delete_ficha_file(sub):
+    if sub.ficha_tecnica_public_id and _cloudinary_ready():
+        try:
+            cloudinary.uploader.destroy(sub.ficha_tecnica_public_id, resource_type='raw')
+        except Exception:
+            pass
+    if sub.ficha_tecnica_url and not str(sub.ficha_tecnica_url).startswith('http'):
+        path = os.path.join(FICHAS_DIR, os.path.basename(sub.ficha_tecnica_url))
+        if os.path.isfile(path):
+            os.remove(path)
+    sub.ficha_tecnica_url = None
+    sub.ficha_tecnica_public_id = None
+
+
+def save_ficha(sub, file_storage):
+    if not _is_pdf(file_storage):
+        raise ValueError('El archivo debe ser un PDF (.pdf).')
+    delete_ficha_file(sub)
+    if _cloudinary_ready():
+        result = cloudinary.uploader.upload(
+            file_storage,
+            resource_type='raw',
+            folder='indelfrix/fichas',
+            public_id=f'subcategoria_{sub.id_subcategoria}',
+            overwrite=True,
+            invalidate=True,
+        )
+        sub.ficha_tecnica_url = result.get('secure_url')
+        sub.ficha_tecnica_public_id = result.get('public_id')
+        return
+    filename = f'subcategoria_{sub.id_subcategoria}.pdf'
+    file_storage.save(os.path.join(FICHAS_DIR, filename))
+    sub.ficha_tecnica_url = filename
+    sub.ficha_tecnica_public_id = None
+
+
+with app.app_context():
+    _ensure_schema()
+
+
 # ------------------ RUTAS DE ADMIN ------------------
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        # Credenciales simples desde variables de entorno
-        ADMIN_USER = os.getenv('ADMIN_USER', 'admin')
+        email = _normalize_email(request.form.get('email') or '')
+        password = request.form.get('password') or ''
         ADMIN_PASS = os.getenv('ADMIN_PASS', 'password')
-        if username == ADMIN_USER and password == ADMIN_PASS:
+        if email == FICHA_EDITOR_EMAIL and password == ADMIN_PASS:
             session['admin_logged_in'] = True
-            flash('Acceso concedido', 'success')
+            session['admin_email'] = email
+            flash('Acceso concedido.', 'success')
             return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Credenciales inválidas', 'danger')
-    return render_template('admin_login.html')
+        flash('Credenciales inválidas', 'danger')
+    return render_template('admin/login.html')
 
 
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
+    session.pop('admin_email', None)
     flash('Sesión cerrada', 'info')
     return redirect(url_for('inicio'))
 
 
 def admin_required(fn):
-    from functools import wraps
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if not session.get('admin_logged_in'):
             flash('Debes iniciar sesión', 'warning')
             return redirect(url_for('admin_login'))
+        if _normalize_email(session.get('admin_email')) != FICHA_EDITOR_EMAIL:
+            flash('No tenés permisos de administrador', 'danger')
+            session.clear()
+            return redirect(url_for('admin_login'))
         return fn(*args, **kwargs)
     return wrapper
+
+
+@app.context_processor
+def inject_admin_flags():
+    return {
+        'can_edit_fichas': can_edit_fichas(),
+        'ficha_editor_email': FICHA_EDITOR_EMAIL,
+        'admin_email': session.get('admin_email'),
+    }
+
+
+def _apply_ficha_change(sub):
+    archivo = request.files.get('ficha_tecnica')
+    quitar = request.form.get('quitar_ficha')
+    quiere_cambiar = bool((archivo and archivo.filename) or quitar)
+    if not quiere_cambiar:
+        return
+    if not can_edit_fichas():
+        raise PermissionError(
+            f'Solo {FICHA_EDITOR_EMAIL} puede cargar, reemplazar o quitar fichas técnicas.'
+        )
+    if archivo and archivo.filename:
+        save_ficha(sub, archivo)
+    elif quitar:
+        delete_ficha_file(sub)
 
 
 @app.route('/admin')
@@ -142,14 +328,36 @@ def admin_dashboard():
 def enviar_mail():
     if request.method == 'POST':
         # 1. Capturar los datos del formulario
-        nombre = request.form.get('nombre')
-        apellido = request.form.get('apellido')
-        cuit = request.form.get('cuit', 'No especificado')
-        razon_social = request.form.get('razon_social', 'No especificada')
-        email_usuario = request.form.get('email_usuario')
-        asunto_form = request.form.get('asunto')
-        detalles = request.form.get('detalles')
+        nombre = request.form.get('nombre', '')
+        email_usuario = request.form.get('email', '') # Coincide con 'name="email"'
+        empresa = request.form.get('empresa', 'No especificada') # Coincide con 'name="empresa"'
+        asunto_form = request.form.get('asunto', 'Consulta Web')
+        detalles = request.form.get('detalles', '')
         telefono = request.form.get('telefono', 'No especificado')
+
+        # Campos adicionales técnicos
+        camara_largo = request.form.get('camara_largo', '')
+        camara_ancho = request.form.get('camara_ancho', '')
+        camara_alto = request.form.get('camara_alto', '')
+        producto_tipo = request.form.get('producto_tipo', 'No especificado')
+        frecuencia_apertura = request.form.get('frecuencia_apertura', 'No especificada')
+        temp_entrada = request.form.get('temp_entrada', '')
+        temp_deseada = request.form.get('temp_deseada', '')
+        tiempo_objetivo = request.form.get('tiempo_objetivo', '')
+        tipo_camara = request.form.get('tipo_camara', 'No especificado')
+        aislacion_tipo = request.form.get('aislacion_tipo', 'No especificado')
+        aislacion_espesor = request.form.get('aislacion_espesor', '')
+        aislacion_densidad = request.form.get('aislacion_densidad', '')
+        posee_antecamara = request.form.get('posee_antecamara', 'No especificado')
+        producto_envoltorio = request.form.get('producto_envoltorio', 'No')
+        tipo_envoltorio = request.form.get('tipo_envoltorio', 'No aplica')
+
+        # Productos seleccionados desde el catálogo
+        productos_seleccionados_raw = request.form.get('productos_seleccionados', '[]')
+        try:
+            productos_seleccionados = json.loads(productos_seleccionados_raw)
+        except (json.JSONDecodeError, TypeError):
+            productos_seleccionados = []
 
         # 2. Guardar en DB para generar el número secuencial
         nueva_solicitud = Solicitud(tipo=asunto_form)
@@ -157,26 +365,57 @@ def enviar_mail():
         db.session.commit()
 
         # 3. Formatear los datos para el Asunto
-        numero_solicitud = f"{nueva_solicitud.id:05d}" # Convierte 1 en 00001
-        fecha_actual = datetime.now().strftime("%d/%m/%Y") # Ej: 27/03/2026
+        numero_solicitud = f"{nueva_solicitud.id:05d}"
+        fecha_actual = datetime.now().strftime("%d/%m/%Y")
         
-        # Resultado ej: "Solicitud Presupuesto #00001 ~ 27/03/2026 ~ Juan Gonzalez"
-        asunto_final = f"{asunto_form} #{numero_solicitud} ~ {fecha_actual} ~ {nombre} {apellido}"
+        asunto_final = f"{asunto_form} #{numero_solicitud} ~ {fecha_actual} ~ {nombre}"
 
         # 4. Construir el cuerpo del mail
         cuerpo_mail = f"""
         NUEVA CONSULTA DESDE LA WEB DE INDELFRIX:
         -----------------------------------------
         DATOS DEL CLIENTE:
-        - Nombre y Apellido: {nombre} {apellido}
+        - Nombre Completo: {nombre}
         - Email: {email_usuario}
-        - CUIT: {cuit}
-        - Razón Social: {razon_social}
+        - Empresa / Razón Social: {empresa}
         - Teléfono: {telefono}
         
         DETALLES:
         {detalles}
         """
+
+        # Agregar productos seleccionados
+        if productos_seleccionados:
+            cuerpo_mail += "\nPRODUCTOS CONSULTADOS:\n"
+            for prod in productos_seleccionados:
+                prod_nombre = prod.get('nombre', 'Sin nombre')
+                prod_cantidad = prod.get('cantidad', 1)
+                cat_nombre = prod.get('cat', '')
+                sub_nombre = prod.get('sub', '')
+                cantidad_str = f" (Cantidad: {prod_cantidad})" if prod_cantidad and int(prod_cantidad) > 1 else ""
+                if cat_nombre and sub_nombre:
+                    cuerpo_mail += f"- {cat_nombre} > {sub_nombre}: {prod_nombre}{cantidad_str}\n"
+                elif sub_nombre:
+                    cuerpo_mail += f"- {sub_nombre}: {prod_nombre}{cantidad_str}\n"
+                else:
+                    cuerpo_mail += f"- {prod_nombre}{cantidad_str}\n"
+
+        # Agregar especificaciones técnicas al cuerpo del mail
+        cuerpo_mail += "\nESPECIFICACIONES TÉCNICAS:\n"
+        cuerpo_mail += f"- Dimensiones cámara (L x A x H m): {camara_largo or '-'} x {camara_ancho or '-'} x {camara_alto or '-'}\n"
+        cuerpo_mail += f"- Tipo de producto: {producto_tipo}\n"
+        cuerpo_mail += f"- Temperatura entrada (°C): {temp_entrada or '-'}\n"
+        cuerpo_mail += f"- Temperatura deseada (°C): {temp_deseada or '-'}\n"
+        cuerpo_mail += f"- Tiempo objetivo (horas): {tiempo_objetivo or '-'}\n"
+        cuerpo_mail += f"- Tipo de cámara: {tipo_camara}\n"
+        cuerpo_mail += f"- Aislación: {aislacion_tipo} — Espesor: {aislacion_espesor or '-'} mm — Densidad: {aislacion_densidad or '-'} kg/m3\n"
+        cuerpo_mail += f"- Posee antecámara: {posee_antecamara}\n"
+        cuerpo_mail += f"- Producto con envoltura: {producto_envoltorio}"
+        if producto_envoltorio == 'Si':
+            cuerpo_mail += f" — Tipo de envoltura: {tipo_envoltorio}\n"
+        else:
+            cuerpo_mail += "\n"
+        cuerpo_mail += f"- Frecuencia apertura puertas: {frecuencia_apertura}\n"
 
         # 5. Configurar y enviar el mensaje
         msg = Message(
@@ -207,6 +446,13 @@ def admin_create_categoria():
         descripcion = request.form.get('descripcion')
         nueva = Categoria(nombre=nombre, descripcion=descripcion)
         db.session.add(nueva)
+        db.session.flush()
+        archivos = request.files.getlist('imagenes')
+        for archivo in archivos:
+            if archivo and archivo.filename and _is_image(archivo):
+                resultado = upload_imagen(archivo, entity_type='categoria', entity_id=nueva.id_categoria)
+                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
+                nueva.imagenes.append(img)
         db.session.commit()
         flash('Categoría creada', 'success')
         return redirect(url_for('admin_dashboard'))
@@ -220,6 +466,18 @@ def admin_edit_categoria(id):
     if request.method == 'POST':
         cat.nombre = request.form.get('nombre')
         cat.descripcion = request.form.get('descripcion')
+        eliminar_ids = [int(x) for x in request.form.getlist('eliminar_imagen') if x.isdigit()]
+        for img in list(cat.imagenes):
+            if img.id_imagen in eliminar_ids:
+                delete_imagen(img)
+                cat.imagenes.remove(img)
+                db.session.delete(img)
+        archivos = request.files.getlist('imagenes')
+        for archivo in archivos:
+            if archivo and archivo.filename and _is_image(archivo):
+                resultado = upload_imagen(archivo, entity_type='categoria', entity_id=cat.id_categoria)
+                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
+                cat.imagenes.append(img)
         db.session.commit()
         flash('Categoría actualizada', 'success')
         return redirect(url_for('admin_dashboard'))
@@ -230,10 +488,223 @@ def admin_edit_categoria(id):
 @admin_required
 def admin_delete_categoria(id):
     cat = Categoria.query.get_or_404(id)
+    for img in list(cat.imagenes):
+        delete_imagen(img)
+        db.session.delete(img)
+    cat.imagenes.clear()
+    cat.subcategorias.clear()
     db.session.delete(cat)
     db.session.commit()
     flash('Categoría eliminada', 'info')
     return redirect(url_for('admin_dashboard'))
 
+
+@app.route('/fichas/<int:sub_id>')
+def ficha_tecnica(sub_id):
+    sub = Subcategoria.query.get_or_404(sub_id)
+    if not sub.ficha_tecnica_url:
+        abort(404)
+    download_name = f"{secure_filename(sub.nombre) or 'ficha'}.pdf"
+    if str(sub.ficha_tecnica_url).startswith('http'):
+        return redirect(sub.ficha_tecnica_url)
+    filename = os.path.basename(sub.ficha_tecnica_url)
+    return send_from_directory(
+        FICHAS_DIR,
+        filename,
+        mimetype='application/pdf',
+        as_attachment=False,
+        download_name=download_name,
+    )
+
+
+@app.route('/admin/subcategorias/nueva', methods=['GET', 'POST'])
+@admin_required
+def admin_create_subcategoria():
+    categorias = Categoria.query.order_by(Categoria.nombre).all()
+    if request.method == 'POST':
+        nombre = (request.form.get('nombre') or '').strip()
+        if not nombre:
+            flash('El nombre es obligatorio', 'danger')
+            return render_template('admin/create_subcategoria.html', categorias=categorias)
+        nueva = Subcategoria(
+            nombre=nombre,
+            descripcion=request.form.get('descripcion'),
+        )
+        categoria_ids = request.form.getlist('categorias')
+        for cat_id in categoria_ids:
+            cat = Categoria.query.get(cat_id)
+            if cat:
+                nueva.categorias.append(cat)
+        db.session.add(nueva)
+        db.session.flush()
+        archivos = request.files.getlist('imagenes')
+        for archivo in archivos:
+            if archivo and archivo.filename and _is_image(archivo):
+                resultado = upload_imagen(archivo, entity_type='subcategoria', entity_id=nueva.id_subcategoria)
+                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
+                nueva.imagenes.append(img)
+        try:
+            _apply_ficha_change(nueva)
+        except PermissionError as exc:
+            db.session.rollback()
+            flash(str(exc), 'danger')
+            return render_template('admin/create_subcategoria.html', categorias=categorias)
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), 'danger')
+            return render_template('admin/create_subcategoria.html', categorias=categorias)
+        db.session.commit()
+        flash('Subcategoría creada', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return render_template('admin/create_subcategoria.html', categorias=categorias)
+
+
+@app.route('/admin/subcategorias/<int:id>/editar', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_subcategoria(id):
+    sub = Subcategoria.query.get_or_404(id)
+    categorias = Categoria.query.order_by(Categoria.nombre).all()
+    if request.method == 'POST':
+        nombre = (request.form.get('nombre') or '').strip()
+        if not nombre:
+            flash('El nombre es obligatorio', 'danger')
+            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias)
+        sub.nombre = nombre
+        sub.descripcion = request.form.get('descripcion')
+        seleccionadas = {int(cid) for cid in request.form.getlist('categorias') if cid.isdigit()}
+        sub.categorias = [cat for cat in categorias if cat.id_categoria in seleccionadas]
+        eliminar_ids = [int(x) for x in request.form.getlist('eliminar_imagen') if x.isdigit()]
+        for img in list(sub.imagenes):
+            if img.id_imagen in eliminar_ids:
+                delete_imagen(img)
+                sub.imagenes.remove(img)
+                db.session.delete(img)
+        archivos = request.files.getlist('imagenes')
+        for archivo in archivos:
+            if archivo and archivo.filename and _is_image(archivo):
+                resultado = upload_imagen(archivo, entity_type='subcategoria', entity_id=sub.id_subcategoria)
+                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
+                sub.imagenes.append(img)
+        try:
+            _apply_ficha_change(sub)
+        except PermissionError as exc:
+            db.session.rollback()
+            flash(str(exc), 'danger')
+            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias)
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), 'danger')
+            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias)
+        db.session.commit()
+        flash('Subcategoría actualizada', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias)
+
+
+@app.route('/admin/subcategorias/<int:id>/eliminar')
+@admin_required
+def admin_delete_subcategoria(id):
+    sub = Subcategoria.query.get_or_404(id)
+    if sub.tiene_ficha() and not can_edit_fichas():
+        flash(
+            f'Solo {FICHA_EDITOR_EMAIL} puede eliminar una subcategoría que tiene ficha técnica.',
+            'danger',
+        )
+        return redirect(url_for('admin_dashboard'))
+    if sub.tiene_ficha():
+        delete_ficha_file(sub)
+    for img in list(sub.imagenes):
+        delete_imagen(img)
+        db.session.delete(img)
+    sub.imagenes.clear()
+    sub.categorias.clear()
+    db.session.delete(sub)
+    db.session.commit()
+    flash('Subcategoría eliminada', 'info')
+    return redirect(url_for('admin_dashboard'))
+
+
+# --- RUTAS CRUD PRODUCTOS ---
+@app.route('/admin/productos/nuevo', methods=['GET', 'POST'])
+@admin_required
+def admin_create_producto():
+    subcategorias = Subcategoria.query.order_by(Subcategoria.nombre).all()
+    if request.method == 'POST':
+        nombre = (request.form.get('nombre') or '').strip()
+        id_subcategoria = request.form.get('id_subcategoria', type=int)
+        if not nombre or not id_subcategoria:
+            flash('Nombre y subcategoría son obligatorios', 'danger')
+            return render_template('admin/create_producto.html', subcategorias=subcategorias)
+        sub = Subcategoria.query.get(id_subcategoria)
+        if not sub:
+            flash('Subcategoría inválida', 'danger')
+            return render_template('admin/create_producto.html', subcategorias=subcategorias)
+        nuevo = Producto(nombre=nombre, id_subcategoria=id_subcategoria)
+        db.session.add(nuevo)
+        db.session.flush()
+        archivos = request.files.getlist('imagenes')
+        for archivo in archivos:
+            if archivo and archivo.filename and _is_image(archivo):
+                resultado = upload_imagen(archivo, entity_type='producto', entity_id=nuevo.id_producto)
+                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
+                nuevo.imagenes.append(img)
+        db.session.commit()
+        flash('Producto creado', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return render_template('admin/create_producto.html', subcategorias=subcategorias)
+
+
+@app.route('/admin/productos/<int:id>/editar', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_producto(id):
+    prod = Producto.query.get_or_404(id)
+    subcategorias = Subcategoria.query.order_by(Subcategoria.nombre).all()
+    if request.method == 'POST':
+        nombre = (request.form.get('nombre') or '').strip()
+        if not nombre:
+            flash('El nombre es obligatorio', 'danger')
+            return render_template('admin/edit_producto.html', producto=prod, subcategorias=subcategorias)
+        prod.nombre = nombre
+        prod.id_subcategoria = request.form.get('id_subcategoria', type=int) or prod.id_subcategoria
+        eliminar_ids = [int(x) for x in request.form.getlist('eliminar_imagen') if x.isdigit()]
+        for img in list(prod.imagenes):
+            if img.id_imagen in eliminar_ids:
+                delete_imagen(img)
+                prod.imagenes.remove(img)
+                db.session.delete(img)
+        archivos = request.files.getlist('imagenes')
+        for archivo in archivos:
+            if archivo and archivo.filename and _is_image(archivo):
+                resultado = upload_imagen(archivo, entity_type='producto', entity_id=prod.id_producto)
+                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
+                prod.imagenes.append(img)
+        db.session.commit()
+        flash('Producto actualizado', 'success')
+        return redirect(url_for('admin_dashboard'))
+    return render_template('admin/edit_producto.html', producto=prod, subcategorias=subcategorias)
+
+
+@app.route('/admin/productos/<int:id>/eliminar')
+@admin_required
+def admin_delete_producto(id):
+    prod = Producto.query.get_or_404(id)
+    for img in list(prod.imagenes):
+        delete_imagen(img)
+        db.session.delete(img)
+    db.session.delete(prod)
+    db.session.commit()
+    flash('Producto eliminado', 'info')
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/api/productos/<int:sub_id>')
+def api_productos(sub_id):
+    sub = Subcategoria.query.get_or_404(sub_id)
+    productos = [{'id': p.id_producto, 'nombre': p.nombre} for p in sub.productos]
+    return {'productos': productos}
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Usar el puerto que asigne el hosting o 5000 por defecto
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_DEBUG', 'False') == 'True')

@@ -5,11 +5,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="Indelfrix cuenta con mas de 30 años ofreciendo asesoramiento integral libre de cargos para el desarrollo de intercambiadores de calor a medida, unidades condensadoras, y compresores, con calidad garantizada y personalizacion a medida, teniendo alcance en mercados gastrononomicos, logisticos, farmaceuticos y agropecuarios.">
+        content="Indelfrix S.A. - Más de 30 años ofreciendo asesoramiento integral en intercambiadores de calor a medida, unidades condensadoras y compresores para mercados gastronómicos, logísticos y agropecuarios.">
     <meta name="robots" content="index, follow">
     <meta name="author" content="INDELFRIX S.A.">
 
-    <title> Indelfrix </title>
+    <!-- OpenGraph (WhatsApp, Facebook, LinkedIn) -->
+    <meta property="og:title" content="Indelfrix S.A. | Refrigeración Industrial a Medida">
+    <meta property="og:description"
+        content="Especialistas en equipamiento frigorífico con más de 3 décadas de experiencia en toda Argentina.">
+    <meta property="og:image" content="{{ url_for('static', filename='img/header.webp') }}">
+    <meta property="og:url" content="https://indelfrix.onrender.com">
+    <meta property="og:type" content="website">
+
+    <title>Indelfrix S.A. | Equipamiento Frigorífico Industrial</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.webp') }}">
@@ -30,10 +38,13 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav align-items-center gap-3">
+                <ul class="navbar-nav align-items-center gap-3 nav-categories">
+                    {% for cat in categorias %}
                     <li class="nav-item">
-                        <a class="nav-link" href="#catalogo">Catálogo</a>
+                        <a class="nav-link cat-link" href="#categoria-{{ cat.id_categoria }}"
+                            data-target="#categoria-{{ cat.id_categoria }}">{{ cat.nombre }}</a>
                     </li>
+                    {% endfor %}
                     <li class="nav-item">
                         <a class="nav-link" href="#sobre-nosotros">Nosotros</a>
                     </li>
@@ -94,172 +105,354 @@
         </div>
     </section>
 
-    <div class="pt-5"></div>
-
-    <main class="container mt-5">
-        <!-- Selector de categorías (filtro) -->
-        <nav aria-label="Selector de categorías" class="mb-4" id="catalogo">
-            <div id="filtersWrapper" class="filters-wrapper">
-                <ul class="nav nav-pills justify-content-center category-filter" id="categoryFilter">
-                    <li class="nav-item"><a class="nav-link active" href="#" data-cat="all">Todos</a></li>
-                    {% for cat in categorias %}
-                    <li class="nav-item"><a class="nav-link" href="#" data-cat="{{ cat.id_categoria }}"
-                            data-cat-name="{{ cat.nombre|e }}">{{ cat.nombre }}</a>
-                    </li>
-                    {% endfor %}
-                </ul>
-
-                <!-- Submenu de subcategorías (se popula dinámicamente al elegir una categoría) -->
-                <ul class="nav nav-pills justify-content-center subcategory-filter d-none mt-2" id="subcategoryFilter"
-                    aria-hidden="true"></ul>
-            </div>
-        </nav>
-        <section class="mb-5 container" id="section-catalogo">
-            <div class="row g-4">
-                {% for cat in categorias %}
-                <div class="col-12 category-card" data-cat="{{ cat.id_categoria }}"
-                    id="categoria-{{ cat.nombre|lower|replace(' ', '-')|replace('/', '-') }}-{{ cat.id_categoria }}"
-                    data-aos="fade-up">
-                    <div class="card shadow-lg border-0 overflow-hidden">
-
-                        <div class="card-header bg-primary text-white p-3">
-                            <h3 class="mb-0 fw-bold text-uppercase text-center">{{ cat.nombre }}</h3>
-                        </div>
-
-                        {% if cat.subcategorias %}
-                        <ul class="nav nav-tabs bg-light border-bottom-0 px-3 pt-2" id="tabs-{{ cat.id_categoria }}"
-                            role="tablist">
-                            {% for sub in cat.subcategorias %}
-                            <li class="nav-item" role="presentation">
-                                <button
-                                    class="nav-link {% if loop.first %}active{% endif %} small text-uppercase fw-bold"
-                                    data-bs-toggle="tab"
-                                    data-bs-target="#content-sub-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
-                                    type="button" role="tab" data-subid="{{ sub.id_subcategoria }}"
-                                    data-subname="{{ sub.nombre|e }}">
-                                    {{ sub.nombre }}
-                                </button>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-
-                        <div class="tab-content">
-                            {% for sub in cat.subcategorias %}
-                            <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
-                                id="content-sub-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}" role="tabpanel">
-
-                                <div id="carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
-                                    class="carousel slide" data-bs-ride="carousel">
-                                    <div class="carousel-inner">
-                                        {% for img in sub.imagenes %}
-                                        <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                            <img src="{{ url_for('static', filename='img/' + img.url) }}"
-                                                class="d-block w-100" alt="{{ sub.nombre }}">
-                                        </div>
-                                        {% else %}
-                                        <div class="carousel-item active text-center p-5 bg-light">
-                                            <span class="text-muted">No hay imágenes disponibles para {{ sub.nombre
-                                                }}</span>
-                                        </div>
-                                        {% endfor %}
+    <main class="container">
+        <section id="catalogo" class="mb-5">
+            {% for cat in categorias %}
+            <section class="category-section py-4" id="categoria-{{ cat.id_categoria }}" data-aos="fade-up">
+                <div class="category-header text-center my-4">
+                    <hr class="category-line">
+                    <h2 class="category-title mx-auto">{{ cat.nombre }}</h2>
+                    <hr class="category-line">
+                </div>
+                {% set n_sub = cat.subcategorias|length %}
+                {# Decide columnas por categoría: 1 -> 1 col, 2 -> 2 cols, 4 -> 2 cols, else -> 3 cols #}
+                {% if n_sub == 1 %}
+                {% set cols = 1 %}
+                {% elif n_sub == 2 %}
+                {% set cols = 2 %}
+                {% elif n_sub == 4 %}
+                {% set cols = 2 %}
+                {% else %}
+                {% set cols = 3 %}
+                {% endif %}
+                <div class="row g-4">
+                    {% for sub in cat.subcategorias %}
+                    {% if cols == 1 %}
+                    <div class="col-12">
+                        {% elif cols == 2 %}
+                        <div class="col-lg-6 col-md-6 col-12">
+                            {% else %}
+                            <div class="col-xl-4 col-lg-6 col-md-6">
+                                {% endif %}
+                                <div class="card h-100 card-hover subcategory-card"
+                                    id="subcategoria-{{ sub.id_subcategoria }}" data-cat-name="{{ cat.nombre }}"
+                                    data-sub-id="{{ sub.id_subcategoria }}"
+                                    data-ficha-url="{{ sub.ficha_public_url() or '' }}"
+                                    data-productos="{{ sub.productos | map(attribute='nombre') | list | tojson | e }}"
+                                    data-productos-ids="{{ sub.productos | map(attribute='id_producto') | list | tojson | e }}">
+                                    <div class="card-header bg-primary text-white p-3">
+                                        <h5 class="mb-0 fw-bold text-uppercase text-center">{{ sub.nombre }}</h5>
                                     </div>
 
-                                    {% if sub.imagenes|length > 1 %}
-                                    <button class="carousel-control-prev" type="button"
-                                        data-bs-target="#carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
-                                        data-bs-slide="prev">
-                                        <span class="carousel-control-prev-icon bg-dark rounded-circle"
-                                            aria-hidden="true"></span>
-                                    </button>
-                                    <button class="carousel-control-next" type="button"
-                                        data-bs-target="#carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
-                                        data-bs-slide="next">
-                                        <span class="carousel-control-next-icon bg-dark rounded-circle"
-                                            aria-hidden="true"></span>
-                                    </button>
-                                    {% endif %}
-                                </div>
+                                    <div id="carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
+                                        class="carousel slide" data-bs-ride="carousel">
+                                        <div class="carousel-inner">
+                                            {% for img in sub.imagenes %}
+                                            <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                                {% if img.url.startswith('http') %}
+                                                <img src="{{ img.url }}" class="d-block" alt="{{ sub.nombre }}">
+                                                {% else %}
+                                                <img src="{{ url_for('static', filename='img/' + img.url) }}" class="d-block" alt="{{ sub.nombre }}">
+                                                {% endif %}
+                                            </div>
+                                            {% else %}
+                                            <div class="carousel-item active text-center p-5 bg-light">
+                                                <span class="text-muted">No hay imágenes disponibles para {{
+                                                    sub.descripcion
+                                                    }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
 
-                                <div class="card-body p-4 border-top">
-                                    <h5 class="fw-bold text-primary">{{ sub.nombre }}</h5>
-                                    <p class="fs-5 text-muted mb-0" style="text-align: justify;">
-                                        {{ sub.descripcion }}
-                                    </p>
+                                        {% if sub.imagenes|length > 1 %}
+                                        <button class="carousel-control-prev" type="button"
+                                            data-bs-target="#carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
+                                            data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon bg-dark rounded-circle"
+                                                aria-hidden="true"></span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button"
+                                            data-bs-target="#carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"
+                                            data-bs-slide="next">
+                                            <span class="carousel-control-next-icon bg-dark rounded-circle"
+                                                aria-hidden="true"></span>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if sub.descripcion or sub.tiene_ficha() or sub.productos|length > 0 %}
+                                    <div class="card-body p-0 border-top">
+                                        <div class="p-2 d-flex flex-column gap-1">
+                                            {% if sub.descripcion %}
+                                            <a class="btn btn-link w-100 text-start btn-view-desc" href="#"
+                                                data-cat-id="{{ cat.id_categoria }}"
+                                                data-sub-id="{{ sub.id_subcategoria }}">Ver
+                                                descripción</a>
+                                            <div class="collapse"
+                                                id="collapse-desc-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}">
+                                                <div class="card card-body desc-content">
+                                                    {{ sub.descripcion }}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            {% if sub.tiene_ficha() %}
+                                            <a class="btn btn-outline-danger btn-sm w-100 btn-ficha-tecnica"
+                                                href="{{ sub.ficha_public_url() }}" target="_blank" rel="noopener">
+                                                <i class="fas fa-file-pdf me-1"></i> Ficha técnica
+                                            </a>
+                                            {% endif %}
+                                            {% if sub.productos|length > 0 %}
+                                            <button class="btn btn-outline-primary btn-sm w-100" type="button"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#collapse-prods-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}">
+                                                <i class="fas fa-box me-1"></i> Productos ({{ sub.productos|length }})
+                                            </button>
+                                            <div class="collapse"
+                                                id="collapse-prods-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}">
+                                                <div class="card card-body p-2">
+                                                    {% for prod in sub.productos %}
+                                                    <div class="form-check form-check-sm">
+                                                        <input class="form-check-input prod-check-card" type="checkbox"
+                                                            value="{{ prod.id_producto }}" id="card-prod-{{ prod.id_producto }}"
+                                                            data-prod-name="{{ prod.nombre }}"
+                                                            data-prod-sub="{{ sub.id_subcategoria }}"
+                                                            data-cat-name="{{ cat.nombre }}"
+                                                            data-sub-name="{{ sub.nombre }}">
+                                                        <label class="form-check-label small" for="card-prod-{{ prod.id_producto }}">{{ prod.nombre }}</label>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
-
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+            </section>
+            {% endfor %}
         </section>
 
-        <section id="contacto" class="bg-light p-4 rounded shadow-sm mb-5" data-aos="fade-up">
-            <h3 class="mb-4">Contacto</h3>
-            <form id="miFormulario" enctype="multipart/form-data">
+        <!-- SECCIÓN DE CONTACTO / FORMULARIO -->
+        <section id="contacto" class="container py-5" data-aos="fade-up">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold text-primary">CONTACTO</h2>
+                <p class="text-muted">Solicitá tu presupuesto o asesoramiento técnico sin cargo</p>
+            </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>Nombre *</label>
-                        <input type="text" class="form-control" name="nombre" required>
+            <div class="mx-auto mb-4 p-3 bg-light border rounded" style="max-width: 850px;">
+                <div class="row text-center text-md-start g-3">
+                    <div class="col-md-4">
+                        <i class="fas fa-clock text-primary me-1"></i>
+                        <strong>Horarios:</strong>
+                        <div class="small text-muted">Lunes a Viernes, 7:00 a 16:00 hs</div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label>Apellido *</label>
-                        <input type="text" class="form-control" name="apellido" required>
+                    <div class="col-md-4">
+                        <i class="fas fa-truck text-primary me-1"></i>
+                        <strong>Entrega:</strong>
+                        <div class="small text-muted">Envíos a todo el país</div>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-map-marker-alt text-primary me-1"></i>
+                        <strong>Retiro por planta:</strong>
+                        <div class="small text-muted">
+                            <a href="https://maps.app.goo.gl/aaN9RNn9kvFtcVTLA" target="_blank" class="text-decoration-none">
+                                Villa Tesei, Bs. As. <i class="fas fa-external-link-alt small"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form id="miFormulario" class="mx-auto p-4 bg-white shadow rounded" style="max-width: 850px;"
+                enctype="multipart/form-data">
+                <!-- 1. Datos de Contacto -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <h5 class="border-bottom pb-2 text-secondary"><i class="fas fa-user-circle me-2"></i>1. Datos de
+                            Contacto</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Nombre Completo *</label>
+                        <input type="text" class="form-control" name="nombre" required placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Email *</label>
+                        <input type="email" class="form-control" name="email" required placeholder="juan@ejemplo.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Teléfono / WhatsApp</label>
+                        <input type="text" class="form-control" name="telefono" placeholder="+54 11 ...">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Empresa / Razón Social</label>
+                        <input type="text" class="form-control" name="empresa" placeholder="Nombre de su empresa">
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>CUIT (Opcional)</label>
-                        <input type="text" class="form-control" name="cuit">
+                <!-- 2. Su Consulta -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <h5 class="border-bottom pb-2 text-secondary"><i class="fas fa-comment-alt me-2"></i>2. Su
+                            Consulta</h5>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label>Razón Social (Opcional)</label>
-                        <input type="text" class="form-control" name="razon_social">
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold">Asunto / Motivo *</label>
+                        <select class="form-select" name="asunto" id="asuntoSelect" required>
+                            <option value="Solicitud de Presupuesto">Solicitud de Presupuesto</option>
+                            <option value="Asesoramiento Técnico">Asesoramiento Técnico</option>
+                            <option value="Consulta General">Consulta General</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Productos a consultar (opcional)</label>
+                        <div id="productosSeleccionadosLista" class="d-flex flex-wrap gap-2 mb-2"></div>
+                        <small class="text-muted">Seleccioná productos desde las tarjetas del catálogo.</small>
+                        <input type="hidden" name="productos_seleccionados" id="productosSeleccionados" value="">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Mensaje / Observaciones *</label>
+                        <textarea class="form-control" rows="3" name="detalles" required
+                            placeholder="Describa qué necesita..."></textarea>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label>Tu Email *</label>
-                        <input type="email" class="form-control" name="email_usuario" required>
+                <!-- 3. Detalles Técnicos (solo para Asesoramiento Técnico) -->
+                <div id="seccionTecnica" class="mb-4" style="display:none;">
+                    <div class="card card-body bg-light border-0 shadow-sm">
+                        <h5 class="border-bottom pb-2 text-secondary mb-3">
+                            <i class="fas fa-tools me-2"></i>Especificaciones Técnicas
+                            <span class="badge bg-danger ms-2" id="badgeObligatorio">Obligatorio</span>
+                        </h5>
+                        <!-- Subgrupo: Dimensiones y Congelado -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="fw-bold text-dark border-bottom pb-1">Dimensiones y Congelado</h6>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Largo Cámara (m) *</label>
+                                <input type="number" step="0.1" class="form-control" name="camara_largo" data-tecnico="obligatorio">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Ancho Cámara (m) *</label>
+                                <input type="number" step="0.1" class="form-control" name="camara_ancho" data-tecnico="obligatorio">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small">Alto Cámara (m) *</label>
+                                <input type="number" step="0.1" class="form-control" name="camara_alto" data-tecnico="obligatorio">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Producto / Tipo a enfriar</label>
+                                <input type="text" class="form-control" name="producto_tipo"
+                                    placeholder="Ej: Carne, Pollo, Helados...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Tiempo de congelado objetivo (horas)</label>
+                                <input type="number" class="form-control" name="tiempo_objetivo">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Temperatura de Entrada (°C)</label>
+                                <input type="number" class="form-control" name="temp_entrada">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Temperatura Final Deseada (°C)</label>
+                                <input type="number" class="form-control" name="temp_deseada">
+                            </div>
+                        </div>
+
+                        <!-- Subgrupo: Cámara y Aislamiento -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <h6 class="fw-bold text-dark border-bottom pb-1">Cámara y Aislamiento</h6>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Tipo de Cámara *</label>
+                                <select class="form-select" name="tipo_camara" data-tecnico="obligatorio">
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="Mampostería">Mampostería</option>
+                                    <option value="Desarmable/Panel">Desarmable / Panel</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Material Aislación *</label>
+                                <select class="form-select" name="aislacion_tipo" data-tecnico="obligatorio">
+                                    <option value="">-- Seleccionar --</option>
+                                    <option value="Poliuretano">Poliuretano</option>
+                                    <option value="Poliestireno">Poliestireno</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Espesor Aislación (mm) *</label>
+                                <input type="number" class="form-control" name="aislacion_espesor" data-tecnico="obligatorio">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Densidad Aislación (kg/m³)</label>
+                                <input type="number" class="form-control" name="aislacion_densidad">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">¿Posee antecámara?</label>
+                                <select class="form-select" name="posee_antecamara">
+                                    <option value="No">No</option>
+                                    <option value="Si">Sí</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Apertura de puertas (Frecuencia)</label>
+                                <select class="form-select" name="frecuencia_apertura">
+                                    <option value="Poca">Poca</option>
+                                    <option value="Mediana">Mediana</option>
+                                    <option value="Intensa">Intensa</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Subgrupo: Empaque -->
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <h6 class="fw-bold text-dark border-bottom pb-1">Empaque y Envoltura</h6>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">¿El producto lleva envoltura?</label>
+                                    <select class="form-select" name="producto_envoltorio" id="producto_envoltorio">
+                                        <option value="No">No</option>
+                                        <option value="Si">Sí</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6" id="tipo_envoltorio_wrapper" style="display:none;">
+                                    <label class="form-label small">Tipo de envoltura</label>
+                                    <input type="text" class="form-control" name="tipo_envoltorio"
+                                        placeholder="Ej: Plástico, Papel, Aluminio...">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label>Telefono (Opcional)</label>
-                        <input type="tel" class="form-control" name="telefono" pattern="[0-9+\-\s()]+"
-                            title="Solo números y caracteres telefónicos válidos">
-                    </div>
-
-                </div>
-
-                <div class="mb-3">
-                    <label>Asunto *</label>
-                    <select class="form-select" name="asunto" required>
-                        <option value="Solicitud de Presupuesto">Solicitud Presupuesto</option>
-                        <option value="Asesoramiento">Asesoramiento</option>
-                        <!-- <option value="Solicitud Lista Precios">Solicitud Lista de Precios</option> -->
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label>Su consulta *</label>
-                    <textarea class="form-control" rows="4" name="detalles" required></textarea>
-                </div>
 
                 <div class="mb-4">
-                    <label>Adjuntar imagen/plano (Opcional)</label>
+                    <label class="form-label small fw-bold">Adjuntar Plano o Imagen (Opcional)</label>
                     <input type="file" class="form-control" name="archivo_adjunto" accept="image/*,.pdf">
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-lg w-100">Enviar</button>
+                <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow">
+                    <i class="fas fa-paper-plane me-2"></i> ENVIAR SOLICITUD
+                </button>
             </form>
         </section>
     </main>
+
+    <!-- Hidden data structure for categories/subcategories (used by the navbar dropdown JS) -->
+    <div id="cat-data" class="d-none">
+        {% for cat in categorias %}
+        <div class="cat-entry" data-cat-id="{{ cat.id_categoria }}">
+            {% for sub in cat.subcategorias %}
+            <a class="sub-data" data-subid="{{ sub.id_subcategoria }}"
+                data-target="#categoria-{{ cat.id_categoria }}">{{ sub.nombre }}</a>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
 
     <div class="floating-socials">
         <a href="https://wa.me/5491144471684" target="_blank" class="btn-social bg-wpp">
@@ -311,14 +504,17 @@
         </div>
     </footer>
 
-    <div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
+
+
+    <!-- Modal para mostrar card ampliada (Ver descripción) -->
+    <div class="modal fade" id="subcardModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content bg-transparent border-0">
-                <div class="modal-body p-0 text-center position-relative">
-                    <img src="" id="lightboxImg" class="img-fluid rounded shadow-lg" style="max-height: 90vh;">
-                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
-                        data-bs-dismiss="modal"></button>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="subcardModalLabel"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
+                <div class="modal-body" id="subcardModalBody"></div>
             </div>
         </div>
     </div>
@@ -349,11 +545,48 @@
                 })
                     .then(response => response.text())
                     .then(data => {
-                        alert("¡Mensaje enviado con éxito!");
-                        form.reset(); // Limpia el formulario
+                        alert(data); // Muestra el mensaje real del servidor (éxito o error)
+                        if (data.includes("éxito")) {
+                            form.reset(); // Solo limpia si fue exitoso
+                        }
                     })
-                    .catch(error => console.error('Error:', error));
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert("Error de conexión al intentar enviar el mensaje.");
+                    });
             });
+
+            // Show/hide tipo_envoltorio based on producto_envoltorio
+            const envolSelect = document.getElementById('producto_envoltorio');
+            const envolWrapper = document.getElementById('tipo_envoltorio_wrapper');
+            if (envolSelect && envolWrapper) {
+                envolSelect.addEventListener('change', function () {
+                    if (this.value === 'Si') envolWrapper.style.display = '';
+                    else envolWrapper.style.display = 'none';
+                });
+            }
+
+            // Sección técnica: obligatoria solo para "Asesoramiento Técnico"
+            const asuntoSelect = document.getElementById('asuntoSelect') || document.querySelector('[name="asunto"]');
+            const seccionTecnica = document.getElementById('seccionTecnica');
+            const badgeObligatorio = document.getElementById('badgeObligatorio');
+            const camposObligatorios = seccionTecnica ? seccionTecnica.querySelectorAll('[data-tecnico="obligatorio"]') : [];
+
+            function toggleSeccionTecnica() {
+                if (!seccionTecnica || !asuntoSelect) return;
+                const esTecnico = asuntoSelect.value === 'Asesoramiento Técnico';
+                seccionTecnica.style.display = esTecnico ? '' : 'none';
+                badgeObligatorio.style.display = esTecnico ? '' : 'none';
+                camposObligatorios.forEach(campo => {
+                    if (esTecnico) campo.setAttribute('required', '');
+                    else campo.removeAttribute('required');
+                });
+            }
+
+            if (asuntoSelect) {
+                asuntoSelect.addEventListener('change', toggleSeccionTecnica);
+                toggleSeccionTecnica();
+            }
         })();
     </script>
 
@@ -402,29 +635,12 @@
                 }
             }
 
-            function initLightbox() {
-                const modal = document.getElementById('lightboxModal');
-                const modalImg = document.getElementById('lightboxImg');
-                if (!modal || !modalImg || typeof bootstrap === 'undefined') return;
-                const lightboxModal = new bootstrap.Modal(modal);
-                document.querySelectorAll('.carousel-item img').forEach(img => {
-                    img.addEventListener('click', function () {
-                        if (this.src) {
-                            modalImg.src = this.src;
-                            lightboxModal.show();
-                        }
-                    });
-                });
-            }
-
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', function () {
                     initSnowflakes();
-                    initLightbox();
                 });
             } else {
                 initSnowflakes();
-                initLightbox();
             }
         })();
 
@@ -443,182 +659,255 @@
 
     <script>
         (function () {
-            const filtersWrapper = document.getElementById('filtersWrapper');
-            const categoryFilter = document.getElementById('categoryFilter');
-            const subcategoryFilter = document.getElementById('subcategoryFilter');
-            const sectionCatalogo = document.getElementById('section-catalogo');
-            const navbar = document.querySelector('.sticky-nav');
+            // Smooth scrolling from catalog dropdown links and hover behavior for desktop
+            function scrollToEl(el) {
+                if (!el) return;
+                const navbar = document.querySelector('.sticky-nav');
+                const navbarHeight = navbar ? navbar.offsetHeight : 0;
+                const rect = el.getBoundingClientRect();
+                const targetY = window.scrollY + rect.top - navbarHeight - 12;
+                window.scrollTo({ top: targetY, behavior: 'smooth' });
+            }
 
-            // Build a client-side map of categories -> subcategories from the DOM
-            const catMap = {};
-            document.querySelectorAll('.category-card').forEach(card => {
-                const catId = card.dataset.cat;
-                const catName = card.querySelector('.card-header h3')?.textContent.trim() || card.dataset.catName || '';
-                const subs = [];
-                const tabs = card.querySelectorAll(`#tabs-${catId} button`);
-                tabs.forEach(btn => {
-                    subs.push({
-                        id: btn.dataset.subid,
-                        name: btn.dataset.subname || btn.textContent.trim(),
-                        target: btn.getAttribute('data-bs-target')
-                    });
+            // Wire category links: click scrolls to category and collapses navbar on mobile
+            document.querySelectorAll('.cat-link').forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetSel = this.dataset.target || this.getAttribute('href');
+                    const target = targetSel ? document.querySelector(targetSel) : null;
+                    if (target) scrollToEl(target);
+                    // collapse navbar on small screens
+                    try {
+                        const navEl = document.getElementById('navbarNav');
+                        const bsCollapse = bootstrap.Collapse.getInstance(navEl);
+                        if (bsCollapse) bsCollapse.hide();
+                    } catch (_) { }
                 });
-                catMap[catId] = { id: catId, name: catName, slug: card.id, subs };
             });
 
-            function populateSubmenu(catId) {
-                if (!catId || catId === 'all') {
-                    subcategoryFilter.innerHTML = '';
-                    subcategoryFilter.classList.add('d-none');
-                    subcategoryFilter.setAttribute('aria-hidden', 'true');
-                    return;
-                }
-                const data = catMap[catId];
-                if (!data) return;
-                subcategoryFilter.innerHTML = '';
-                data.subs.forEach((sub, idx) => {
-                    const li = document.createElement('li');
-                    li.className = 'nav-item';
-                    const a = document.createElement('a');
-                    a.className = 'nav-link small text-uppercase fw-bold';
-                    if (idx === 0) a.classList.add('active');
-                    a.href = '#';
-                    a.dataset.cat = data.id;
-                    a.dataset.subid = sub.id;
-                    a.dataset.target = sub.target;
-                    a.textContent = sub.name;
-                    a.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        subcategoryFilter.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-                        this.classList.add('active');
-                        const card = document.querySelector(`.category-card[data-cat="${this.dataset.cat}"]`);
-                        if (card) {
-                            scrollToElement(card);
-                            setTimeout(() => {
-                                const tabBtn = document.querySelector(`#tabs-${this.dataset.cat} button[data-subid="${this.dataset.subid}"]`);
-                                if (tabBtn) {
-                                    const bsTab = new bootstrap.Tab(tabBtn);
-                                    bsTab.show();
-                                }
-                            }, 420);
-                        }
+            // Desktop: open dropdown on hover (keep click behavior for touch)
+            if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+                document.querySelectorAll('.navbar .dropdown').forEach(function (drop) {
+                    drop.addEventListener('mouseenter', function () {
+                        this.classList.add('show');
+                        const menu = this.querySelector('.dropdown-menu');
+                        if (menu) menu.classList.add('show');
                     });
-                    li.appendChild(a);
-                    subcategoryFilter.appendChild(li);
-                });
-                subcategoryFilter.classList.remove('d-none');
-                subcategoryFilter.setAttribute('aria-hidden', 'false');
-            }
-
-            // Category clicks
-            if (categoryFilter) {
-                categoryFilter.querySelectorAll('.nav-link').forEach(link => {
-                    link.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        categoryFilter.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                        this.classList.add('active');
-                        const catId = this.dataset.cat;
-                        if (catId === 'all') {
-                            populateSubmenu('all');
-                            if (sectionCatalogo) scrollToSectionStart(sectionCatalogo);
-                        } else {
-                            populateSubmenu(catId);
-                            const card = document.querySelector(`.category-card[data-cat="${catId}"]`);
-                            if (card) scrollToElement(card);
-                        }
+                    drop.addEventListener('mouseleave', function () {
+                        this.classList.remove('show');
+                        const menu = this.querySelector('.dropdown-menu');
+                        if (menu) menu.classList.remove('show');
                     });
                 });
             }
 
-            function scrollToElement(el) {
-                if (!el) return;
-                const navbarHeight = navbar ? navbar.offsetHeight : 0;
-                const filtersStuck = filtersWrapper && filtersWrapper.classList.contains('filters-stuck');
-                const wrapperHeight = filtersStuck ? filtersWrapper.offsetHeight : (filtersWrapper ? filtersWrapper.offsetHeight : 0);
+            // --- Manejo de Galería Ampliada (Modal) ---
+            const subcardModalEl = document.getElementById('subcardModal');
+            let subcardModal = null;
+            if (subcardModalEl && typeof bootstrap !== 'undefined') subcardModal = new bootstrap.Modal(subcardModalEl);
 
-                const rect = el.getBoundingClientRect();
-                const elementAbsoluteTop = window.scrollY + rect.top;
+            const selectedProducts = {};
 
-                // Visible area starts below navbar (+ filters when stuck)
-                const visibleTop = navbarHeight + (filtersStuck ? wrapperHeight : 0);
-                const visibleHeight = window.innerHeight - visibleTop;
-
-                // Desired top position so the element is vertically centered in the visible area
-                const desiredTopInViewport = visibleTop + (visibleHeight / 2) - (rect.height / 2);
-                let targetY = elementAbsoluteTop - desiredTopInViewport;
-
-                // Clamp to scrollable bounds
-                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                if (targetY < 0) targetY = 0;
-                if (targetY > maxScroll) targetY = maxScroll;
-
-                window.scrollTo({ top: targetY, behavior: 'smooth' });
-            }
-
-            // Scroll to the very start/top of a section, accounting for navbar and (optional) filters height
-            function scrollToSectionStart(el) {
-                if (!el) return;
-                const navbarHeight = navbar ? navbar.offsetHeight : 0;
-                const filtersStuck = filtersWrapper && filtersWrapper.classList.contains('filters-stuck');
-                const wrapperHeight = filtersStuck ? filtersWrapper.offsetHeight : (filtersWrapper ? filtersWrapper.offsetHeight : 0);
-
-                const rect = el.getBoundingClientRect();
-                const elementAbsoluteTop = window.scrollY + rect.top;
-
-                // Target is element top minus navbar and filters (so it appears just below navbar)
-                let targetY = elementAbsoluteTop - navbarHeight - (filtersStuck ? wrapperHeight : 0) - 6;
-                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                if (targetY < 0) targetY = 0;
-                if (targetY > maxScroll) targetY = maxScroll;
-                window.scrollTo({ top: targetY, behavior: 'smooth' });
-            }
-
-            // Sticky behavior for filtersWrapper: pega debajo del navbar cuando el usuario está dentro de #section-catalogo
-            function updateSticky() {
-                if (!sectionCatalogo || !filtersWrapper) return;
-
-                // Desactivar comportamiento sticky en pantallas pequeñas (<1024px)
-                if (window.innerWidth < 1024) {
-                    if (filtersWrapper.classList.contains('filters-stuck')) {
-                        filtersWrapper.classList.remove('filters-stuck');
-                        filtersWrapper.style.position = '';
-                        filtersWrapper.style.top = '';
-                        filtersWrapper.style.left = '';
-                        filtersWrapper.style.width = '';
-                        filtersWrapper.style.zIndex = '';
+            function syncProductosInput() {
+                const lista = document.getElementById('productosSeleccionadosLista');
+                const input = document.getElementById('productosSeleccionados');
+                const items = [];
+                lista.innerHTML = '';
+                for (const subId in selectedProducts) {
+                    for (const prod of selectedProducts[subId]) {
+                        items.push(prod);
+                        const wrapper = document.createElement('span');
+                        wrapper.className = 'badge bg-primary d-flex align-items-center gap-1';
+                        wrapper.innerHTML = `
+                            ${prod.cat || ''} &gt; ${prod.sub || ''}: ${prod.nombre}
+                            <input type="number" min="1" max="9999" value="${prod.cantidad || 1}"
+                                class="form-control form-control-sm d-inline-block text-center border-0 bg-white bg-opacity-25 text-white"
+                                style="width:50px; height:20px; font-size:0.75rem; padding:0 2px;"
+                                data-qty-id="${prod.id}">
+                            <button type="button" class="btn-close btn-close-white ms-1" style="font-size:0.6em" data-remove-id="${prod.id}"></button>
+                        `;
+                        lista.appendChild(wrapper);
                     }
-                    return;
                 }
+                if (items.length === 0) {
+                    lista.innerHTML = '<small class="text-muted">Ningún producto seleccionado</small>';
+                }
+                input.value = JSON.stringify(items);
 
-                const rect = sectionCatalogo.getBoundingClientRect();
-                const navbarHeight = navbar ? navbar.offsetHeight : 0;
-                const inSection = rect.top <= navbarHeight && rect.bottom > navbarHeight + 10;
-                if (inSection) {
-                    if (!filtersWrapper.classList.contains('filters-stuck')) {
-                        const container = document.querySelector('main.container') || document.querySelector('.container');
-                        const cRect = container ? container.getBoundingClientRect() : { left: 0, width: window.innerWidth };
-                        filtersWrapper.style.position = 'fixed';
-                        filtersWrapper.style.top = `${navbarHeight}px`;
-                        filtersWrapper.style.left = `${cRect.left}px`;
-                        filtersWrapper.style.width = `${cRect.width}px`;
-                        filtersWrapper.style.zIndex = '1035';
-                        filtersWrapper.classList.add('filters-stuck');
+                lista.querySelectorAll('[data-qty-id]').forEach(qtyInput => {
+                    qtyInput.addEventListener('change', function() {
+                        const pid = this.dataset.qtyId;
+                        for (const subId in selectedProducts) {
+                            const prod = selectedProducts[subId].find(p => p.id == pid);
+                            if (prod) { prod.cantidad = parseInt(this.value) || 1; break; }
+                        }
+                        input.value = JSON.stringify(items);
+                    });
+                });
+            }
+
+            document.getElementById('productosSeleccionadosLista').addEventListener('click', function(e) {
+                const btn = e.target.closest('[data-remove-id]');
+                if (!btn) return;
+                const prodId = btn.dataset.removeId;
+                for (const subId in selectedProducts) {
+                    selectedProducts[subId] = selectedProducts[subId].filter(p => p.id != prodId);
+                    if (selectedProducts[subId].length === 0) delete selectedProducts[subId];
+                }
+                document.querySelectorAll(`.prod-check-card[value="${prodId}"], .prod-check[value="${prodId}"]`).forEach(cb => cb.checked = false);
+                syncProductosInput();
+            });
+
+            function toggleProduct(checkbox) {
+                const pid = checkbox.value;
+                const pname = checkbox.dataset.prodName;
+                const psub = checkbox.dataset.prodSub;
+                const pcat = checkbox.dataset.catName || '';
+                const psubName = checkbox.dataset.subName || '';
+                if (!selectedProducts[psub]) selectedProducts[psub] = [];
+                if (checkbox.checked) {
+                    if (!selectedProducts[psub].some(p => p.id == pid)) {
+                        selectedProducts[psub].push({id: pid, nombre: pname, cat: pcat, sub: psubName, subId: psub, cantidad: 1});
                     }
                 } else {
-                    if (filtersWrapper.classList.contains('filters-stuck')) {
-                        filtersWrapper.classList.remove('filters-stuck');
-                        filtersWrapper.style.position = '';
-                        filtersWrapper.style.top = '';
-                        filtersWrapper.style.left = '';
-                        filtersWrapper.style.width = '';
-                        filtersWrapper.style.zIndex = '';
-                    }
+                    selectedProducts[psub] = selectedProducts[psub].filter(p => p.id != pid);
+                    if (selectedProducts[psub].length === 0) delete selectedProducts[psub];
                 }
+                document.querySelectorAll(`.prod-check-card[value="${pid}"], .prod-check[data-prod-id="${pid}"]`).forEach(cb => {
+                    cb.checked = checkbox.checked;
+                });
+                syncProductosInput();
             }
 
-            window.addEventListener('scroll', updateSticky, { passive: true });
-            window.addEventListener('resize', updateSticky);
-            updateSticky();
+            document.querySelectorAll('.prod-check-card').forEach(cb => {
+                cb.addEventListener('change', function() { toggleProduct(this); });
+            });
+
+            syncProductosInput();
+
+            function openGallery(targetId, startImageSrc = null) {
+                const card = document.querySelector(`#subcategoria-${targetId}`);
+                if (!card) return;
+
+                const catName = card.dataset.catName || '';
+                const subId = card.dataset.subId || targetId;
+                const title = card.querySelector('.card-header h5')?.textContent || '';
+                const imgs = [];
+                card.querySelectorAll('.carousel-inner img').forEach(img => imgs.push(img.src));
+                const desc = card.querySelector('.desc-content')?.innerHTML || '';
+                const fichaUrl = card.dataset.fichaUrl || '';
+
+                let prodNames = [];
+                let prodIds = [];
+                try { prodNames = JSON.parse(card.dataset.productos || '[]'); } catch(_) {}
+                try { prodIds = JSON.parse(card.dataset.productosIds || '[]'); } catch(_) {}
+
+                const modalBody = document.getElementById('subcardModalBody');
+                const modalTitle = document.getElementById('subcardModalLabel');
+                modalTitle.textContent = `${catName} - ${title}`;
+
+                let startIndex = 0;
+                if (startImageSrc) {
+                    startIndex = imgs.findIndex(src => src === startImageSrc);
+                    if (startIndex === -1) startIndex = 0;
+                }
+
+                const carouselId = `modalCarousel-${targetId}`;
+
+                let productosHtml = '';
+                if (prodNames.length > 0) {
+                    const checksHtml = prodNames.map((name, i) => {
+                        const pid = prodIds[i] || i;
+                        const checked = (selectedProducts[subId] || []).some(p => p.id == pid) ? 'checked' : '';
+                        return `<div class="form-check">
+                            <input class="form-check-input prod-check" type="checkbox" value="${pid}" id="modal-prod-${pid}"
+                                data-prod-name="${name}" data-prod-sub="${subId}"
+                                data-cat-name="${catName}" data-sub-name="${title}" ${checked}>
+                            <label class="form-check-label" for="modal-prod-${pid}">${name}</label>
+                        </div>`;
+                    }).join('');
+                    productosHtml = `
+                        <div class="mt-3 pt-3 border-top">
+                            <h6 class="fw-bold text-primary mb-2"><i class="fas fa-box me-1"></i>Productos</h6>
+                            <div class="small">${checksHtml}</div>
+                            <div class="form-text">Seleccioná los productos sobre los que deseás consultar.</div>
+                        </div>`;
+                }
+
+                const carouselHtml = `
+                    <div class="row g-0">
+                        <div class="col-lg-8 bg-dark d-flex align-items-center" style="min-height: 50vh;">
+                            <div id="${carouselId}" class="carousel slide modal-carousel w-100" data-bs-ride="false">
+                                <div class="carousel-inner">
+                                    ${imgs.length === 0
+                        ? '<div class="carousel-item active text-center p-5 bg-light"><span class="text-muted">No hay imágenes disponibles</span></div>'
+                        : imgs.map((s, i) => `
+                                            <div class="carousel-item ${i === startIndex ? 'active' : ''}">
+                                                <img src="${s}" class="d-block w-100 modal-img-full" alt="Imagen ampliada">
+                                            </div>
+                                          `).join('')
+                    }
+                                </div>
+                                ${imgs.length > 1 ? `
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon bg-white rounded-circle shadow-sm" aria-hidden="true"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon bg-white rounded-circle shadow-sm" aria-hidden="true"></span>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        <div class="col-lg-4 p-4 bg-white d-flex flex-column">
+                            <h4 class="fw-bold mb-3 text-primary border-bottom pb-2">Descripción</h4>
+                            <div class="desc-modal-scroll flex-grow-1">
+                                ${desc ? desc : '<p class="text-muted">Sin descripción disponible.</p>'}
+                            </div>
+                            ${productosHtml}
+                            <div class="mt-4 pt-3 border-top">
+                                ${fichaUrl
+                        ? `<a href="${fichaUrl}" target="_blank" rel="noopener" class="btn btn-outline-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2">
+                                    <i class="fas fa-file-pdf"></i> Descargar Ficha Técnica
+                                </a>`
+                        : `<button type="button" class="btn btn-outline-secondary w-100 fw-bold" disabled>
+                                    <i class="fas fa-file-pdf"></i> Ficha técnica no disponible
+                                </button>`
+                    }
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                modalBody.innerHTML = carouselHtml;
+
+                modalBody.querySelectorAll('.prod-check').forEach(cb => {
+                    cb.addEventListener('change', function() { toggleProduct(this); });
+                });
+
+                modalTitle.textContent = "Detalles del Producto";
+                if (subcardModal) subcardModal.show();
+            }
+
+            // Delegación de eventos para clicks en imágenes y botones
+            document.body.addEventListener('click', function (e) {
+                // Caso 1: Click en botón "Ver descripción"
+                const btn = e.target.closest('.btn-view-desc');
+                if (btn) {
+                    e.preventDefault();
+                    openGallery(btn.dataset.subId);
+                    return;
+                }
+
+                // Caso 2: Click en imagen de un carrusel de card
+                const img = e.target.closest('.subcategory-card .carousel-item img');
+                if (img) {
+                    const card = img.closest('.subcategory-card');
+                    if (card) {
+                        const subId = card.id.replace('subcategoria-', '');
+                        openGallery(subId, img.src);
+                    }
+                }
+            });
         })();
     </script>
 

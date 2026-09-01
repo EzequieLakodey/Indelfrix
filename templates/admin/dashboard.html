@@ -1,4 +1,4 @@
-{% extends 'base_admin.html' %}
+{% extends 'admin/base_admin.html' %}
 
 {% block content %}
 <div class="container mt-4">
@@ -11,7 +11,12 @@
       <ul class="list-group">
         {% for cat in categorias %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
-          {{ cat.nombre }}
+          <span>
+            {{ cat.nombre }}
+            {% if cat.imagenes|length > 0 %}
+            <span class="badge text-bg-info ms-1">{{ cat.imagenes|length }} img</span>
+            {% endif %}
+          </span>
           <div>
             <a href="{{ url_for('admin_edit_categoria', id=cat.id_categoria) }}"
               class="btn btn-sm btn-outline-secondary">Editar</a>
@@ -28,16 +33,63 @@
       <ul class="list-group">
         {% for sub in subcategorias %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
-          {{ sub.nombre }}
+          <span>
+            {{ sub.nombre }}
+            {% if sub.imagenes|length > 0 %}
+            <span class="badge text-bg-info ms-1">{{ sub.imagenes|length }} img</span>
+            {% endif %}
+            {% if sub.tiene_ficha() %}
+            <span class="badge text-bg-success ms-1">PDF</span>
+            {% else %}
+            <span class="badge text-bg-secondary ms-1">Sin ficha</span>
+            {% endif %}
+          </span>
           <div>
             <a href="{{ url_for('admin_edit_subcategoria', id=sub.id_subcategoria) }}"
               class="btn btn-sm btn-outline-secondary">Editar</a>
             <a href="{{ url_for('admin_delete_subcategoria', id=sub.id_subcategoria) }}"
-              class="btn btn-sm btn-outline-danger">Eliminar</a>
+              class="btn btn-sm btn-outline-danger"
+              onclick="return confirm('¿Eliminar esta subcategoría, sus imágenes y ficha técnica?');">Eliminar</a>
           </div>
         </li>
         {% endfor %}
       </ul>
+    </div>
+  </div>
+
+  <hr class="my-4">
+
+  <div class="row">
+    <div class="col-12">
+      <h4>Productos</h4>
+      <a href="{{ url_for('admin_create_producto') }}" class="btn btn-sm btn-primary mb-2">Nuevo Producto</a>
+      {% set ns = namespace(current_sub='') %}
+      {% for sub in subcategorias %}
+        {% if sub.productos|length > 0 %}
+        <h6 class="text-muted mt-3 mb-1">{{ sub.nombre }}</h6>
+        <ul class="list-group mb-2">
+          {% for prod in sub.productos %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>
+              {{ prod.nombre }}
+              {% if prod.imagenes|length > 0 %}
+              <span class="badge text-bg-info ms-1">{{ prod.imagenes|length }} img</span>
+              {% endif %}
+            </span>
+            <div>
+              <a href="{{ url_for('admin_edit_producto', id=prod.id_producto) }}"
+                class="btn btn-sm btn-outline-secondary">Editar</a>
+              <a href="{{ url_for('admin_delete_producto', id=prod.id_producto) }}"
+                class="btn btn-sm btn-outline-danger"
+                onclick="return confirm('¿Eliminar este producto?');">Eliminar</a>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      {% else %}
+      <p class="text-muted small">No hay productos creados.</p>
+      {% endfor %}
     </div>
   </div>
 </div>
