@@ -145,6 +145,29 @@ def _send_pedido_whatsapp(cuerpo):
         return False, str(exc)[:500]
 
 
+def notificar_pedido(pedido, cliente, cuerpo):
+    """Envía email y WhatsApp del pedido. Retorna (mail_ok, wpp_ok, errores)."""
+    errores = []
+    mail_ok = False
+    wpp_ok = False
+
+    try:
+        _send_pedido_mail(pedido, cliente, cuerpo)
+        pedido.mail_enviado = True
+        mail_ok = True
+    except Exception as exc:
+        errores.append(f'mail: {exc}')
+
+    ok_wpp, err_wpp = _send_pedido_whatsapp(cuerpo)
+    pedido.whatsapp_enviado = ok_wpp
+    pedido.whatsapp_error = None if ok_wpp else err_wpp
+    wpp_ok = ok_wpp
+    if err_wpp:
+        errores.append(f'whatsapp: {err_wpp}')
+
+    return mail_ok, wpp_ok, errores
+
+
 def _agregar_producto(cliente, producto_id, cantidad):
     producto = db.session.get(Producto, producto_id)
     if not producto:
@@ -313,20 +336,15 @@ def pedido_checkout():
         pedido.empresa = empresa
         pedido.observaciones = observaciones
         cuerpo = _pedido_texto(pedido, cliente)
-        try:
-            _send_pedido_mail(pedido, cliente, cuerpo)
-            pedido.mail_enviado = True
-        except Exception as exc:
+        mail_ok, wpp_ok, errores = notificar_pedido(pedido, cliente, cuerpo)
+        if not mail_ok:
             db.session.commit()
-            flash(f'No se pudo enviar el mail del pedido: {exc}', 'danger')
+            flash(f'No se pudo enviar el mail del pedido: {errores[0] if errores else "error desconocido"}', 'danger')
             return render_template('pedido.html', pedido=pedido)
-        ok_wpp, err_wpp = _send_pedido_whatsapp(cuerpo)
-        pedido.whatsapp_enviado = ok_wpp
-        pedido.whatsapp_error = None if ok_wpp else err_wpp
         pedido.estado = 'enviado'
         pedido.enviado_at = datetime.utcnow()
         db.session.commit()
-        if ok_wpp:
+        if wpp_ok:
             flash('Pedido enviado. Te vamos a contactar a la brevedad.', 'success')
         else:
             flash(

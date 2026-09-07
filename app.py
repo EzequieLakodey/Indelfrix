@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from functools import wraps
 from sqlalchemy import inspect, text
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from authlib.integrations.flask_client import OAuth
 import os
@@ -200,10 +201,8 @@ def _ensure_schema():
     if 'productos' in inspector.get_table_names():
         cols = {col['name'] for col in inspector.get_columns('productos')}
         if 'nombre' not in cols:
-            db.session.execute(text('DROP TABLE IF EXISTS productos_imagenes'))
-            db.session.execute(text('DROP TABLE IF EXISTS productos'))
+            db.session.execute(text("ALTER TABLE productos ADD COLUMN nombre VARCHAR(200) DEFAULT ''"))
             db.session.commit()
-            db.create_all()
 
 
 def _cloudinary_ready():
@@ -248,6 +247,25 @@ def delete_imagen(imagen):
         path = os.path.join(app.static_folder, 'img', imagen.url)
         if os.path.isfile(path):
             os.remove(path)
+
+
+def procesar_imagenes(files, entity, entity_type):
+    """Sube imágenes válidas de un input file y las agrega a la relación .imagenes del entity."""
+    for archivo in files:
+        if archivo and archivo.filename and _is_image(archivo):
+            resultado = upload_imagen(archivo, entity_type=entity_type, entity_id=getattr(entity, f'id_{entity_type}', None) or entity.id)
+            img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
+            entity.imagenes.append(img)
+
+
+def eliminar_imagenes_seleccionadas(entity, form_eliminar_list):
+    """Elimina imágenes marcadas con checkboxes en formularios de edición."""
+    eliminar_ids = [int(x) for x in form_eliminar_list if x.isdigit()]
+    for img in list(entity.imagenes):
+        if img.id_imagen in eliminar_ids:
+            delete_imagen(img)
+            entity.imagenes.remove(img)
+            db.session.delete(img)
 
 
 def _normalize_email(value):
@@ -314,8 +332,8 @@ def admin_login():
     if request.method == 'POST':
         email = _normalize_email(request.form.get('email') or '')
         password = request.form.get('password') or ''
-        ADMIN_PASS = os.getenv('ADMIN_PASS', 'password')
-        if email == FICHA_EDITOR_EMAIL and password == ADMIN_PASS:
+        ADMIN_PASS = os.getenv('ADMIN_PASS', 'scrypt:32768:8:1$nG6sEUJpV32UG6FQ$1923c7208fdfe049eb807f83c2d067cb5eaab2cfe4a6daa71c4360bb2145f75251ed8a711698a1b566d4c1af1f65b62a3c5f22780d63dba2ab1b1fe1f212e4ae')
+        if email == FICHA_EDITOR_EMAIL and check_password_hash(ADMIN_PASS, password):
             session['admin_logged_in'] = True
             session['admin_email'] = email
             flash('Acceso concedido.', 'success')
@@ -526,12 +544,7 @@ def admin_create_categoria():
         nueva = Categoria(nombre=nombre, descripcion=descripcion)
         db.session.add(nueva)
         db.session.flush()
-        archivos = request.files.getlist('imagenes')
-        for archivo in archivos:
-            if archivo and archivo.filename and _is_image(archivo):
-                resultado = upload_imagen(archivo, entity_type='categoria', entity_id=nueva.id_categoria)
-                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
-                nueva.imagenes.append(img)
+        procesar_imagenes(request.files.getlist('imagenes'), nueva, 'categoria')
         db.session.commit()
         flash('Categoría creada', 'success')
         return redirect(url_for('admin_dashboard'))
@@ -545,18 +558,8 @@ def admin_edit_categoria(id):
     if request.method == 'POST':
         cat.nombre = request.form.get('nombre')
         cat.descripcion = request.form.get('descripcion')
-        eliminar_ids = [int(x) for x in request.form.getlist('eliminar_imagen') if x.isdigit()]
-        for img in list(cat.imagenes):
-            if img.id_imagen in eliminar_ids:
-                delete_imagen(img)
-                cat.imagenes.remove(img)
-                db.session.delete(img)
-        archivos = request.files.getlist('imagenes')
-        for archivo in archivos:
-            if archivo and archivo.filename and _is_image(archivo):
-                resultado = upload_imagen(archivo, entity_type='categoria', entity_id=cat.id_categoria)
-                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
-                cat.imagenes.append(img)
+        eliminar_imagenes_seleccionadas(cat, request.form.getlist('eliminar_imagen'))
+        procesar_imagenes(request.files.getlist('imagenes'), cat, 'categoria')
         db.session.commit()
         flash('Categoría actualizada', 'success')
         return redirect(url_for('admin_dashboard'))
@@ -616,12 +619,7 @@ def admin_create_subcategoria():
                 nueva.categorias.append(cat)
         db.session.add(nueva)
         db.session.flush()
-        archivos = request.files.getlist('imagenes')
-        for archivo in archivos:
-            if archivo and archivo.filename and _is_image(archivo):
-                resultado = upload_imagen(archivo, entity_type='subcategoria', entity_id=nueva.id_subcategoria)
-                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
-                nueva.imagenes.append(img)
+        procesar_imagenes(request.files.getlist('imagenes'), nueva, 'subcategoria')
         try:
             _apply_ficha_change(nueva)
         except PermissionError as exc:
@@ -652,18 +650,8 @@ def admin_edit_subcategoria(id):
         sub.descripcion = request.form.get('descripcion')
         seleccionadas = {int(cid) for cid in request.form.getlist('categorias') if cid.isdigit()}
         sub.categorias = [cat for cat in categorias if cat.id_categoria in seleccionadas]
-        eliminar_ids = [int(x) for x in request.form.getlist('eliminar_imagen') if x.isdigit()]
-        for img in list(sub.imagenes):
-            if img.id_imagen in eliminar_ids:
-                delete_imagen(img)
-                sub.imagenes.remove(img)
-                db.session.delete(img)
-        archivos = request.files.getlist('imagenes')
-        for archivo in archivos:
-            if archivo and archivo.filename and _is_image(archivo):
-                resultado = upload_imagen(archivo, entity_type='subcategoria', entity_id=sub.id_subcategoria)
-                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
-                sub.imagenes.append(img)
+        eliminar_imagenes_seleccionadas(sub, request.form.getlist('eliminar_imagen'))
+        procesar_imagenes(request.files.getlist('imagenes'), sub, 'subcategoria')
         try:
             _apply_ficha_change(sub)
         except PermissionError as exc:
@@ -721,12 +709,7 @@ def admin_create_producto():
         nuevo = Producto(nombre=nombre, id_subcategoria=id_subcategoria)
         db.session.add(nuevo)
         db.session.flush()
-        archivos = request.files.getlist('imagenes')
-        for archivo in archivos:
-            if archivo and archivo.filename and _is_image(archivo):
-                resultado = upload_imagen(archivo, entity_type='producto', entity_id=nuevo.id_producto)
-                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
-                nuevo.imagenes.append(img)
+        procesar_imagenes(request.files.getlist('imagenes'), nuevo, 'producto')
         db.session.commit()
         flash('Producto creado', 'success')
         return redirect(url_for('admin_dashboard'))
@@ -745,18 +728,8 @@ def admin_edit_producto(id):
             return render_template('admin/edit_producto.html', producto=prod, subcategorias=subcategorias)
         prod.nombre = nombre
         prod.id_subcategoria = request.form.get('id_subcategoria', type=int) or prod.id_subcategoria
-        eliminar_ids = [int(x) for x in request.form.getlist('eliminar_imagen') if x.isdigit()]
-        for img in list(prod.imagenes):
-            if img.id_imagen in eliminar_ids:
-                delete_imagen(img)
-                prod.imagenes.remove(img)
-                db.session.delete(img)
-        archivos = request.files.getlist('imagenes')
-        for archivo in archivos:
-            if archivo and archivo.filename and _is_image(archivo):
-                resultado = upload_imagen(archivo, entity_type='producto', entity_id=prod.id_producto)
-                img = Imagen(url=resultado['url'], public_id=resultado['public_id'])
-                prod.imagenes.append(img)
+        eliminar_imagenes_seleccionadas(prod, request.form.getlist('eliminar_imagen'))
+        procesar_imagenes(request.files.getlist('imagenes'), prod, 'producto')
         db.session.commit()
         flash('Producto actualizado', 'success')
         return redirect(url_for('admin_dashboard'))
