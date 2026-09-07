@@ -1,6 +1,35 @@
+# Python
 venv/
+.venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Variables de entorno (nunca commitear secretos reales)
 .env
+.env.local
+
+# Instancias / bases de datos locales
 instance/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
 .DS_Store
+
+# Sistema
+Thumbs.db
+
+# Logs
+*.log
+
+# Compilados / binarios
+*.so
+*.dylib
+
+# Pruebas
+.pytest_cache/
+.coverage
+htmlcov/
