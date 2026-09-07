@@ -51,6 +51,31 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#contacto">Contacto</a>
                     </li>
+                    <li class="nav-item">
+                        <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
+                            data-bs-toggle="offcanvas" data-bs-target="#pedidoOffcanvas">
+                            <i class="fas fa-clipboard-list"></i>
+                            Pedido
+                            <span class="badge text-bg-primary" id="pedidoCountBadge">{{ pedido_count }}</span>
+                        </button>
+                    </li>
+                    {% if cliente %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            {{ cliente.nombre or cliente.email }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text small text-muted">{{ cliente.email }}</span></li>
+                            <li><a class="dropdown-item" href="{{ url_for('cliente_logout') }}">Cerrar sesión</a></li>
+                        </ul>
+                    </li>
+                    {% elif google_ready %}
+                    <li class="nav-item">
+                        <a class="btn btn-sm btn-primary" href="{{ url_for('google_login', next=url_for('inicio')) }}">
+                            <i class="fab fa-google me-1"></i> Ingresar
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -211,14 +236,17 @@
                                                 id="collapse-prods-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}">
                                                 <div class="card card-body p-2">
                                                     {% for prod in sub.productos %}
-                                                    <div class="form-check form-check-sm">
-                                                        <input class="form-check-input prod-check-card" type="checkbox"
-                                                            value="{{ prod.id_producto }}" id="card-prod-{{ prod.id_producto }}"
-                                                            data-prod-name="{{ prod.nombre }}"
-                                                            data-prod-sub="{{ sub.id_subcategoria }}"
-                                                            data-cat-name="{{ cat.nombre }}"
-                                                            data-sub-name="{{ sub.nombre }}">
-                                                        <label class="form-check-label small" for="card-prod-{{ prod.id_producto }}">{{ prod.nombre }}</label>
+                                                    <div class="d-flex align-items-center gap-2 py-1 border-bottom pedido-prod-row"
+                                                        data-producto-id="{{ prod.id_producto }}">
+                                                        <span class="small flex-grow-1">{{ prod.nombre }}</span>
+                                                        <input type="number" min="1" max="9999" value="1"
+                                                            class="form-control form-control-sm prod-qty"
+                                                            style="width:4.2rem" aria-label="Cantidad">
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-primary btn-add-pedido"
+                                                            title="Agregar a pedido">
+                                                            Agregar
+                                                        </button>
                                                     </div>
                                                     {% endfor %}
                                                 </div>
@@ -306,12 +334,6 @@
                             <option value="Consulta General">Consulta General</option>
                             <option value="Otros">Otros</option>
                         </select>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label small fw-bold">Productos a consultar (opcional)</label>
-                        <div id="productosSeleccionadosLista" class="d-flex flex-wrap gap-2 mb-2"></div>
-                        <small class="text-muted">Seleccioná productos desde las tarjetas del catálogo.</small>
-                        <input type="hidden" name="productos_seleccionados" id="productosSeleccionados" value="">
                     </div>
                     <div class="col-12">
                         <label class="form-label small fw-bold">Mensaje / Observaciones *</label>
@@ -454,7 +476,44 @@
         {% endfor %}
     </div>
 
-    <div class="floating-socials">
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="pedidoOffcanvas">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title">Tu pedido</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column">
+            {% if not cliente %}
+            <p class="text-muted">Para armar un pedido ingresá con Google. Así usamos un mail real y podemos responderte.</p>
+            {% if google_ready %}
+            <a class="btn btn-primary" href="{{ url_for('google_login', next=url_for('inicio')) }}">
+                <i class="fab fa-google me-1"></i> Ingresar con Google
+            </a>
+            {% else %}
+            <p class="small text-warning mb-0">Falta configurar GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET.</p>
+            {% endif %}
+            {% else %}
+            <ul class="list-group mb-3" id="pedidoItemsList">
+                {% for item in pedido_items %}
+                <li class="list-group-item" data-item-id="{{ item.id }}">
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="fw-bold small">{{ item.nombre }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item">&times;</button>
+                    </div>
+                    <input type="number" min="1" max="9999" value="{{ item.cantidad }}"
+                        class="form-control form-control-sm mt-2 item-qty" style="width:5rem">
+                </li>
+                {% else %}
+                <li class="list-group-item text-muted" id="pedidoEmpty">Todavía no agregaste productos.</li>
+                {% endfor %}
+            </ul>
+            <a id="btnEnviarPedido" class="btn btn-primary mt-auto {% if not pedido_items %}disabled{% endif %}"
+                href="{{ url_for('pedido_checkout') }}">Completar datos y enviar</a>
+            {% endif %}
+        </div>
+    </div>
         <a href="https://wa.me/5491144471684" target="_blank" class="btn-social bg-wpp">
             <i class="fab fa-whatsapp"></i>
         </a>
@@ -814,7 +873,7 @@
 
                 const carouselId = `modalCarousel-${targetId}`;
 
-                let productosHtml = '';
+let productosHtml = '';
                 if (prodNames.length > 0) {
                     const checksHtml = prodNames.map((name, i) => {
                         const pid = prodIds[i] || i;
@@ -831,6 +890,20 @@
                             <h6 class="fw-bold text-primary mb-2"><i class="fas fa-box me-1"></i>Productos</h6>
                             <div class="small">${checksHtml}</div>
                             <div class="form-text">Seleccioná los productos sobre los que deseás consultar.</div>
+                        </div>
+                        <div class="mt-3 pt-3 border-top">
+                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-cart-plus me-1"></i>Agregar al pedido</h6>
+                            <div class="small">
+                                ${prodNames.map((name, i) => {
+                                    const pid = prodIds[i] || i;
+                                    return `<div class="d-flex align-items-center gap-2 py-1 border-bottom pedido-prod-row" data-producto-id="${pid}">
+                                        <span class="small flex-grow-1">${name}</span>
+                                        <input type="number" min="1" max="9999" value="1" class="form-control form-control-sm prod-qty" style="width:4.2rem" aria-label="Cantidad">
+                                        <button type="button" class="btn btn-sm btn-success btn-add-pedido" title="Agregar a pedido">Agregar</button>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                            <div class="form-text">Ingresá con Google para confirmar tu pedido.</div>
                         </div>`;
                 }
 
@@ -907,10 +980,164 @@
                         openGallery(subId, img.src);
                     }
                 }
-            });
+});
         })();
     </script>
 
-</body>
+    <script>
+        // --- Sistema de Pedidos (Offcanvas) ---
+        async function agregarAlPedido(productoId, cantidad) {
+            const resp = await fetch('{{ url_for("pedido_agregar") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_producto: productoId, cantidad: cantidad })
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                if (data.login_required) {
+                    window.location.href = data.login_url + '&add=' + productoId + '&cantidad=' + cantidad;
+                } else {
+                    alert(data.error || 'Error al agregar al pedido');
+                }
+                return false;
+            }
+            actualizarPedidoUI(data.count, data.items);
+            return true;
+        }
 
+        async function actualizarPedidoItem(itemId, cantidad, eliminar = false) {
+            const resp = await fetch('{{ url_for("pedido_actualizar_item", item_id=0) }}'.replace('/0', '/' + itemId), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cantidad: cantidad, eliminar: eliminar })
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                actualizarPedidoUI(data.count, data.items);
+            } else if (data.login_required) {
+                window.location.href = data.login_url;
+            } else {
+                alert(data.error || 'Error al actualizar');
+            }
+        }
+
+        function actualizarPedidoUI(count, items) {
+            const badge = document.getElementById('pedidoCountBadge');
+            if (badge) badge.textContent = count;
+            const lista = document.getElementById('pedidoLista');
+            if (!lista) return;
+            if (items.length === 0) {
+                lista.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-clipboard-list fa-3x mb-3"></i>
+                        <p class="mb-1">Tu pedido está vacío</p>
+                        <small>Explorá el catálogo y agregá productos</small>
+                    </div>`;
+                return;
+            }
+            lista.innerHTML = `
+                <ul class="list-group list-group-flush mb-3">
+                    ${items.map(item => `
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="number" min="1" max="9999" value="${item.cantidad}"
+                                    class="form-control form-control-sm pedido-item-qty" style="width:4rem"
+                                    data-item-id="${item.id}">
+                                <div>
+                                    ${item.categoria || item.subcategoria ? `<small class="text-muted d-block">${item.categoria || ''}${item.categoria && item.subcategoria ? ' › ' : ''}${item.subcategoria || ''}</small>` : ''}
+                                    <span class="fw-medium">${item.nombre}</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pedido-item"
+                                data-item-id="${item.id}" title="Eliminar"><i class="fas fa-trash"></i></button>
+                        </li>
+                    `).join('')}
+                </ul>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('pedido_checkout') }}" class="btn btn-primary btn-lg fw-bold">
+                        <i class="fas fa-paper-plane me-2"></i> Enviar pedido
+                    </a>
+                </div>`;
+            attachPedidoEvents();
+        }
+
+        function attachPedidoEvents() {
+            document.querySelectorAll('.pedido-item-qty').forEach(input => {
+                input.addEventListener('change', function() {
+                    const itemId = this.dataset.itemId;
+                    const cantidad = parseInt(this.value) || 1;
+                    actualizarPedidoItem(itemId, cantidad);
+                });
+            });
+            document.querySelectorAll('.btn-eliminar-pedido-item').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    actualizarPedidoItem(this.dataset.itemId, 0, true);
+                });
+            });
+        }
+
+        // Botones "Agregar al pedido" en las cards (delegación)
+        document.body.addEventListener('click', function(e) {
+            if (e.target.matches('.btn-add-pedido')) {
+                const row = e.target.closest('.pedido-prod-row');
+                if (!row) return;
+                const productoId = parseInt(row.dataset.productoId);
+                const qtyInput = row.querySelector('.prod-qty');
+                const cantidad = parseInt(qtyInput?.value) || 1;
+                agregarAlPedido(productoId, cantidad);
+            }
+        });
+
+        attachPedidoEvents();
+    </script>
+
+    <!-- Offcanvas: Pedido / Carrito -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="pedidoOffcanvas" aria-labelledby="pedidoOffcanvasLabel">
+        <div class="offcanvas-header bg-primary text-white">
+            <h5 class="offcanvas-title" id="pedidoOffcanvasLabel">
+                <i class="fas fa-clipboard-list me-2"></i> Tu pedido
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column">
+            <div id="pedidoLista" class="flex-grow-1 overflow-auto">
+                {% if pedido_items %}
+                <ul class="list-group list-group-flush mb-3">
+                    {% for item in pedido_items %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="number" min="1" max="9999" value="{{ item.cantidad }}"
+                                class="form-control form-control-sm pedido-item-qty" style="width:4rem"
+                                data-item-id="{{ item.id }}">
+                            <div>
+                                {% if item.categoria or item.subcategoria %}
+                                <small class="text-muted d-block">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</small>
+                                {% endif %}
+                                <span class="fw-medium">{{ item.nombre }}</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pedido-item"
+                            data-item-id="{{ item.id }}" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('pedido_checkout') }}" class="btn btn-primary btn-lg fw-bold">
+                        <i class="fas fa-paper-plane me-2"></i> Enviar pedido
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-clipboard-list fa-3x mb-3"></i>
+                    <p class="mb-1">Tu pedido está vacío</p>
+                    <small>Explorá el catálogo y agregá productos</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</body>
 </html>
