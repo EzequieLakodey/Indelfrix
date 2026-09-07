@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from functools import wraps
 from sqlalchemy import inspect, text
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
+from authlib.integrations.flask_client import OAuth
 import os
 import json
 import cloudinary
@@ -20,6 +22,19 @@ FICHA_EDITOR_EMAIL = os.getenv('FICHA_EDITOR_EMAIL', 'indelfrix.ventas@gmail.com
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET', 'dev-secret')
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25 MB para fichas técnicas PDF
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
+app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
+
+oauth = OAuth(app)
+if os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'):
+    oauth.register(
+        name='google',
+        client_id=os.getenv('GOOGLE_CLIENT_ID'),
+        client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'},
+    )
 
 # --- CONFIGURACIÓN DE BASE DE DATOS (Para el contador) ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///indelfrix.db'
@@ -112,6 +127,45 @@ class Producto(db.Model):
     nombre = db.Column(db.String(200), nullable=False)
     id_subcategoria = db.Column(db.Integer, db.ForeignKey('subcategorias.id_subcategoria'), nullable=False)
     imagenes = db.relationship('Imagen', secondary=productos_imagenes, backref='productos')
+
+
+class Cliente(db.Model):
+    __tablename__ = 'clientes'
+    id = db.Column(db.Integer, primary_key=True)
+    google_id = db.Column(db.String(64), unique=True, nullable=False)
+    email = db.Column(db.String(200), nullable=False)
+    nombre = db.Column(db.String(200))
+    picture = db.Column(db.String(500))
+    creado = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Pedido(db.Model):
+    __tablename__ = 'pedidos'
+    id = db.Column(db.Integer, primary_key=True)
+    id_cliente = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
+    estado = db.Column(db.String(20), nullable=False, default='abierto')
+    nombre_contacto = db.Column(db.String(200))
+    telefono = db.Column(db.String(50))
+    empresa = db.Column(db.String(200))
+    observaciones = db.Column(db.Text)
+    mail_enviado = db.Column(db.Boolean, default=False)
+    whatsapp_enviado = db.Column(db.Boolean, default=False)
+    whatsapp_error = db.Column(db.String(500))
+    creado = db.Column(db.DateTime, default=datetime.utcnow)
+    enviado_at = db.Column(db.DateTime)
+    cliente = db.relationship('Cliente', backref='pedidos')
+    items = db.relationship('PedidoItem', backref='pedido', cascade='all, delete-orphan', lazy=True)
+
+
+class PedidoItem(db.Model):
+    __tablename__ = 'pedido_items'
+    id = db.Column(db.Integer, primary_key=True)
+    id_pedido = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
+    id_producto = db.Column(db.Integer, db.ForeignKey('productos.id_producto'), nullable=True)
+    cantidad = db.Column(db.Integer, nullable=False, default=1)
+    nombre = db.Column(db.String(200), nullable=False)
+    categoria = db.Column(db.String(100))
+    subcategoria = db.Column(db.String(100))
 
 # --- RUTAS ---
 @app.route('/')
@@ -292,12 +346,37 @@ def admin_required(fn):
     return wrapper
 
 
+def google_ready():
+    return bool(os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'))
+
+
+def cliente_actual():
+    cid = session.get('cliente_id')
+    if not cid:
+        return None
+    return db.session.get(Cliente, cid)
+
+
+def pedido_abierto(cliente):
+    if not cliente:
+        return None
+    return Pedido.query.filter_by(id_cliente=cliente.id, estado='abierto').first()
+
+
 @app.context_processor
 def inject_admin_flags():
+    cliente = cliente_actual()
+    pedido = pedido_abierto(cliente)
+    items = pedido.items if pedido else []
     return {
         'can_edit_fichas': can_edit_fichas(),
         'ficha_editor_email': FICHA_EDITOR_EMAIL,
         'admin_email': session.get('admin_email'),
+        'cliente': cliente,
+        'pedido_abierto_actual': pedido,
+        'pedido_items': items,
+        'pedido_count': sum((item.cantidad or 0) for item in items),
+        'google_ready': google_ready(),
     }
 
 
@@ -702,6 +781,9 @@ def api_productos(sub_id):
     sub = Subcategoria.query.get_or_404(sub_id)
     productos = [{'id': p.id_producto, 'nombre': p.nombre} for p in sub.productos]
     return {'productos': productos}
+
+
+import pedidos  # noqa: E402,F401  — registra login Google y rutas de pedido
 
 
 if __name__ == '__main__':

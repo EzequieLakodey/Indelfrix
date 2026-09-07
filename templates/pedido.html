@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enviar pedido | Indelfrix S.A.</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+  <nav class="navbar sticky-nav navbar-expand-lg px-4 py-3">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold mb-0 bungee-shade-regular" href="{{ url_for('inicio') }}">INDELFRIX S.A.</a>
+      <a class="nav-link" href="{{ url_for('inicio') }}#catalogo">Volver al catálogo</a>
+    </div>
+  </nav>
+
+  <main class="container py-5">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="mx-auto bg-white shadow rounded p-4" style="max-width: 760px;">
+      <h1 class="h3 text-primary mb-3">Enviar pedido</h1>
+      <p class="text-muted">No es una compra online: enviamos tu lista a ventas para presupuestar y coordinar. Sin precios ni stock en este paso.</p>
+
+      <h2 class="h6 text-secondary border-bottom pb-2">Productos</h2>
+      <ul class="list-group mb-4">
+        {% for item in pedido.items %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>
+            {% if item.categoria or item.subcategoria %}
+            <small class="text-muted">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</small><br>
+            {% endif %}
+            {{ item.nombre }}
+          </span>
+          <strong>x{{ item.cantidad }}</strong>
+        </li>
+        {% endfor %}
+      </ul>
+
+      <form method="post">
+        <h2 class="h6 text-secondary border-bottom pb-2">Tus datos de contacto</h2>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Nombre *</label>
+            <input class="form-control" name="nombre" required
+              value="{{ pedido.nombre_contacto or cliente.nombre or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Email (Google)</label>
+            <input class="form-control" value="{{ cliente.email }}" disabled>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Teléfono / WhatsApp *</label>
+            <input class="form-control" name="telefono" required placeholder="+54 11 ..."
+              value="{{ pedido.telefono or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Empresa / Razón social</label>
+            <input class="form-control" name="empresa" value="{{ pedido.empresa or '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-bold">Observaciones</label>
+            <textarea class="form-control" name="observaciones" rows="3"
+              placeholder="Uso, plazos, lugar de entrega…">{{ pedido.observaciones or '' }}</textarea>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-lg w-100 fw-bold" type="submit">
+          <i class="fas fa-paper-plane me-2"></i> Enviar pedido a Indelfrix
+        </button>
+      </form>
+    </div>
+  </main>
+</body>
+
+</html>
