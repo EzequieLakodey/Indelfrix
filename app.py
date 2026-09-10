@@ -367,7 +367,13 @@ def admin_required(fn):
 
 
 def google_ready():
-    return bool(os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'))
+    cid = os.getenv('GOOGLE_CLIENT_ID', '').strip()
+    csecret = os.getenv('GOOGLE_CLIENT_SECRET', '').strip()
+    if not cid or not csecret:
+        return False
+    if 'aqui' in cid.lower() or 'aqui' in csecret.lower():
+        return False
+    return True
 
 
 def cliente_actual():

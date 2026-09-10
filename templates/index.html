@@ -476,43 +476,6 @@
         {% endfor %}
     </div>
 
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="pedidoOffcanvas">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">Tu pedido</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
-        </div>
-        <div class="offcanvas-body d-flex flex-column">
-            {% if not cliente %}
-            <p class="text-muted">Para armar un pedido ingresá con Google. Así usamos un mail real y podemos responderte.</p>
-            {% if google_ready %}
-            <a class="btn btn-primary" href="{{ url_for('google_login', next=url_for('inicio')) }}">
-                <i class="fab fa-google me-1"></i> Ingresar con Google
-            </a>
-            {% else %}
-            <p class="small text-warning mb-0">Falta configurar GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET.</p>
-            {% endif %}
-            {% else %}
-            <ul class="list-group mb-3" id="pedidoItemsList">
-                {% for item in pedido_items %}
-                <li class="list-group-item" data-item-id="{{ item.id }}">
-                    <div class="d-flex justify-content-between gap-2">
-                        <div>
-                            <div class="fw-bold small">{{ item.nombre }}</div>
-                            <div class="text-muted" style="font-size:0.75rem;">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item">&times;</button>
-                    </div>
-                    <input type="number" min="1" max="9999" value="{{ item.cantidad }}"
-                        class="form-control form-control-sm mt-2 item-qty" style="width:5rem">
-                </li>
-                {% else %}
-                <li class="list-group-item text-muted" id="pedidoEmpty">Todavía no agregaste productos.</li>
-                {% endfor %}
-            </ul>
-            <a id="btnEnviarPedido" class="btn btn-primary mt-auto {% if not pedido_items %}disabled{% endif %}"
-                href="{{ url_for('pedido_checkout') }}">Completar datos y enviar</a>
-            {% endif %}
-        </div>
     </div>
         <a href="https://wa.me/5491144471684" target="_blank" class="btn-social bg-wpp">
             <i class="fab fa-whatsapp"></i>
