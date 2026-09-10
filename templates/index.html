@@ -733,6 +733,7 @@
             function syncProductosInput() {
                 const lista = document.getElementById('productosSeleccionadosLista');
                 const input = document.getElementById('productosSeleccionados');
+                if (!lista || !input) return;
                 const items = [];
                 lista.innerHTML = '';
                 for (const subId in selectedProducts) {
@@ -768,17 +769,20 @@
                 });
             }
 
-            document.getElementById('productosSeleccionadosLista').addEventListener('click', function(e) {
-                const btn = e.target.closest('[data-remove-id]');
-                if (!btn) return;
-                const prodId = btn.dataset.removeId;
-                for (const subId in selectedProducts) {
-                    selectedProducts[subId] = selectedProducts[subId].filter(p => p.id != prodId);
-                    if (selectedProducts[subId].length === 0) delete selectedProducts[subId];
-                }
-                document.querySelectorAll(`.prod-check-card[value="${prodId}"], .prod-check[value="${prodId}"]`).forEach(cb => cb.checked = false);
-                syncProductosInput();
-            });
+            const productosSeleccionadosLista = document.getElementById('productosSeleccionadosLista');
+            if (productosSeleccionadosLista) {
+                productosSeleccionadosLista.addEventListener('click', function(e) {
+                    const btn = e.target.closest('[data-remove-id]');
+                    if (!btn) return;
+                    const prodId = btn.dataset.removeId;
+                    for (const subId in selectedProducts) {
+                        selectedProducts[subId] = selectedProducts[subId].filter(p => p.id != prodId);
+                        if (selectedProducts[subId].length === 0) delete selectedProducts[subId];
+                    }
+                    document.querySelectorAll(`.prod-check-card[value="${prodId}"], .prod-check[value="${prodId}"]`).forEach(cb => cb.checked = false);
+                    syncProductosInput();
+                });
+            }
 
             function toggleProduct(checkbox) {
                 const pid = checkbox.value;
