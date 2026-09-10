@@ -29,7 +29,7 @@
 
     <div class="mx-auto bg-white shadow rounded p-4" style="max-width: 760px;">
       <h1 class="h3 text-primary mb-3">Enviar pedido</h1>
-      <p class="text-muted">No es una compra online: enviamos tu lista a ventas para presupuestar y coordinar. Sin precios ni stock en este paso.</p>
+      <p class="text-muted">No es una compra online: armamos tu lista para que la envíes por WhatsApp a ventas. Al confirmar te redirigimos a WhatsApp con el mensaje ya redactado.</p>
 
       <h2 class="h6 text-secondary border-bottom pb-2">Productos</h2>
       <ul class="list-group mb-4">
@@ -51,7 +51,7 @@
         <div class="row g-3 mb-3">
           <div class="col-md-6">
             <label class="form-label small fw-bold">Nombre *</label>
-            <input class="form-control" name="nombre" required
+            <input class="form-control" name="nombre" required autocomplete="name"
               value="{{ pedido.nombre_contacto or cliente.nombre or '' }}">
           </div>
           <div class="col-md-6">
@@ -65,7 +65,11 @@
           </div>
           <div class="col-md-6">
             <label class="form-label small fw-bold">Empresa / Razón social</label>
-            <input class="form-control" name="empresa" value="{{ pedido.empresa or '' }}">
+            <input class="form-control" name="empresa" autocomplete="organization" value="{{ pedido.empresa or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Localidad / Ciudad</label>
+            <input class="form-control" name="localidad" value="{{ pedido.localidad or '' }}">
           </div>
           <div class="col-12">
             <label class="form-label small fw-bold">Observaciones</label>
@@ -73,9 +77,10 @@
               placeholder="Uso, plazos, lugar de entrega…">{{ pedido.observaciones or '' }}</textarea>
           </div>
         </div>
-        <button class="btn btn-primary btn-lg w-100 fw-bold" type="submit">
-          <i class="fas fa-paper-plane me-2"></i> Enviar pedido a Indelfrix
+        <button class="btn btn-success btn-lg w-100 fw-bold" type="submit">
+          <i class="fab fa-whatsapp me-2"></i> Continuar a WhatsApp
         </button>
+        <p class="text-muted small text-center mt-2 mb-0">Al continuar se abrirá WhatsApp de Indelfrix con tu pedido listo para enviar.</p>
       </form>
     </div>
   </main>

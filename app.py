@@ -150,6 +150,7 @@ class Pedido(db.Model):
     nombre_contacto = db.Column(db.String(200))
     telefono = db.Column(db.String(50))
     empresa = db.Column(db.String(200))
+    localidad = db.Column(db.String(200))
     observaciones = db.Column(db.Text)
     mail_enviado = db.Column(db.Boolean, default=False)
     whatsapp_enviado = db.Column(db.Boolean, default=False)
@@ -204,6 +205,11 @@ def _ensure_schema():
         cols = {col['name'] for col in inspector.get_columns('productos')}
         if 'nombre' not in cols:
             db.session.execute(text("ALTER TABLE productos ADD COLUMN nombre VARCHAR(200) DEFAULT ''"))
+            db.session.commit()
+    if 'pedidos' in inspector.get_table_names():
+        cols = {col['name'] for col in inspector.get_columns('pedidos')}
+        if 'localidad' not in cols:
+            db.session.execute(text("ALTER TABLE pedidos ADD COLUMN localidad VARCHAR(200)"))
             db.session.commit()
 
 

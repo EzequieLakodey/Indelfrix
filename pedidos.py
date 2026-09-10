@@ -77,6 +77,7 @@ def _pedido_texto(pedido, cliente):
         f'- Email (Google): {cliente.email}',
         f'- Teléfono / WhatsApp: {pedido.telefono or "-"}',
         f'- Empresa: {pedido.empresa or "-"}',
+        f'- Localidad: {pedido.localidad or "-"}',
         '',
         'PRODUCTOS SOLICITADOS (sin precios ni stock):',
     ]
@@ -91,6 +92,41 @@ def _pedido_texto(pedido, cliente):
     lineas.append('')
     lineas.append('Contactar al cliente para presupuestar o coordinar entrega.')
     return '\n'.join(lineas)
+
+
+def _pedido_whatsapp_texto(pedido, cliente):
+    lineas = [
+        f'Hola Indelfrix, quiero hacer el siguiente pedido (WEB #{pedido.id:05d}):',
+        '',
+        '*DATOS DE CONTACTO:*',
+        f'- Nombre: {pedido.nombre_contacto or cliente.nombre or "-"}',
+        f'- Email: {cliente.email}',
+        f'- Teléfono: {pedido.telefono or "-"}',
+        f'- Empresa: {pedido.empresa or "-"}',
+        f'- Localidad: {pedido.localidad or "-"}',
+        '',
+        '*PRODUCTOS:*',
+    ]
+    for item in pedido.items:
+        ruta = ' > '.join(p for p in [item.categoria, item.subcategoria] if p)
+        prefix = f'{ruta}: ' if ruta else ''
+        lineas.append(f'- {prefix}{item.nombre} x{item.cantidad}')
+    if pedido.observaciones:
+        lineas.append('')
+        lineas.append('*OBSERVACIONES:*')
+        lineas.append(pedido.observaciones)
+    return '\n'.join(lineas)
+
+
+def _url_whatsapp_empresa():
+    numero = re.sub(r'\D', '', os.getenv('WHATSAPP_EMPRESA_NUMERO') or os.getenv('WHATSAPP_DESTINO') or '5491144471684')
+    return f'https://wa.me/{numero}'
+
+
+def _build_whatsapp_url(pedido, cliente):
+    from urllib.parse import quote
+    mensaje = _pedido_whatsapp_texto(pedido, cliente)
+    return f"{_url_whatsapp_empresa()}?text={quote(mensaje)}"
 
 
 def _send_pedido_mail(pedido, cliente, cuerpo):
@@ -239,8 +275,8 @@ def google_callback():
     userinfo = token.get('userinfo') or {}
     google_id = str(userinfo.get('sub') or '')
     email = (userinfo.get('email') or '').strip().lower()
-    if not google_id or not email or not userinfo.get('email_verified', True):
-        flash('Google no confirmó un email válido.', 'danger')
+    if not google_id or not email or userinfo.get('email_verified') is not True:
+        flash('Google no confirmó un email válido. Usá una cuenta de Google real.', 'danger')
         return redirect(url_for('inicio'))
     cliente = Cliente.query.filter_by(google_id=google_id).first()
     if not cliente:
@@ -327,6 +363,7 @@ def pedido_checkout():
         nombre = (request.form.get('nombre') or cliente.nombre or '').strip()
         telefono = (request.form.get('telefono') or '').strip()
         empresa = (request.form.get('empresa') or '').strip()
+        localidad = (request.form.get('localidad') or '').strip()
         observaciones = (request.form.get('observaciones') or '').strip()
         if not nombre or not telefono:
             flash('Completá nombre y teléfono para que podamos contactarte.', 'danger')
@@ -334,25 +371,13 @@ def pedido_checkout():
         pedido.nombre_contacto = nombre
         pedido.telefono = telefono
         pedido.empresa = empresa
+        pedido.localidad = localidad
         pedido.observaciones = observaciones
-        cuerpo = _pedido_texto(pedido, cliente)
-        mail_ok, wpp_ok, errores = notificar_pedido(pedido, cliente, cuerpo)
-        if not mail_ok:
-            db.session.commit()
-            flash(f'No se pudo enviar el mail del pedido: {errores[0] if errores else "error desconocido"}', 'danger')
-            return render_template('pedido.html', pedido=pedido)
         pedido.estado = 'enviado'
         pedido.enviado_at = datetime.utcnow()
         db.session.commit()
-        if wpp_ok:
-            flash('Pedido enviado. Te vamos a contactar a la brevedad.', 'success')
-        else:
-            flash(
-                'Pedido enviado por mail. WhatsApp no se pudo notificar automáticamente '
-                '(configurá la Cloud API o revisá el número destino).',
-                'warning',
-            )
-        return redirect(url_for('inicio'))
+        whatsapp_url = _build_whatsapp_url(pedido, cliente)
+        return redirect(whatsapp_url)
     if not pedido or not pedido.items:
         flash('Todavía no hay productos en el pedido.', 'info')
         return redirect(url_for('inicio') + '#catalogo')

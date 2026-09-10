@@ -476,11 +476,11 @@
         {% endfor %}
     </div>
 
-    </div>
-        <a href="https://wa.me/5491144471684" target="_blank" class="btn-social bg-wpp">
+    <div class="floating-socials">
+        <a href="https://wa.me/5491144471684" target="_blank" class="btn-social bg-wpp" title="WhatsApp">
             <i class="fab fa-whatsapp"></i>
         </a>
-        <a href="https://www.instagram.com/indelfrixs.a" target="_blank" class="btn-social bg-ig">
+        <a href="https://www.instagram.com/indelfrixs.a" target="_blank" class="btn-social bg-ig" title="Instagram">
             <i class="fab fa-instagram"></i>
         </a>
     </div>
@@ -953,7 +953,20 @@ let productosHtml = '';
 
     <script>
         // --- Sistema de Pedidos (Offcanvas) ---
+        const googleReady = {{ 'true' if google_ready else 'false' }};
+        const clienteLogueado = {{ 'true' if cliente else 'false' }};
+
         async function agregarAlPedido(productoId, cantidad) {
+            if (!clienteLogueado && !googleReady) {
+                alert('Para armar pedidos es necesario iniciar sesión con Google.\n\nNota: Las credenciales de Google OAuth no están configuradas en este entorno local/desarrollo (.env vacío).');
+                const offcanvasEl = document.getElementById('pedidoOffcanvas');
+                if (offcanvasEl) {
+                    const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl) || new bootstrap.Offcanvas(offcanvasEl);
+                    bsOffcanvas.show();
+                }
+                return false;
+            }
+
             const resp = await fetch('{{ url_for("pedido_agregar") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1068,6 +1081,23 @@ let productosHtml = '';
         </div>
         <div class="offcanvas-body d-flex flex-column">
             <div id="pedidoLista" class="flex-grow-1 overflow-auto">
+                {% if not cliente %}
+                <div class="text-center p-3 mb-3 bg-light rounded border">
+                    <i class="fab fa-google text-primary fa-2x mb-2"></i>
+                    <h6 class="fw-bold mb-1">Identificación requerida</h6>
+                    <p class="small text-muted mb-2">Para armar y enviar pedidos debés iniciar sesión con tu cuenta de Google.</p>
+                    {% if google_ready %}
+                    <a href="{{ url_for('google_login') }}" class="btn btn-sm btn-primary fw-bold">
+                        <i class="fab fa-google me-1"></i> Ingresar con Google
+                    </a>
+                    {% else %}
+                    <div class="alert alert-warning small py-1 px-2 mb-0">
+                        Login con Google no configurado (entorno local).
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 {% if pedido_items %}
                 <ul class="list-group list-group-flush mb-3">
                     {% for item in pedido_items %}
