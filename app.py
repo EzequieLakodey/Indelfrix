@@ -21,6 +21,8 @@ cloudinary.config(secure=True)
 FICHA_EDITOR_EMAIL = os.getenv('FICHA_EDITOR_EMAIL', 'indelfrix.ventas@gmail.com').strip().lower()
 
 app = Flask(__name__)
+import sys
+sys.modules['app'] = sys.modules[__name__]
 app.secret_key = os.getenv('FLASK_SECRET', 'dev-secret')
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25 MB para fichas técnicas PDF
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
