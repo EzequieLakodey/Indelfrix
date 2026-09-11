@@ -53,7 +53,7 @@ web-app/
 ├── templates/
 │   ├── index.html         # Página pública (catálogo + formulario de consulta)
 │   ├── pedido.html        # Checkout del pedido
-│   └── admin/             # Login, dashboard y CRUD (base_admin.html)
+│   └── admin/             # Login, dashboard, CRUD catalogo, tags y pedidos
 ├── static/
 │   ├── style.css
 │   └── img/               # Imágenes del catálogo (fallback local)
@@ -68,6 +68,7 @@ web-app/
 | `Categoria` | `categorias` | Nivel superior del catálogo |
 | `Subcategoria` | `subcategorias` | Pertenece a N categorías; puede tener ficha técnica PDF |
 | `Producto` | `productos` | Pertenece a 1 subcategoría |
+| `Tag` | `tags` | Propósito/uso de subcategorías (ej: "Para camiones"); N-N con `subcategorias` |
 | `Imagen` | `imagenes` | Relación N-N con categorías, subcategorías y productos |
 | `Cliente` | `clientes` | Usuario logueado con Google (`google_id`, `email`) |
 | `Pedido` | `pedidos` | Carrito/orden del cliente (incluye `localidad`, `enviado_at`, flags de notificación) |
@@ -130,6 +131,12 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
 - [x] API interna `/api/productos/<sub_id>`.
 - [x] **Anti-spam en el formulario de contacto**: honeypot oculto + rate limit por IP (máx. 3 envíos/60s).
 - [x] Código legacy de WhatsApp Cloud API eliminado (`requests` incluida).
+- [x] **Sistema de tags para subcategorías**: modelo `Tag` + N-N `subcategorias_tags`,
+      CRUD en admin, asignación múltiple desde el form de subcategoría, badges en las
+      cards del catálogo y filtro server-side (`?tag=<id>`).
+- [x] **Panel admin de pedidos**: listado con filtro por estado, detalle completo
+      (cliente, contacto, productos, observaciones) y cambio de estado
+      (`abierto` → `enviado` → `gestionado`).
 
 ---
 
@@ -151,46 +158,35 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
 
 ### 🟡 Corto plazo (features priorizadas)
 
-3. **Sistema de tags/atributos para subcategorías** — filtro del catálogo por
-   propósito (ej: "Para camiones", "Para baja temperatura", "Para media temperatura"):
-   - Modelo `Tag` (id, nombre, color opcional) + tabla N-N `subcategorias_tags`
-     (una subcategoría puede tener varios tags).
-   - CRUD de tags en el panel admin (crear, editar, eliminar).
-   - Asignación múltiple de tags desde el formulario de subcategoría (checkboxes).
-   - Badges visibles en las cards del catálogo.
-   - **Filtro server-side** con query param (`?tag=camiones`): URLs compartibles
-     y más amigables para SEO que un filtro client-side.
-4. **Panel admin de pedidos** — listado, detalle y cambio de estado
-   (`abierto` → `enviado` → `gestionado`). Necesario porque el redirect a `wa.me`
-   no confirma que el cliente efectivamente envió el mensaje: el panel + el email
-   de respaldo son la trazabilidad real.
+_Sección completada._ Los ítems de tags y panel de pedidos quedaron implementados
+(ver §3). Restan evaluar nuevas features según feedback de uso real.
 
 ### 🟢 Mediano plazo (robustez y operación)
 
-5. Panel admin de **clientes** y **solicitudes** (listado de consultas del formulario).
-6. CRUD de **imágenes** como entidad independiente (hoy se gestionan embebidas
+3. Panel admin de **clientes** y **solicitudes** (listado de consultas del formulario).
+4. CRUD de **imágenes** como entidad independiente (hoy se gestionan embebidas
    en cada CRUD).
-7. Botón/link de acceso al panel admin en la UI pública (visible solo con sesión admin).
-8. Migraciones explícitas con **Flask-Migrate/Alembic** (reemplaza `_ensure_schema`).
-9. **Tests automatizados** (unitarios + integración de rutas y flujo de pedido).
+5. Botón/link de acceso al panel admin en la UI pública (visible solo con sesión admin).
+6. Migraciones explícitas con **Flask-Migrate/Alembic** (reemplaza `_ensure_schema`).
+7. **Tests automatizados** (unitarios + integración de rutas y flujo de pedido).
    Nota: el `test_client` actual falla por incompatibilidad Flask 2.3 / Werkzeug
    nuevo — conviene actualizar el stack a Flask 3.x como parte de este trabajo.
-10. **Logging estructurado** y manejo de errores (hoy varios `except` silencian).
-11. **CSRF en formularios** (Flask-WTF) y rate limiting global (Flask-Limiter).
+8. **Logging estructurado** y manejo de errores (hoy varios `except` silencian).
+9. **CSRF en formularios** (Flask-WTF) y rate limiting global (Flask-Limiter).
 
 ### 🔵 Recomendaciones extra / largo plazo
 
-12. **Aviso de privacidad básico** junto al login/checkout — la app guarda emails
+10. **Aviso de privacidad básico** junto al login/checkout — la app guarda emails
     y teléfonos de clientes (Ley 25.326 de Protección de Datos, Argentina).
-13. **Analytics** (p.ej. Google Analytics o alternativa liviana) para saber qué
+11. **Analytics** (p.ej. Google Analytics o alternativa liviana) para saber qué
     subcategorías se miran más + **datos estructurados Schema.org** (Organization,
     Product) para mejorar el SEO. Post-lanzamiento.
-14. Paginación y búsqueda en el catálogo si crece el número de productos.
-15. Cotizador automático (presupuesto en base a las especificaciones del formulario).
-16. Panel de cliente (historial de pedidos y estado).
-17. Reevaluar el botón flotante de WhatsApp: si empieza a traer demasiado ruido
+12. Paginación y búsqueda en el catálogo si crece el número de productos.
+13. Cotizador automático (presupuesto en base a las especificaciones del formulario).
+14. Panel de cliente (historial de pedidos y estado).
+15. Reevaluar el botón flotante de WhatsApp: si empieza a traer demasiado ruido
     (consultas sueltas que ensucian el canal de pedidos), considerar quitarlo.
-18. Migración del front a una SPA o SSR moderno si la complejidad lo amerita.
+16. Migración del front a una SPA o SSR moderno si la complejidad lo amerita.
 
 ---
 
@@ -210,10 +206,10 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
 
 - **`FICHA_EDITOR_EMAIL` como único "rol"**: no hay modelo de permisos granular.
 - **`_ensure_schema`** sigue siendo `ALTER TABLE` manual al arrancar; mejorado
-  (no destructivo) pero preferir migraciones (TO-DO #8).
+  (no destructivo) pero preferir migraciones (TO-DO #6).
 - **SQLite efímero en Render** — riesgo de pérdida de datos en producción
   (elevado a TO-DO #2, bloqueante de lanzamiento).
-- **Sin tests** — los cambios se validan manualmente (TO-DO #9).
+- **Sin tests** — los cambios se validan manualmente (TO-DO #7).
 
 ---
 

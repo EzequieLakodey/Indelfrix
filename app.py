@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from authlib.integrations.flask_client import OAuth
+from zoneinfo import ZoneInfo
 import os
 import json
 import cloudinary
@@ -105,6 +106,11 @@ productos_imagenes = db.Table('productos_imagenes',
     db.Column('id_imagen', db.Integer, db.ForeignKey('imagenes.id_imagen'), primary_key=True)
 )
 
+subcategorias_tags = db.Table('subcategorias_tags',
+    db.Column('id_subcategoria', db.Integer, db.ForeignKey('subcategorias.id_subcategoria'), primary_key=True),
+    db.Column('id_tag', db.Integer, db.ForeignKey('tags.id_tag'), primary_key=True)
+)
+
 class Categoria(db.Model):
     __tablename__ = 'categorias' 
     id_categoria = db.Column(db.Integer, primary_key=True)
@@ -126,6 +132,7 @@ class Subcategoria(db.Model):
 
     # Relación muchos a muchos
     imagenes = db.relationship('Imagen', secondary=subcategorias_imagenes, backref='subcategorias')
+    tags = db.relationship('Tag', secondary=subcategorias_tags, backref='subcategorias')
     productos = db.relationship('Producto', backref='subcategoria', lazy=True, cascade='all, delete-orphan')
 
     def tiene_ficha(self):
@@ -142,6 +149,13 @@ class Imagen(db.Model):
     id_imagen = db.Column(db.Integer, primary_key=True)
     url = db.Column(db.String(500), nullable=False)
     public_id = db.Column(db.String(255), nullable=True)
+
+
+class Tag(db.Model):
+    __tablename__ = 'tags'
+    id_tag = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False, unique=True)
+    color = db.Column(db.String(20))  # hex ej: '#0d6efd' (opcional, por defecto gris)
 
 
 class Producto(db.Model):
@@ -192,14 +206,40 @@ class PedidoItem(db.Model):
     subcategoria = db.Column(db.String(100))
 
 # --- RUTAS ---
+@app.template_filter('fecha_ar')
+def _fecha_hora_ar(dt):
+    """Filtro Jinja: formatea fecha/hora UTC al horario de Argentina (ej: 11/09/2026 14:32)."""
+    if not dt:
+        return ''
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo('UTC'))
+    return dt.astimezone(ZoneInfo('America/Argentina/Buenos_Aires')).strftime('%d/%m/%Y %H:%M')
+
+
 @app.route('/')
 def inicio():
     # Consultamos todas las categorías y sus imágenes asociadas
     categorias_db = Categoria.query.all()
     subcategorias_db = Subcategoria.query.all()
+    tags_db = Tag.query.order_by(Tag.nombre).all()
+
+    # Filtro server-side por tag (?tag=<id>): solo subcategorías que tengan ese tag
+    tag_id = request.args.get('tag', type=int)
+    tag_activo = db.session.get(Tag, tag_id) if tag_id else None
+    categorias_vista = []
+    for cat in categorias_db:
+        if tag_activo:
+            subs = [s for s in cat.subcategorias if tag_activo in s.tags]
+        else:
+            subs = list(cat.subcategorias)
+        if subs:
+            categorias_vista.append({'cat': cat, 'subs': subs})
+
     # Pasamos el año actual para el footer
     current_year = datetime.now().year
-    return render_template('index.html', categorias=categorias_db, subcategorias=subcategorias_db, current_year=current_year)
+    return render_template('index.html', categorias=categorias_db, subcategorias=subcategorias_db,
+                           categorias_vista=categorias_vista, tags=tags_db, tag_activo=tag_activo,
+                           current_year=current_year)
 
 
 def _ensure_schema():
@@ -644,11 +684,12 @@ def ficha_tecnica(sub_id):
 @admin_required
 def admin_create_subcategoria():
     categorias = Categoria.query.order_by(Categoria.nombre).all()
+    tags = Tag.query.order_by(Tag.nombre).all()
     if request.method == 'POST':
         nombre = (request.form.get('nombre') or '').strip()
         if not nombre:
             flash('El nombre es obligatorio', 'danger')
-            return render_template('admin/create_subcategoria.html', categorias=categorias)
+            return render_template('admin/create_subcategoria.html', categorias=categorias, tags=tags)
         nueva = Subcategoria(
             nombre=nombre,
             descripcion=request.form.get('descripcion'),
@@ -658,6 +699,8 @@ def admin_create_subcategoria():
             cat = Categoria.query.get(cat_id)
             if cat:
                 nueva.categorias.append(cat)
+        tags_sel = {int(t) for t in request.form.getlist('tags') if t.isdigit()}
+        nueva.tags = [t for t in tags if t.id_tag in tags_sel]
         db.session.add(nueva)
         db.session.flush()
         procesar_imagenes(request.files.getlist('imagenes'), nueva, 'subcategoria')
@@ -666,15 +709,15 @@ def admin_create_subcategoria():
         except PermissionError as exc:
             db.session.rollback()
             flash(str(exc), 'danger')
-            return render_template('admin/create_subcategoria.html', categorias=categorias)
+            return render_template('admin/create_subcategoria.html', categorias=categorias, tags=tags)
         except ValueError as exc:
             db.session.rollback()
             flash(str(exc), 'danger')
-            return render_template('admin/create_subcategoria.html', categorias=categorias)
+            return render_template('admin/create_subcategoria.html', categorias=categorias, tags=tags)
         db.session.commit()
         flash('Subcategoría creada', 'success')
         return redirect(url_for('admin_dashboard'))
-    return render_template('admin/create_subcategoria.html', categorias=categorias)
+    return render_template('admin/create_subcategoria.html', categorias=categorias, tags=tags)
 
 
 @app.route('/admin/subcategorias/<int:id>/editar', methods=['GET', 'POST'])
@@ -682,15 +725,18 @@ def admin_create_subcategoria():
 def admin_edit_subcategoria(id):
     sub = Subcategoria.query.get_or_404(id)
     categorias = Categoria.query.order_by(Categoria.nombre).all()
+    tags = Tag.query.order_by(Tag.nombre).all()
     if request.method == 'POST':
         nombre = (request.form.get('nombre') or '').strip()
         if not nombre:
             flash('El nombre es obligatorio', 'danger')
-            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias)
+            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias, tags=tags)
         sub.nombre = nombre
         sub.descripcion = request.form.get('descripcion')
         seleccionadas = {int(cid) for cid in request.form.getlist('categorias') if cid.isdigit()}
         sub.categorias = [cat for cat in categorias if cat.id_categoria in seleccionadas]
+        tags_sel = {int(t) for t in request.form.getlist('tags') if t.isdigit()}
+        sub.tags = [t for t in tags if t.id_tag in tags_sel]
         eliminar_imagenes_seleccionadas(sub, request.form.getlist('eliminar_imagen'))
         procesar_imagenes(request.files.getlist('imagenes'), sub, 'subcategoria')
         try:
@@ -698,15 +744,15 @@ def admin_edit_subcategoria(id):
         except PermissionError as exc:
             db.session.rollback()
             flash(str(exc), 'danger')
-            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias)
+            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias, tags=tags)
         except ValueError as exc:
             db.session.rollback()
             flash(str(exc), 'danger')
-            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias)
+            return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias, tags=tags)
         db.session.commit()
         flash('Subcategoría actualizada', 'success')
         return redirect(url_for('admin_dashboard'))
-    return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias)
+    return render_template('admin/edit_subcategoria.html', subcategoria=sub, categorias=categorias, tags=tags)
 
 
 @app.route('/admin/subcategorias/<int:id>/eliminar')
@@ -788,6 +834,93 @@ def admin_delete_producto(id):
     db.session.commit()
     flash('Producto eliminado', 'info')
     return redirect(url_for('admin_dashboard'))
+
+
+# --- RUTAS ADMIN: TAGS ---
+@app.route('/admin/tags', methods=['GET', 'POST'])
+@admin_required
+def admin_tags():
+    if request.method == 'POST':
+        nombre = (request.form.get('nombre') or '').strip()
+        color = (request.form.get('color') or '').strip()
+        if not nombre:
+            flash('El nombre del tag es obligatorio', 'danger')
+        elif Tag.query.filter(db.func.lower(Tag.nombre) == nombre.lower()).first():
+            flash('Ya existe un tag con ese nombre', 'warning')
+        else:
+            db.session.add(Tag(nombre=nombre, color=color or None))
+            db.session.commit()
+            flash(f'Tag "{nombre}" creado', 'success')
+        return redirect(url_for('admin_tags'))
+    tags = Tag.query.order_by(Tag.nombre).all()
+    return render_template('admin/tags.html', tags=tags)
+
+
+@app.route('/admin/tags/<int:id>/editar', methods=['POST'])
+@admin_required
+def admin_edit_tag(id):
+    tag = Tag.query.get_or_404(id)
+    nombre = (request.form.get('nombre') or '').strip()
+    color = (request.form.get('color') or '').strip()
+    if not nombre:
+        flash('El nombre no puede estar vacío', 'danger')
+        return redirect(url_for('admin_tags'))
+    duplicado = Tag.query.filter(
+        db.func.lower(Tag.nombre) == nombre.lower(), Tag.id_tag != id
+    ).first()
+    if duplicado:
+        flash('Ya existe otro tag con ese nombre', 'warning')
+        return redirect(url_for('admin_tags'))
+    tag.nombre = nombre
+    tag.color = color or None
+    db.session.commit()
+    flash('Tag actualizado', 'success')
+    return redirect(url_for('admin_tags'))
+
+
+@app.route('/admin/tags/<int:id>/eliminar')
+@admin_required
+def admin_delete_tag(id):
+    tag = Tag.query.get_or_404(id)
+    db.session.delete(tag)
+    db.session.commit()
+    flash('Tag eliminado (se quitó de todas las subcategorías)', 'info')
+    return redirect(url_for('admin_tags'))
+
+
+# --- RUTAS ADMIN: PEDIDOS ---
+PEDIDO_ESTADOS = ('abierto', 'enviado', 'gestionado')
+
+
+@app.route('/admin/pedidos')
+@admin_required
+def admin_pedidos():
+    estado = request.args.get('estado', '')
+    query = Pedido.query.order_by(Pedido.id.desc())
+    if estado in PEDIDO_ESTADOS:
+        query = query.filter_by(estado=estado)
+    return render_template('admin/pedidos.html', pedidos=query.all(), estado_filtro=estado)
+
+
+@app.route('/admin/pedidos/<int:id>')
+@admin_required
+def admin_pedido_detalle(id):
+    pedido = Pedido.query.get_or_404(id)
+    return render_template('admin/pedido_detalle.html', pedido=pedido, estados=PEDIDO_ESTADOS)
+
+
+@app.route('/admin/pedidos/<int:id>/estado', methods=['POST'])
+@admin_required
+def admin_pedido_estado(id):
+    pedido = Pedido.query.get_or_404(id)
+    nuevo = request.form.get('estado', '')
+    if nuevo not in PEDIDO_ESTADOS:
+        flash('Estado inválido', 'danger')
+        return redirect(url_for('admin_pedido_detalle', id=id))
+    pedido.estado = nuevo
+    db.session.commit()
+    flash(f'Pedido #{pedido.id:05d} → estado "{nuevo}"', 'success')
+    return redirect(url_for('admin_pedido_detalle', id=id))
 
 
 @app.route('/api/productos/<int:sub_id>')

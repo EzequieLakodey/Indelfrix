@@ -25,6 +25,21 @@
       {% endfor %}
     </div>
     <div class="mb-3">
+      <label class="form-label">Tags / Propósito</label>
+      {% set tag_ids = subcategoria.tags | map(attribute='id_tag') | list %}
+      {% for tag in tags %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="tags" value="{{ tag.id_tag }}"
+          id="tag-{{ tag.id_tag }}" {% if tag.id_tag in tag_ids %}checked{% endif %}>
+        <label class="form-check-label" for="tag-{{ tag.id_tag }}">
+          <span class="badge text-white" style="background-color: {{ tag.color or '#6c757d' }}">{{ tag.nombre }}</span>
+        </label>
+      </div>
+      {% else %}
+      <p class="text-muted small">No hay tags. <a href="{{ url_for('admin_tags') }}">Creá uno primero</a>.</p>
+      {% endfor %}
+    </div>
+    <div class="mb-3">
       <label class="form-label">Imágenes actuales</label>
       {% if subcategoria.imagenes %}
       <div class="row g-2 mb-2">

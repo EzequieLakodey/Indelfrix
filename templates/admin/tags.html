@@ -1,0 +1,54 @@
+{% extends 'admin/base_admin.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width:760px;">
+  <h3>Tags de subcategorías</h3>
+  <p class="text-muted small">Etiquetas de propósito/uso que se asignan a las subcategorías y permiten filtrar el catálogo (ej: "Para camiones", "Baja temperatura").</p>
+
+  <form method="post" class="row g-2 align-items-end border rounded p-3 mb-4 bg-light">
+    <div class="col-md-6">
+      <label class="form-label small fw-bold">Nuevo tag</label>
+      <input class="form-control" name="nombre" placeholder='Ej: "Para camiones"' required maxlength="100">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small fw-bold">Color</label>
+      <input type="color" class="form-control form-control-color w-100" name="color" value="#6c757d">
+    </div>
+    <div class="col-md-3">
+      <button class="btn btn-primary w-100">Crear</button>
+    </div>
+  </form>
+
+  <table class="table align-middle">
+    <thead>
+      <tr><th>Tag</th><th>Subcategorías</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for tag in tags %}
+      <tr>
+        <td>
+          <form method="post" action="{{ url_for('admin_edit_tag', id=tag.id_tag) }}" class="d-flex gap-2 align-items-center">
+            <input class="form-control form-control-sm" name="nombre" value="{{ tag.nombre }}" required maxlength="100" style="max-width:220px;">
+            <input type="color" class="form-control form-control-color form-control-sm" name="color" value="{{ tag.color or '#6c757d' }}">
+            <button class="btn btn-sm btn-outline-primary">Guardar</button>
+          </form>
+        </td>
+        <td>
+          {% if tag.subcategorias %}
+          <span class="badge text-bg-secondary">{{ tag.subcategorias|length }}</span>
+          {% else %}
+          <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <a href="{{ url_for('admin_delete_tag', id=tag.id_tag) }}" class="btn btn-sm btn-outline-danger"
+            onclick="return confirm('¿Eliminar el tag &quot;{{ tag.nombre }}&quot;? Se quita de todas las subcategorías.');">Eliminar</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="text-muted">Todavía no hay tags creados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-link">← Volver al panel</a>
+</div>
+{% endblock %}

@@ -1,6 +1,5 @@
 from datetime import datetime
 from functools import wraps
-from zoneinfo import ZoneInfo
 import os
 import re
 
@@ -27,6 +26,7 @@ from app import (
     oauth,
     cliente_actual,
     pedido_abierto,
+    _fecha_hora_ar,
 )
 
 
@@ -66,15 +66,6 @@ def _items_payload(pedido):
         }
         for item in pedido.items
     ]
-
-
-def _fecha_hora_ar(dt):
-    """Formatea fecha/hora en horario de Argentina (ej: 11/09/2026 14:32)."""
-    if not dt:
-        return ''
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=ZoneInfo('UTC'))
-    return dt.astimezone(ZoneInfo('America/Argentina/Buenos_Aires')).strftime('%d/%m/%Y %H:%M')
 
 
 def _pedido_texto(pedido, cliente):

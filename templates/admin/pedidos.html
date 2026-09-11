@@ -1,0 +1,73 @@
+{% extends 'admin/base_admin.html' %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <h3 class="mb-3">Pedidos</h3>
+
+  <div class="mb-3">
+    <div class="btn-group btn-group-sm">
+      <a href="{{ url_for('admin_pedidos') }}"
+        class="btn {% if not estado_filtro %}btn-primary{% else %}btn-outline-primary{% endif %}">Todos</a>
+      {% for est in ['abierto', 'enviado', 'gestionado'] %}
+      <a href="{{ url_for('admin_pedidos', estado=est) }}"
+        class="btn {% if estado_filtro == est %}btn-primary{% else %}btn-outline-primary{% endif %} text-capitalize">{{ est }}s</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Fecha envío</th>
+          <th>Cliente</th>
+          <th>Contacto</th>
+          <th>Productos</th>
+          <th>Estado</th>
+          <th>Mail</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos %}
+        <tr>
+          <td class="fw-bold">#{{ '%05d' % p.id }}</td>
+          <td class="small">{{ p.enviado_at|fecha_ar or p.creado|fecha_ar }}</td>
+          <td class="small">
+            {{ p.cliente.nombre or p.cliente.email }}<br>
+            <span class="text-muted">{{ p.cliente.email }}</span>
+          </td>
+          <td class="small">
+            {{ p.nombre_contacto or '—' }}<br>
+            <span class="text-muted">{{ p.telefono or '' }}</span>
+          </td>
+          <td><span class="badge text-bg-secondary">{{ p.items|length }}</span></td>
+          <td>
+            {% if p.estado == 'gestionado' %}
+            <span class="badge text-bg-success">Gestionado</span>
+            {% elif p.estado == 'enviado' %}
+            <span class="badge text-bg-primary">Enviado</span>
+            {% else %}
+            <span class="badge text-bg-warning text-dark">Abierto</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.mail_enviado %}
+            <span class="text-success" title="Email de respaldo enviado">✉️</span>
+            {% else %}
+            <span class="text-danger" title="Email de respaldo NO enviado">✗</span>
+            {% endif %}
+          </td>
+          <td><a href="{{ url_for('admin_pedido_detalle', id=p.id) }}" class="btn btn-sm btn-outline-secondary">Ver</a></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-muted text-center py-4">No hay pedidos{% if estado_filtro %} con estado "{{ estado_filtro }}"{% endif %}.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-link">← Volver al panel</a>
+</div>
+{% endblock %}

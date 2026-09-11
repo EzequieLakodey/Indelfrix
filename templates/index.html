@@ -140,14 +140,35 @@
 
     <main class="container">
         <section id="catalogo" class="mb-5">
-            {% for cat in categorias %}
+            {% if tags %}
+            <div class="text-center mb-4" data-aos="fade-up">
+                <span class="small text-muted d-block mb-2">Filtrar por propósito:</span>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a href="{{ url_for('inicio') }}#catalogo"
+                        class="badge rounded-pill text-decoration-none py-2 px-3 {% if not tag_activo %}text-bg-primary{% else %}text-bg-light border text-dark{% endif %}">Todos</a>
+                    {% for t in tags %}
+                    <a href="{{ url_for('inicio', tag=t.id_tag) }}#catalogo"
+                        class="badge rounded-pill text-decoration-none py-2 px-3 text-white"
+                        style="background-color: {{ t.color or '#6c757d' }}; {% if not tag_activo or tag_activo.id_tag != t.id_tag %}opacity:.55{% endif %}">{{
+                        t.nombre }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if tag_activo and not categorias_vista %}
+            <p class="text-center text-muted py-4">Todavía no hay productos con el tag "{{ tag_activo.nombre }}".</p>
+            {% endif %}
+
+            {% for item in categorias_vista %}
+            {% set cat = item.cat %}
             <section class="category-section py-4" id="categoria-{{ cat.id_categoria }}" data-aos="fade-up">
                 <div class="category-header text-center my-4">
                     <hr class="category-line">
                     <h2 class="category-title mx-auto">{{ cat.nombre }}</h2>
                     <hr class="category-line">
                 </div>
-                {% set n_sub = cat.subcategorias|length %}
+                {% set n_sub = item.subs|length %}
                 {# Decide columnas por categoría: 1 -> 1 col, 2 -> 2 cols, 4 -> 2 cols, else -> 3 cols #}
                 {% if n_sub == 1 %}
                 {% set cols = 1 %}
@@ -159,7 +180,7 @@
                 {% set cols = 3 %}
                 {% endif %}
                 <div class="row g-4">
-                    {% for sub in cat.subcategorias %}
+                    {% for sub in item.subs %}
                     {% if cols == 1 %}
                     <div class="col-12">
                         {% elif cols == 2 %}
@@ -175,6 +196,15 @@
                                     data-productos-ids="{{ sub.productos | map(attribute='id_producto') | list | tojson | e }}">
                                     <div class="card-header bg-primary text-white p-3">
                                         <h5 class="mb-0 fw-bold text-uppercase text-center">{{ sub.nombre }}</h5>
+                                        {% if sub.tags %}
+                                        <div class="mt-2 d-flex flex-wrap justify-content-center gap-1">
+                                            {% for t in sub.tags %}
+                                            <a href="{{ url_for('inicio', tag=t.id_tag) }}#catalogo"
+                                                class="badge text-decoration-none text-white border border-light"
+                                                style="background-color: {{ t.color or '#6c757d' }}">{{ t.nombre }}</a>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
                                     </div>
 
                                     <div id="carouselSub{{ cat.id_categoria }}-{{ sub.id_subcategoria }}"

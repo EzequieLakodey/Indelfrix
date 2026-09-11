@@ -1,0 +1,86 @@
+{% extends 'admin/base_admin.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width:820px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Pedido #{{ '%05d' % pedido.id }}</h3>
+    {% if pedido.estado == 'gestionado' %}
+    <span class="badge text-bg-success fs-6">Gestionado</span>
+    {% elif pedido.estado == 'enviado' %}
+    <span class="badge text-bg-primary fs-6">Enviado</span>
+    {% else %}
+    <span class="badge text-bg-warning text-dark fs-6">Abierto</span>
+    {% endif %}
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header fw-bold">Cuenta Google</div>
+        <div class="card-body small">
+          <p class="mb-1"><strong>Nombre:</strong> {{ pedido.cliente.nombre or '—' }}</p>
+          <p class="mb-0"><strong>Email:</strong> <a href="mailto:{{ pedido.cliente.email }}">{{ pedido.cliente.email }}</a></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header fw-bold">Datos de contacto (form. checkout)</div>
+        <div class="card-body small">
+          <p class="mb-1"><strong>Nombre:</strong> {{ pedido.nombre_contacto or '—' }}</p>
+          <p class="mb-1"><strong>Teléfono:</strong> {{ pedido.telefono or '—' }}</p>
+          <p class="mb-1"><strong>Empresa:</strong> {{ pedido.empresa or '—' }}</p>
+          <p class="mb-0"><strong>Localidad:</strong> {{ pedido.localidad or '—' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header fw-bold">Productos ({{ pedido.items|length }})</div>
+    <ul class="list-group list-group-flush">
+      {% for item in pedido.items %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>
+          {% if item.categoria or item.subcategoria %}
+          <small class="text-muted d-block">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</small>
+          {% endif %}
+          {{ item.nombre }}
+        </span>
+        <span class="badge text-bg-secondary">×{{ item.cantidad }}</span>
+      </li>
+      {% else %}
+      <li class="list-group-item text-muted">Sin productos.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {% if pedido.observaciones %}
+  <div class="card mb-3">
+    <div class="card-header fw-bold">Observaciones</div>
+    <div class="card-body small mb-0">{{ pedido.observaciones }}</div>
+  </div>
+  {% endif %}
+
+  <div class="card mb-4">
+    <div class="card-header fw-bold">Seguimiento</div>
+    <div class="card-body small">
+      <p class="mb-1"><strong>Creado:</strong> {{ pedido.creado|fecha_ar }}</p>
+      <p class="mb-1"><strong>Enviado:</strong> {{ pedido.enviado_at|fecha_ar or '—' }}</p>
+      <p class="mb-3"><strong>Email de respaldo:</strong>
+        {% if pedido.mail_enviado %}<span class="text-success">enviado ✔</span>{% else %}<span class="text-danger">no enviado ✗</span>{% endif %}
+      </p>
+      <form method="post" action="{{ url_for('admin_pedido_estado', id=pedido.id) }}" class="d-flex gap-2 align-items-center">
+        <label class="form-label mb-0 fw-bold">Cambiar estado:</label>
+        <select name="estado" class="form-select form-select-sm" style="width:auto;">
+          {% for est in estados %}
+          <option value="{{ est }}" {% if pedido.estado == est %}selected{% endif %} class="text-capitalize">{{ est }}</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-sm btn-primary">Aplicar</button>
+      </form>
+    </div>
+  </div>
+
+  <a href="{{ url_for('admin_pedidos') }}" class="btn btn-link">← Volver a pedidos</a>
+</div>
+{% endblock %}

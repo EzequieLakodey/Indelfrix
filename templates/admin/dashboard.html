@@ -43,6 +43,9 @@
             {% else %}
             <span class="badge text-bg-secondary ms-1">Sin ficha</span>
             {% endif %}
+            {% for t in sub.tags %}
+            <span class="badge text-white ms-1" style="background-color: {{ t.color or '#6c757d' }}">{{ t.nombre }}</span>
+            {% endfor %}
           </span>
           <div>
             <a href="{{ url_for('admin_edit_subcategoria', id=sub.id_subcategoria) }}"
