@@ -284,6 +284,10 @@ Para que la imagen ocupe todo el espacio de la card
     background-color: #E1306C;
 }
 
+.bg-fb {
+    background-color: #1877F2;
+}
+
 /* Quita el subrayado de los botones sociales */
 .btn-social {
     text-decoration: none !important;
