@@ -304,6 +304,10 @@
 
             <form id="miFormulario" class="mx-auto p-4 bg-white shadow rounded" style="max-width: 850px;"
                 enctype="multipart/form-data">
+                <!-- Honeypot anti-spam: campo oculto que los bots rellenan -->
+                <div style="position:absolute;left:-9999px;" aria-hidden="true">
+                    <input type="text" name="website" tabindex="-1" autocomplete="off">
+                </div>
                 <!-- 1. Datos de Contacto -->
                 <div class="row g-3 mb-4">
                     <div class="col-12">

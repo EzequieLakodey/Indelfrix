@@ -13,6 +13,8 @@ import os
 import json
 import cloudinary
 import cloudinary.uploader
+import time
+import collections
 
 load_dotenv()
 cloudinary.reset_config()  # recarga CLOUDINARY_URL / claves luego de dotenv
@@ -56,6 +58,24 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'indelfrix.ventas@gmail.com')
 
 mail = Mail(app)
+
+# --- ANTI-SPAM: rate limiting in-memory (por IP, ventana 60s, máx 3 envíos) ---
+_contact_timestamps = collections.defaultdict(collections.deque)
+CONTACT_RATE_LIMIT = 3      # máximo de envíos
+CONTACT_RATE_WINDOW = 60    # segundos
+
+
+def _is_rate_limited(ip):
+    """Retorna True si la IP superó el límite de envíos en la ventana."""
+    now = time.time()
+    dq = _contact_timestamps[ip]
+    while dq and dq[0] < now - CONTACT_RATE_WINDOW:
+        dq.popleft()
+    if len(dq) >= CONTACT_RATE_LIMIT:
+        return True
+    dq.append(now)
+    return False
+
 
 # --- MODELO DE DATOS ---
 class Solicitud(db.Model):
@@ -438,6 +458,13 @@ def admin_dashboard():
 @app.route('/enviar_mail', methods=['POST'])
 def enviar_mail():
     if request.method == 'POST':
+        # --- Anti-spam: honeypot ---
+        if request.form.get('website'):
+            # Los bots rellenan el campo oculto; los humanos no lo ven.
+            return "¡Mensaje enviado con éxito! Nos contactaremos a la brevedad."
+        # --- Anti-spam: rate limiting ---
+        if _is_rate_limited(request.remote_addr):
+            return "Demasiados envíos en poco tiempo. Por favor esperá un minuto e intentá de nuevo."
         # 1. Capturar los datos del formulario
         nombre = request.form.get('nombre', '')
         email_usuario = request.form.get('email', '') # Coincide con 'name="email"'

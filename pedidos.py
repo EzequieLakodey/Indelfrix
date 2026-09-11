@@ -4,7 +4,6 @@ from zoneinfo import ZoneInfo
 import os
 import re
 
-import requests
 from flask import (
     flash,
     jsonify,
@@ -151,69 +150,6 @@ def _send_pedido_mail(pedido, cliente, cuerpo):
     )
     mail.send(msg)
 
-
-def _send_pedido_whatsapp(cuerpo):
-    token = os.getenv('WHATSAPP_ACCESS_TOKEN')
-    phone_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
-    destino = re.sub(r'\D', '', os.getenv('WHATSAPP_DESTINO') or '')
-    if not token or not phone_id or not destino:
-        return False, 'WhatsApp Cloud API no configurado'
-    url = f'https://graph.facebook.com/v21.0/{phone_id}/messages'
-    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
-    payload = {
-        'messaging_product': 'whatsapp',
-        'to': destino,
-        'type': 'text',
-        'text': {'body': cuerpo[:4096], 'preview_url': False},
-    }
-    try:
-        resp = requests.post(url, json=payload, headers=headers, timeout=20)
-        data = resp.json() if resp.content else {}
-        if resp.ok and data.get('messages'):
-            return True, None
-        error = (data.get('error') or {}).get('message') or resp.text
-        template = os.getenv('WHATSAPP_TEMPLATE_NAME')
-        if template:
-            tpl_payload = {
-                'messaging_product': 'whatsapp',
-                'to': destino,
-                'type': 'template',
-                'template': {
-                    'name': template,
-                    'language': {'code': os.getenv('WHATSAPP_TEMPLATE_LANG', 'es_AR')},
-                },
-            }
-            resp2 = requests.post(url, json=tpl_payload, headers=headers, timeout=20)
-            data2 = resp2.json() if resp2.content else {}
-            if resp2.ok and data2.get('messages'):
-                return True, None
-            error = (data2.get('error') or {}).get('message') or error
-        return False, (error or 'Error al enviar WhatsApp')[:500]
-    except requests.RequestException as exc:
-        return False, str(exc)[:500]
-
-
-def notificar_pedido(pedido, cliente, cuerpo):
-    """Envía email y WhatsApp del pedido. Retorna (mail_ok, wpp_ok, errores)."""
-    errores = []
-    mail_ok = False
-    wpp_ok = False
-
-    try:
-        _send_pedido_mail(pedido, cliente, cuerpo)
-        pedido.mail_enviado = True
-        mail_ok = True
-    except Exception as exc:
-        errores.append(f'mail: {exc}')
-
-    ok_wpp, err_wpp = _send_pedido_whatsapp(cuerpo)
-    pedido.whatsapp_enviado = ok_wpp
-    pedido.whatsapp_error = None if ok_wpp else err_wpp
-    wpp_ok = ok_wpp
-    if err_wpp:
-        errores.append(f'whatsapp: {err_wpp}')
-
-    return mail_ok, wpp_ok, errores
 
 
 def _agregar_producto(cliente, producto_id, cantidad):
