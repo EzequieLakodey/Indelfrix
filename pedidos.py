@@ -1,5 +1,6 @@
 from datetime import datetime
 from functools import wraps
+from zoneinfo import ZoneInfo
 import os
 import re
 
@@ -68,9 +69,19 @@ def _items_payload(pedido):
     ]
 
 
+def _fecha_hora_ar(dt):
+    """Formatea fecha/hora en horario de Argentina (ej: 11/09/2026 14:32)."""
+    if not dt:
+        return ''
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo('UTC'))
+    return dt.astimezone(ZoneInfo('America/Argentina/Buenos_Aires')).strftime('%d/%m/%Y %H:%M')
+
+
 def _pedido_texto(pedido, cliente):
     lineas = [
         f'PEDIDO WEB #{pedido.id:05d}',
+        f'Fecha y hora: {_fecha_hora_ar(pedido.enviado_at)}',
         '-----------------------------------------',
         'DATOS DEL CLIENTE:',
         f'- Nombre: {pedido.nombre_contacto or cliente.nombre or "-"}',
@@ -97,6 +108,7 @@ def _pedido_texto(pedido, cliente):
 def _pedido_whatsapp_texto(pedido, cliente):
     lineas = [
         f'Hola Indelfrix, quiero hacer el siguiente pedido (WEB #{pedido.id:05d}):',
+        f'*Fecha y hora:* {_fecha_hora_ar(pedido.enviado_at)}',
         '',
         '*DATOS DE CONTACTO:*',
         f'- Nombre: {pedido.nombre_contacto or cliente.nombre or "-"}',
@@ -376,6 +388,15 @@ def pedido_checkout():
         pedido.estado = 'enviado'
         pedido.enviado_at = datetime.utcnow()
         db.session.commit()
+        # Email de respaldo a la empresa (red de seguridad si el cliente
+        # no completa el envío en WhatsApp). El canal principal es wa.me.
+        try:
+            _send_pedido_mail(pedido, cliente, _pedido_texto(pedido, cliente))
+            pedido.mail_enviado = True
+            db.session.commit()
+        except Exception as exc:
+            db.session.rollback()
+            app.logger.warning('No se pudo enviar el mail de respaldo del pedido #%s: %s', pedido.id, exc)
         whatsapp_url = _build_whatsapp_url(pedido, cliente)
         return redirect(whatsapp_url)
     if not pedido or not pedido.items:
