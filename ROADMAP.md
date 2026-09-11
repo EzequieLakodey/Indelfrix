@@ -128,6 +128,8 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
       contacto clickeable (`tel:` / `mailto:`).
 - [x] Despliegue en Render (`ProxyFix` para headers de proxy).
 - [x] API interna `/api/productos/<sub_id>`.
+- [x] **Anti-spam en el formulario de contacto**: honeypot oculto + rate limit por IP (máx. 3 envíos/60s).
+- [x] Código legacy de WhatsApp Cloud API eliminado (`requests` incluida).
 
 ---
 
@@ -162,40 +164,33 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
    (`abierto` → `enviado` → `gestionado`). Necesario porque el redirect a `wa.me`
    no confirma que el cliente efectivamente envió el mensaje: el panel + el email
    de respaldo son la trazabilidad real.
-5. **Limpiar código muerto de WhatsApp Cloud API** — eliminar `_send_pedido_whatsapp`,
-   la dependencia `requests` (si no se usa en otro lado) y las variables
-   `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_TEMPLATE_*`
-   de `.env.example`.
-6. **Anti-spam en el formulario de contacto** — campo honeypot oculto + rate
-   limiting. El form dispara emails directo a la casilla de Gmail: un bot podría
-   llenarla de basura. El honeypot son ~10 líneas y frena la mayoría de los bots.
 
 ### 🟢 Mediano plazo (robustez y operación)
 
-7. Panel admin de **clientes** y **solicitudes** (listado de consultas del formulario).
-8. CRUD de **imágenes** como entidad independiente (hoy se gestionan embebidas
+5. Panel admin de **clientes** y **solicitudes** (listado de consultas del formulario).
+6. CRUD de **imágenes** como entidad independiente (hoy se gestionan embebidas
    en cada CRUD).
-9. Botón/link de acceso al panel admin en la UI pública (visible solo con sesión admin).
-10. Migraciones explícitas con **Flask-Migrate/Alembic** (reemplaza `_ensure_schema`).
-11. **Tests automatizados** (unitarios + integración de rutas y flujo de pedido).
-    Nota: el `test_client` actual falla por incompatibilidad Flask 2.3 / Werkzeug
-    nuevo — conviene actualizar el stack a Flask 3.x como parte de este trabajo.
-12. **Logging estructurado** y manejo de errores (hoy varios `except` silencian).
-13. **CSRF en formularios** (Flask-WTF) y rate limiting global (Flask-Limiter).
+7. Botón/link de acceso al panel admin en la UI pública (visible solo con sesión admin).
+8. Migraciones explícitas con **Flask-Migrate/Alembic** (reemplaza `_ensure_schema`).
+9. **Tests automatizados** (unitarios + integración de rutas y flujo de pedido).
+   Nota: el `test_client` actual falla por incompatibilidad Flask 2.3 / Werkzeug
+   nuevo — conviene actualizar el stack a Flask 3.x como parte de este trabajo.
+10. **Logging estructurado** y manejo de errores (hoy varios `except` silencian).
+11. **CSRF en formularios** (Flask-WTF) y rate limiting global (Flask-Limiter).
 
 ### 🔵 Recomendaciones extra / largo plazo
 
-14. **Aviso de privacidad básico** junto al login/checkout — la app guarda emails
+12. **Aviso de privacidad básico** junto al login/checkout — la app guarda emails
     y teléfonos de clientes (Ley 25.326 de Protección de Datos, Argentina).
-15. **Analytics** (p.ej. Google Analytics o alternativa liviana) para saber qué
+13. **Analytics** (p.ej. Google Analytics o alternativa liviana) para saber qué
     subcategorías se miran más + **datos estructurados Schema.org** (Organization,
     Product) para mejorar el SEO. Post-lanzamiento.
-16. Paginación y búsqueda en el catálogo si crece el número de productos.
-17. Cotizador automático (presupuesto en base a las especificaciones del formulario).
-18. Panel de cliente (historial de pedidos y estado).
-19. Reevaluar el botón flotante de WhatsApp: si empieza a traer demasiado ruido
+14. Paginación y búsqueda en el catálogo si crece el número de productos.
+15. Cotizador automático (presupuesto en base a las especificaciones del formulario).
+16. Panel de cliente (historial de pedidos y estado).
+17. Reevaluar el botón flotante de WhatsApp: si empieza a traer demasiado ruido
     (consultas sueltas que ensucian el canal de pedidos), considerar quitarlo.
-20. Migración del front a una SPA o SSR moderno si la complejidad lo amerita.
+18. Migración del front a una SPA o SSR moderno si la complejidad lo amerita.
 
 ---
 
@@ -208,17 +203,17 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
 - ~~`static/img-notused/`~~ → directorio eliminado (37 imágenes sin uso).
 - ~~Duplicación de lógica de subida de imágenes~~ → refactorizada en los helpers
   `procesar_imagenes()` / `eliminar_imagenes_seleccionadas()`.
-- ~~Múltiples rutas de notificación~~ → centralizadas en `notificar_pedido()`
-  (pendiente solo retirar el código legacy de Cloud API, ver TO-DO #5).
+- ~~Múltiples rutas de notificación~~ → centralizadas; el código legacy de
+  Cloud API ya fue eliminado por completo.
 
 ### Pendiente ⚠️
 
 - **`FICHA_EDITOR_EMAIL` como único "rol"**: no hay modelo de permisos granular.
 - **`_ensure_schema`** sigue siendo `ALTER TABLE` manual al arrancar; mejorado
-  (no destructivo) pero preferir migraciones (TO-DO #10).
+  (no destructivo) pero preferir migraciones (TO-DO #8).
 - **SQLite efímero en Render** — riesgo de pérdida de datos en producción
   (elevado a TO-DO #2, bloqueante de lanzamiento).
-- **Sin tests** — los cambios se validan manualmente (TO-DO #11).
+- **Sin tests** — los cambios se validan manualmente (TO-DO #9).
 
 ---
 
