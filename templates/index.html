@@ -61,12 +61,20 @@
                     </li>
                     {% if cliente %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            {{ cliente.nombre or cliente.email }}
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                            aria-expanded="false" title="Mi cuenta">
+                            <i class="fas fa-user-circle fa-lg"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-item-text small text-muted">{{ cliente.email }}</span></li>
-                            <li><a class="dropdown-item" href="{{ url_for('cliente_logout') }}">Cerrar sesión</a></li>
+                            <li>
+                                <span class="dropdown-item-text small text-muted text-truncate d-block"
+                                    style="max-width: 220px;">{{ cliente.email }}</span>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{{ url_for('cliente_logout') }}"><i
+                                        class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
                         </ul>
                     </li>
                     {% elif google_ready %}
