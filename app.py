@@ -42,8 +42,13 @@ if os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'):
         client_kwargs={'scope': 'openid email profile'},
     )
 
-# --- CONFIGURACIÓN DE BASE DE DATOS (Para el contador) ---
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///indelfrix.db'
+# --- CONFIGURACIÓN DE BASE DE DATOS ---
+# Prioriza PostgreSQL (producción, via DATABASE_URL de Render/Neon) y cae a SQLite local.
+# Render entrega URLs con prefijo "postgres://" y SQLAlchemy requiere "postgresql://".
+_db_url = os.environ.get('DATABASE_URL', '')
+if _db_url.startswith('postgres://'):
+    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = _db_url or 'sqlite:///indelfrix.db'
 db = SQLAlchemy(app)
 
 FICHAS_DIR = os.path.join(app.instance_path, 'fichas')

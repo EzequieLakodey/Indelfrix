@@ -25,7 +25,7 @@ Propósito actual:
 | Ítem | Valor |
 |------|-------|
 | Stack | Flask 2.3, Flask-SQLAlchemy 3.0, Flask-Mail 0.9, Authlib 1.3, python-dotenv |
-| Base de datos | SQLite (`instance/indelfrix.db`) |
+| Base de datos | SQLite local (`instance/indelfrix.db`) / PostgreSQL vía `DATABASE_URL` (producción) |
 | Python | 3.10+ (recomendado 3.12) |
 | Autenticación | Admin por sesión (email + contraseña hasheada) + OAuth de Google para clientes |
 | Almacenamiento de medios | Cloudinary (cloud) con fallback a disco local (`static/img`) |
@@ -151,42 +151,55 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
      en las URIs de redirección autorizadas del cliente OAuth.
    - Configurar `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` como variables de
      entorno en Render.
-2. **Migrar SQLite a PostgreSQL administrado** (Render ofrece Postgres gratuito).
-   El disco de Render es efímero: **cada redeploy borra la base de datos**,
-   incluyendo pedidos y clientes. Es el mayor riesgo actual del proyecto.
-   Con SQLAlchemy el cambio es casi solo la URI de conexión.
+2. **Migrar SQLite a PostgreSQL** — ✅ *El código ya está listo* (`DATABASE_URL`
+   con fallback a SQLite, `psycopg2-binary` en requirements). Solo falta la
+   configuración en Render:
+   - Crear instancia PostgreSQL (Render: New → PostgreSQL) o **Neon** (gratis,
+     sin vencimiento — el Postgres free de Render se borra a los 30 días).
+   - Cargar `DATABASE_URL` en las env vars del web service.
+   - Al arrancar, `db.create_all()` crea las tablas automáticamente.
+   - Nota: sin esto, cada redeploy borra catálogo, pedidos y clientes.
 
-### 🟡 Corto plazo (features priorizadas)
+### 🟡 Próximas mejoras recomendadas (post-lanzamiento inmediato)
 
-_Sección completada._ Los ítems de tags y panel de pedidos quedaron implementados
-(ver §3). Restan evaluar nuevas features según feedback de uso real.
+3. **Keep-alive para Render free** — el plan gratuito "duerme" el sitio tras ~15
+   min sin tráfico y la primera visita tarda ~50s en responder. Solución gratis:
+   cron-job.org o UptimeRobot haciendo ping al sitio cada 10 min.
+4. **Backup/export de la DB antes de cada deploy** — hasta estabilizar la
+   migración a Postgres, tener un respaldo manual del catálogo.
+5. **Dominio propio** — configurar `indelfrix.com.ar` (o el que tengan) en Render;
+   HTTPS automático incluido. Mejora la confianza del cliente y el SEO.
 
 ### 🟢 Mediano plazo (robustez y operación)
 
-3. Panel admin de **clientes** y **solicitudes** (listado de consultas del formulario).
-4. CRUD de **imágenes** como entidad independiente (hoy se gestionan embebidas
+6. Panel admin de **clientes** y **solicitudes** (listado de consultas del formulario).
+7. CRUD de **imágenes** como entidad independiente (hoy se gestionan embebidas
    en cada CRUD).
-5. Botón/link de acceso al panel admin en la UI pública (visible solo con sesión admin).
-6. Migraciones explícitas con **Flask-Migrate/Alembic** (reemplaza `_ensure_schema`).
-7. **Tests automatizados** (unitarios + integración de rutas y flujo de pedido).
-   Nota: el `test_client` actual falla por incompatibilidad Flask 2.3 / Werkzeug
-   nuevo — conviene actualizar el stack a Flask 3.x como parte de este trabajo.
-8. **Logging estructurado** y manejo de errores (hoy varios `except` silencian).
-9. **CSRF en formularios** (Flask-WTF) y rate limiting global (Flask-Limiter).
+8. Botón/link de acceso al panel admin en la UI pública (visible solo con sesión admin).
+9. Migraciones explícitas con **Flask-Migrate/Alembic** (reemplaza `_ensure_schema`).
+   Aprovechar para eliminar las columnas legacy `whatsapp_enviado` / `whatsapp_error`
+   de `pedidos` (quedaron del Cloud API, ya no se usan).
+10. **Tests automatizados** (unitarios + integración de rutas y flujo de pedido).
+    Nota: el `test_client` actual falla por incompatibilidad Flask 2.3 / Werkzeug
+    nuevo — conviene actualizar el stack a Flask 3.x como parte de este trabajo.
+11. **Logging estructurado** y manejo de errores (hoy varios `except` silencian).
+12. **CSRF en formularios** (Flask-WTF) y **Flask-Limiter** global — al migrar,
+    reemplazar el rate limit in-memory del formulario (su dict crece sin purga).
 
 ### 🔵 Recomendaciones extra / largo plazo
 
-10. **Aviso de privacidad básico** junto al login/checkout — la app guarda emails
+
+13. **Aviso de privacidad básico** junto al login/checkout — la app guarda emails
     y teléfonos de clientes (Ley 25.326 de Protección de Datos, Argentina).
-11. **Analytics** (p.ej. Google Analytics o alternativa liviana) para saber qué
+14. **Analytics** (p.ej. Google Analytics o alternativa liviana) para saber qué
     subcategorías se miran más + **datos estructurados Schema.org** (Organization,
     Product) para mejorar el SEO. Post-lanzamiento.
-12. Paginación y búsqueda en el catálogo si crece el número de productos.
-13. Cotizador automático (presupuesto en base a las especificaciones del formulario).
-14. Panel de cliente (historial de pedidos y estado).
-15. Reevaluar el botón flotante de WhatsApp: si empieza a traer demasiado ruido
+15. Paginación y búsqueda en el catálogo si crece el número de productos.
+16. Cotizador automático (presupuesto en base a las especificaciones del formulario).
+17. Panel de cliente (historial de pedidos y estado).
+18. Reevaluar el botón flotante de WhatsApp: si empieza a traer demasiado ruido
     (consultas sueltas que ensucian el canal de pedidos), considerar quitarlo.
-16. Migración del front a una SPA o SSR moderno si la complejidad lo amerita.
+19. Migración del front a una SPA o SSR moderno si la complejidad lo amerita.
 
 ---
 
@@ -206,14 +219,41 @@ _Sección completada._ Los ítems de tags y panel de pedidos quedaron implementa
 
 - **`FICHA_EDITOR_EMAIL` como único "rol"**: no hay modelo de permisos granular.
 - **`_ensure_schema`** sigue siendo `ALTER TABLE` manual al arrancar; mejorado
-  (no destructivo) pero preferir migraciones (TO-DO #6).
+  (no destructivo) pero preferir migraciones (TO-DO #9).
 - **SQLite efímero en Render** — riesgo de pérdida de datos en producción
   (elevado a TO-DO #2, bloqueante de lanzamiento).
-- **Sin tests** — los cambios se validan manualmente (TO-DO #7).
+- **Sin tests** — los cambios se validan manualmente (TO-DO #10).
 
 ---
 
-## 6. Cómo contribuir / colaborar
+## 6. Configuración de producción (Render)
+
+Variables de entorno que debe tener el web service en Render (valores reales en
+el panel de Render, nunca en el repo — la plantilla está en `.env.example`):
+
+| Variable | Para qué |
+|----------|----------|
+| `DATABASE_URL` | PostgreSQL (Render/Neon). Si falta, cae a SQLite efímero ⚠️ |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login de clientes con Google |
+| `ADMIN_PASS` | **Hash** de la contraseña admin (generar con `hash_password.py`) |
+| `FICHA_EDITOR_EMAIL` | Única cuenta admin autorizada |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Gmail + App Password (no la contraseña normal) |
+| `MAIL_DEFAULT_SENDER` | Remitente de los mails |
+| `PEDIDOS_MAIL_TO` | Casilla que recibe los pedidos (respaldo) |
+| `WHATSAPP_EMPRESA_NUMERO` | Número destino del redirect wa.me (ej: 5491144471684) |
+| `CLOUDINARY_URL` | Credenciales de Cloudinary (imágenes/PDFs) |
+| `SECRET_KEY` | Clave de sesiones Flask (string largo aleatorio) |
+
+Checklist post-deploy:
+1. Verificar home OK → login con Google OK (cuenta de prueba) → agregar producto
+   al pedido → checkout llega a WhatsApp y llega el mail de respaldo.
+2. Entrar a `/admin` → crear un tag → asignarlo a una subcategoría → verificar
+   el filtro en el catálogo.
+3. Confirmar que las tablas persisten tras un redeploy (o sea, Postgres tomado).
+
+---
+
+## 7. Cómo contribuir / colaborar
 
 1. Clonar el repo y seguir las instrucciones de `README.md`.
 2. Crear rama por feature (`git checkout -b feat/...`) desde `dev`.
