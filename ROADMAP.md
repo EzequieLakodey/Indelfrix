@@ -47,6 +47,7 @@ web-app/
 ├── app.py                 # App principal: modelos, rutas públicas, admin, email
 ├── pedidos.py             # Login Google + flujo de pedido del cliente
 ├── hash_password.py       # CLI: genera el hash de la contraseña admin (ADMIN_PASS)
+├── migrate_db.py          # One-shot: migra la DB SQLite local a PostgreSQL
 ├── requirements.txt
 ├── README.md
 ├── .env / .env.example    # Configuración (secretos fuera del repo)
@@ -151,13 +152,16 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
      en las URIs de redirección autorizadas del cliente OAuth.
    - Configurar `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` como variables de
      entorno en Render.
-2. **Migrar SQLite a PostgreSQL** — ✅ *El código ya está listo* (`DATABASE_URL`
-   con fallback a SQLite, `psycopg2-binary` en requirements). Solo falta la
-   configuración en Render:
-   - Crear instancia PostgreSQL (Render: New → PostgreSQL) o **Neon** (gratis,
-     sin vencimiento — el Postgres free de Render se borra a los 30 días).
-   - Cargar `DATABASE_URL` en las env vars del web service.
-   - Al arrancar, `db.create_all()` crea las tablas automáticamente.
+2. **Migrar SQLite a PostgreSQL** — ✅ *El código y el script ya están listos*:
+   - `app.py` lee `DATABASE_URL` (con fallback a SQLite local).
+   - `migrate_db.py` copia **toda** la base local (catálogo, pedidos, clientes,
+     imágenes/URLs de Cloudinary) a Postgres preservando IDs y reajustando
+     secuencias. Uso: `DATABASE_URL=postgresql://... python migrate_db.py`
+   - Solo falta la configuración en Render:
+     - Crear instancia PostgreSQL (Render: New → PostgreSQL) o **Neon** (gratis,
+       sin vencimiento — el Postgres free de Render se borra a los 30 días).
+     - Cargar `DATABASE_URL` en las env vars del web service.
+     - Correr `migrate_db.py` localmente con esa URL para volcar los datos.
    - Nota: sin esto, cada redeploy borra catálogo, pedidos y clientes.
 
 ### 🟡 Próximas mejoras recomendadas (post-lanzamiento inmediato)
