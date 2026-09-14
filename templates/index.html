@@ -720,6 +720,15 @@
             } else {
                 initSnowflakes();
             }
+
+            // Al volver de un filtro por tag, mantener la vista en el catálogo.
+            // Se hace tras 'load' (imágenes incluidas) para que el salto no quede
+            // desplazado por el layout-shift de los carruseles.
+            window.addEventListener('load', function () {
+                if (location.hash === '#catalogo' && new URLSearchParams(location.search).has('tag')) {
+                    document.getElementById('catalogo')?.scrollIntoView();
+                }
+            });
         })();
 
         if ('scrollRestoration' in history) {

@@ -289,6 +289,10 @@ Para que la imagen ocupe todo el espacio de la card
 }
 
 /* --- Barra de filtros por tag --- */
+#catalogo {
+    scroll-margin-top: 90px;
+}
+
 .tag-filter-bar {
     max-width: 720px;
     background: #fff;
