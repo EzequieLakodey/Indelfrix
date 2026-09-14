@@ -141,16 +141,17 @@
     <main class="container">
         <section id="catalogo" class="mb-5">
             {% if tags %}
-            <div class="text-center mb-4" data-aos="fade-up">
-                <span class="small text-muted d-block mb-2">Filtrar por propósito:</span>
+            <div class="tag-filter-bar text-center my-4 py-3 px-3 mx-auto rounded-4 shadow-sm" data-aos="fade-up">
+                <h5 class="fw-bold text-primary mb-3">
+                    <i class="fas fa-filter me-2"></i>Filtrar por propósito
+                </h5>
                 <div class="d-flex flex-wrap justify-content-center gap-2">
                     <a href="{{ url_for('inicio') }}#catalogo"
-                        class="badge rounded-pill text-decoration-none py-2 px-3 {% if not tag_activo %}text-bg-primary{% else %}text-bg-light border text-dark{% endif %}">Todos</a>
+                        class="btn rounded-pill fw-semibold px-4 {% if not tag_activo %}btn-primary{% else %}btn-outline-secondary{% endif %}">Todos</a>
                     {% for t in tags %}
                     <a href="{{ url_for('inicio', tag=t.id_tag) }}#catalogo"
-                        class="badge rounded-pill text-decoration-none py-2 px-3 text-white"
-                        style="background-color: {{ t.color or '#6c757d' }}; {% if not tag_activo or tag_activo.id_tag != t.id_tag %}opacity:.55{% endif %}">{{
-                        t.nombre }}</a>
+                        class="btn rounded-pill fw-semibold px-4 text-white tag-filter-btn {% if tag_activo and tag_activo.id_tag == t.id_tag %}tag-filter-active{% endif %}"
+                        style="background-color: {{ t.color or '#6c757d' }};">{{ t.nombre }}</a>
                     {% endfor %}
                 </div>
             </div>
@@ -1093,7 +1094,7 @@ let productosHtml = '';
                         <i class="fas fa-paper-plane me-2"></i> Enviar pedido
                     </a>
                 </div>`;
-            attachPedidoEvents();
+        attachPedidoEvents();
         }
 
         function attachPedidoEvents() {
@@ -1123,7 +1124,8 @@ let productosHtml = '';
             }
         });
 
-        attachPedidoEvents();
+        // El offcanvas está más abajo en el HTML: esperar a que el DOM termine de parsear
+        document.addEventListener('DOMContentLoaded', attachPedidoEvents);
     </script>
 
     <!-- Offcanvas: Pedido / Carrito -->
