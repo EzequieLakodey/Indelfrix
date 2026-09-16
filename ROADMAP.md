@@ -250,6 +250,10 @@ el panel de Render, nunca en el repo — la plantilla está en `.env.example`):
 | `CLOUDINARY_URL` | Credenciales de Cloudinary (imágenes/PDFs) |
 | `SECRET_KEY` | Clave de sesiones Flask (string largo aleatorio) |
 
+> **Python en Render**: la versión queda fijada en `runtime.txt` (`python-3.12.8`,
+> la misma que desarrollo). Sin ese archivo Render usa el Python más nuevo
+> disponible, y `psycopg2-binary` falló con Python 3.14 (16/09/2026).
+
 Checklist post-deploy:
 1. Verificar home OK → login con Google OK (cuenta de prueba) → agregar producto
    al pedido → checkout llega a WhatsApp y llega el mail de respaldo.
