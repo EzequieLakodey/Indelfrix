@@ -49,6 +49,32 @@ SECUENCIAS = {
 
 SQLITE_URL = 'sqlite:///instance/indelfrix.db'
 
+# Puentes N-N: columna FK -> tabla referenciada (para filtrar huérfanos,
+# ya que SQLite no valida claves foráneas y Postgres sí)
+PUENTES = {
+    'categorias_imagenes': {'id_categoria': 'categorias', 'id_imagen': 'imagenes'},
+    'subcategorias_imagenes': {'id_subcategoria': 'subcategorias', 'id_imagen': 'imagenes'},
+    'categorias_subcategorias': {'id_categoria': 'categorias', 'id_subcategoria': 'subcategorias'},
+    'productos_imagenes': {'id_producto': 'productos', 'id_imagen': 'imagenes'},
+    'subcategorias_tags': {'id_subcategoria': 'subcategorias', 'id_tag': 'tags'},
+}
+
+
+def _ids_existentes(sconn, meta, nombre_tabla, col_pk):
+    tabla = meta.tables.get(nombre_tabla)
+    if tabla is None:
+        return set()
+    return {r[0] for r in sconn.execute(text(f'SELECT {col_pk} FROM {nombre_tabla}'))}
+
+
+PKS = {
+    'tags': 'id_tag',
+    'categorias': 'id_categoria',
+    'subcategorias': 'id_subcategoria',
+    'imagenes': 'id_imagen',
+    'productos': 'id_producto',
+}
+
 
 def main():
     dest_url = os.environ.get('DATABASE_URL', '').strip()
@@ -87,6 +113,17 @@ def main():
             filas = [dict(r._mapping) for r in sconn.execute(tabla.select())]
             if not filas:
                 print(f'  {nombre}: 0 filas (vacía)')
+                continue
+            # Filtrar filas huérfanas en tablas puente (Postgres valida FK)
+            if nombre in PUENTES:
+                antes = len(filas)
+                for col, tabla_ref in PUENTES[nombre].items():
+                    validos = _ids_existentes(sconn, meta_src, tabla_ref, PKS[tabla_ref])
+                    filas = [f for f in filas if f[col] in validos]
+                saltadas = antes - len(filas)
+                if saltadas:
+                    print(f'  {nombre}: ⚠ {saltadas} fila(s) huérfana(s) omitida(s)')
+            if not filas:
                 continue
             tabla_dst = Table(nombre, MetaData(), autoload_with=dst)
             dconn.execute(tabla_dst.delete())  # destino limpio (idempotente)
