@@ -131,7 +131,9 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
 - [x] Despliegue en Render (`ProxyFix` para headers de proxy).
 - [x] API interna `/api/productos/<sub_id>`.
 - [x] **Anti-spam en el formulario de contacto**: honeypot oculto + rate limit por IP (máx. 3 envíos/60s).
-- [x] Código legacy de WhatsApp Cloud API eliminado (`requests` incluida).
+- [x] Código legacy de WhatsApp Cloud API eliminado. **Nota**: `requests` sigue en
+      requirements a propósito — es dependencia transitiva de **Authlib** (OAuth Google).
+      Removerla rompe el login (aprendido en el deploy del 16/09).
 - [x] **Sistema de tags para subcategorías**: modelo `Tag` + N-N `subcategorias_tags`,
       CRUD en admin, asignación múltiple desde el form de subcategoría, badges en las
       cards del catálogo y filtro server-side (`?tag=<id>`).
