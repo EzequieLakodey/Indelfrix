@@ -48,6 +48,11 @@ if os.getenv('GOOGLE_CLIENT_ID') and os.getenv('GOOGLE_CLIENT_SECRET'):
 _db_url = os.environ.get('DATABASE_URL', '')
 if _db_url.startswith('postgres://'):
     _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+# psycopg2 no tiene timeout de conexión por defecto: si el endpoint de Neon está
+# dormido, el worker de gunicorn quedaría colgado para siempre. Fallá rápido (10s).
+if _db_url.startswith('postgresql') and 'connect_timeout' not in _db_url:
+    sep = '&' if '?' in _db_url else '?'
+    _db_url = f'{_db_url}{sep}connect_timeout=10'
 app.config['SQLALCHEMY_DATABASE_URI'] = _db_url or 'sqlite:///indelfrix.db'
 db = SQLAlchemy(app)
 
