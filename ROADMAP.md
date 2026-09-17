@@ -134,6 +134,14 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
 - [x] Código legacy de WhatsApp Cloud API eliminado. **Nota**: `requests` sigue en
       requirements a propósito — es dependencia transitiva de **Authlib** (OAuth Google).
       Removerla rompe el login (aprendido en el deploy del 16/09).
+- [x] **Blindaje de red**: `socket.setdefaulttimeout(20)` global (nada puede colgar
+      el worker único de Render free) + `connect_timeout=10` en `DATABASE_URL` (Neon).
+- [x] **Emails en background** (thread): el form de contacto y el mail de respaldo del
+      pedido responden al usuario al instante; errores van a los logs, nunca congelan
+      el sitio.
+- [x] **Envío de emails por API HTTP (Brevo)** cuando `BREVO_API_KEY` está configurada
+      — necesario porque Render free bloquea puertos SMTP (25/465/587). Sin la key,
+      cae a SMTP (Gmail) que funciona en desarrollo local.
 - [x] **Sistema de tags para subcategorías**: modelo `Tag` + N-N `subcategorias_tags`,
       CRUD en admin, asignación múltiple desde el form de subcategoría, badges en las
       cards del catálogo y filtro server-side (`?tag=<id>`).
@@ -243,7 +251,8 @@ el panel de Render, nunca en el repo — la plantilla está en `.env.example`):
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Login de clientes con Google |
 | `ADMIN_PASS` | **Hash** de la contraseña admin (generar con `hash_password.py`) |
 | `FICHA_EDITOR_EMAIL` | Única cuenta admin autorizada |
-| `MAIL_USERNAME` / `MAIL_PASSWORD` | Gmail + App Password (no la contraseña normal) |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Gmail + App Password (fallback local; en Render free SMTP está bloqueado) |
+| `BREVO_API_KEY` | Envío de mails por API HTTP en producción (requerida en Render free) — https://app.brevo.com |
 | `MAIL_DEFAULT_SENDER` | Remitente de los mails |
 | `PEDIDOS_MAIL_TO` | Casilla que recibe los pedidos (respaldo) |
 | `WHATSAPP_EMPRESA_NUMERO` | Número destino del redirect wa.me (ej: 5491144471684) |

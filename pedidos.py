@@ -2,6 +2,7 @@ from datetime import datetime
 from functools import wraps
 import os
 import re
+import threading
 
 from flask import (
     flash,
@@ -12,7 +13,6 @@ from flask import (
     session,
     url_for,
 )
-from flask_mail import Message
 
 from app import (
     Cliente,
@@ -26,6 +26,7 @@ from app import (
     oauth,
     cliente_actual,
     pedido_abierto,
+    _enviar_email,
     _fecha_hora_ar,
 )
 
@@ -133,13 +134,32 @@ def _build_whatsapp_url(pedido, cliente):
 
 def _send_pedido_mail(pedido, cliente, cuerpo):
     destinatario = os.getenv('PEDIDOS_MAIL_TO') or os.getenv('MAIL_USERNAME') or 'indelfrix.ventas@gmail.com'
-    msg = Message(
-        subject=f'Pedido web #{pedido.id:05d} ~ {pedido.nombre_contacto or cliente.nombre} ~ {cliente.email}',
-        recipients=[destinatario],
-        body=cuerpo,
+    _enviar_email(
+        destinatario=destinatario,
+        asunto=f'Pedido web #{pedido.id:05d} ~ {pedido.nombre_contacto or cliente.nombre} ~ {cliente.email}',
+        cuerpo=cuerpo,
         reply_to=cliente.email,
     )
-    mail.send(msg)
+
+
+def _send_pedido_mail_async(pedido_id):
+    """Email de respaldo del pedido en background: no bloquea el redirect a WhatsApp.
+
+    Re-consulta el pedido dentro del hilo (el objeto de la request está detached).
+    """
+    def _job():
+        with app.app_context():
+            pedido = db.session.get(Pedido, pedido_id)
+            if not pedido:
+                return
+            try:
+                _send_pedido_mail(pedido, pedido.cliente, _pedido_texto(pedido, pedido.cliente))
+                pedido.mail_enviado = True
+                db.session.commit()
+            except Exception as exc:
+                db.session.rollback()
+                app.logger.warning('Mail de respaldo del pedido #%s falló: %s', pedido_id, exc)
+    threading.Thread(target=_job, daemon=True).start()
 
 
 
@@ -317,13 +337,8 @@ def pedido_checkout():
         db.session.commit()
         # Email de respaldo a la empresa (red de seguridad si el cliente
         # no completa el envío en WhatsApp). El canal principal es wa.me.
-        try:
-            _send_pedido_mail(pedido, cliente, _pedido_texto(pedido, cliente))
-            pedido.mail_enviado = True
-            db.session.commit()
-        except Exception as exc:
-            db.session.rollback()
-            app.logger.warning('No se pudo enviar el mail de respaldo del pedido #%s: %s', pedido.id, exc)
+        # Va en background para no bloquear el redirect.
+        _send_pedido_mail_async(pedido.id)
         whatsapp_url = _build_whatsapp_url(pedido, cliente)
         return redirect(whatsapp_url)
     if not pedido or not pedido.items:

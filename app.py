@@ -12,6 +12,10 @@ from authlib.integrations.flask_client import OAuth
 from zoneinfo import ZoneInfo
 import os
 import json
+import socket
+import threading
+import base64
+import requests
 import cloudinary
 import cloudinary.uploader
 import time
@@ -19,6 +23,11 @@ import collections
 
 load_dotenv()
 cloudinary.reset_config()  # recarga CLOUDINARY_URL / claves luego de dotenv
+
+# Ninguna operación de red puede colgar el worker para siempre (SMTP/SMTP bloqueado
+# en Render free, Neon despertando, etc.). Falla rápida después de 20s y el
+# worker sigue vivo para las próximas requests.
+socket.setdefaulttimeout(20)
 cloudinary.config(secure=True)
 
 FICHA_EDITOR_EMAIL = os.getenv('FICHA_EDITOR_EMAIL', 'indelfrix.ventas@gmail.com').strip().lower()
@@ -69,6 +78,60 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'indelfrix.ventas@gmail.com')
 
 mail = Mail(app)
+
+
+def _enviar_email(destinatario, asunto, cuerpo, reply_to=None, attachment=None):
+    """Envía un email. Si hay BREVO_API_KEY usa la API HTTP de Brevo (puerto 443,
+    funciona en Render free que bloquea SMTP); si no, cae a Flask-Mail/SMTP (Gmail),
+    útil en desarrollo local.
+
+    attachment: tupla (filename, content_bytes, mimetype) o None.
+    """
+    brevo_key = os.environ.get('BREVO_API_KEY', '').strip()
+    remitente = os.environ.get('MAIL_USERNAME') or 'indelfrix.ventas@gmail.com'
+    if brevo_key:
+        payload = {
+            'sender': {'email': remitente, 'name': 'Indelfrix Web'},
+            'to': [{'email': destinatario}],
+            'subject': asunto,
+            'textContent': cuerpo,
+        }
+        if reply_to:
+            payload['replyTo'] = {'email': reply_to}
+        if attachment:
+            payload['attachment'] = [{
+                'name': attachment[0],
+                'content': base64.b64encode(attachment[1]).decode('ascii'),
+            }]
+        resp = requests.post(
+            'https://api.brevo.com/v3/smtp/email',
+            headers={'api-key': brevo_key, 'Content-Type': 'application/json'},
+            json=payload,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return
+    # Fallback SMTP (Gmail) — desarrollo local
+    msg = Message(subject=asunto, recipients=[destinatario], body=cuerpo, reply_to=reply_to)
+    if attachment:
+        msg.attach(attachment[0], attachment[2], attachment[1])
+    mail.send(msg)
+
+
+def enviar_mail_async(destinatario, asunto, cuerpo, reply_to=None, attachment=None):
+    """Envía un email en background sin bloquear la respuesta HTTP.
+
+    Render free = 1 worker: si el envío cuelga (SMTP bloqueado o lento), el sitio
+    entero se congela. Con esto la respuesta sale al instante y el error (si hay)
+    queda en los logs sin afectar al usuario ni al sitio.
+    """
+    def _job():
+        with app.app_context():
+            try:
+                _enviar_email(destinatario, asunto, cuerpo, reply_to=reply_to, attachment=attachment)
+            except Exception:
+                app.logger.exception('Error al enviar email en background')
+    threading.Thread(target=_job, daemon=True).start()
 
 # --- ANTI-SPAM: rate limiting in-memory (por IP, ventana 60s, máx 3 envíos) ---
 _contact_timestamps = collections.defaultdict(collections.deque)
@@ -605,24 +668,20 @@ def enviar_mail():
             cuerpo_mail += "\n"
         cuerpo_mail += f"- Frecuencia apertura puertas: {frecuencia_apertura}\n"
 
-        # 5. Configurar y enviar el mensaje
-        msg = Message(
-            subject=asunto_final,
-            recipients=['indelfrix.ventas@gmail.com'], # Destinatario (Tú)
-            body=cuerpo_mail,
-            reply_to=email_usuario # Si le das a "Responder", le llega al cliente
-        )
-
-        # Adjuntar archivo si el cliente subió uno
+        # 5. Armar adjunto (si el cliente subió uno) y enviar en background
+        attachment = None
         archivo = request.files.get('archivo_adjunto')
         if archivo and archivo.filename != '':
-            msg.attach(archivo.filename, archivo.content_type, archivo.read())
+            attachment = (archivo.filename, archivo.read(), archivo.content_type)
 
-        try:
-            mail.send(msg)
-            return "¡Mensaje enviado con éxito! Nos contactaremos a la brevedad."
-        except Exception as e:
-            return f"Hubo un error al enviar el correo: {str(e)}"
+        enviar_mail_async(
+            destinatario='indelfrix.ventas@gmail.com',
+            asunto=asunto_final,
+            cuerpo=cuerpo_mail,
+            reply_to=email_usuario,  # Si le dan a "Responder", le llega al cliente
+            attachment=attachment,
+        )
+        return "¡Mensaje enviado con éxito! Nos contactaremos a la brevedad."
 
 
 # --- RUTAS CRUD (ejemplo: crear/editar/eliminar Categoría) ---
