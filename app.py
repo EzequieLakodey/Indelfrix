@@ -905,6 +905,17 @@ def admin_delete_producto(id):
     return redirect(url_for('admin_dashboard'))
 
 
+# --- PÁGINAS LEGALES (requeridas por Google OAuth para publicar en producción) ---
+@app.route('/privacidad')
+def privacidad():
+    return render_template('privacidad.html', fecha=datetime.now().strftime('%d/%m/%Y'))
+
+
+@app.route('/terminos')
+def terminos():
+    return render_template('terminos.html', fecha=datetime.now().strftime('%d/%m/%Y'))
+
+
 # --- RUTAS ADMIN: TAGS ---
 @app.route('/admin/tags', methods=['GET', 'POST'])
 @admin_required
