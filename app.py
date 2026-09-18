@@ -5,6 +5,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from functools import wraps
 from sqlalchemy import inspect, text
+from sqlalchemy.orm import selectinload
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -63,6 +64,13 @@ if _db_url.startswith('postgresql') and 'connect_timeout' not in _db_url:
     sep = '&' if '?' in _db_url else '?'
     _db_url = f'{_db_url}{sep}connect_timeout=10'
 app.config['SQLALCHEMY_DATABASE_URI'] = _db_url or 'sqlite:///indelfrix.db'
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    # Si Neon suspende el compute por inactividad, las conexiones TCP quedan
+    # "vivas" pero cortadas del otro lado. pool_pre_ping las valida y renueva
+    # antes de usarlas (evita errores intermitentes "SSL connection closed").
+    'pool_pre_ping': True,
+    'pool_recycle': 300,  # reciclar conexiones cada 5 min
+}
 db = SQLAlchemy(app)
 
 FICHAS_DIR = os.path.join(app.instance_path, 'fichas')
@@ -291,9 +299,21 @@ def _fecha_hora_ar(dt):
 
 @app.route('/')
 def inicio():
-    # Consultamos todas las categorías y sus imágenes asociadas
-    categorias_db = Categoria.query.all()
-    subcategorias_db = Subcategoria.query.all()
+    # Eager loading: traemos toda la jerarquía del catálogo en ~5 queries
+    # (selectinload hace un IN (...) por nivel) en vez de ~50 queries sueltas
+    # que, con la latencia a Neon/RDS, multiplicaban el tiempo de carga.
+    _carga_catalogo = (
+        selectinload(Categoria.subcategorias).selectinload(Subcategoria.imagenes),
+        selectinload(Categoria.subcategorias).selectinload(Subcategoria.productos),
+        selectinload(Categoria.subcategorias).selectinload(Subcategoria.tags),
+        selectinload(Categoria.imagenes),
+    )
+    categorias_db = Categoria.query.options(*_carga_catalogo).all()
+    subcategorias_db = Subcategoria.query.options(
+        selectinload(Subcategoria.imagenes),
+        selectinload(Subcategoria.productos),
+        selectinload(Subcategoria.tags),
+    ).all()
     tags_db = Tag.query.order_by(Tag.nombre).all()
 
     # Filtro server-side por tag (?tag=<id>): solo subcategorías que tengan ese tag
