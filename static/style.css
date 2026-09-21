@@ -49,7 +49,13 @@ body {
     padding-bottom: 0.25rem;
 }
 
-.sticky-nav .nav-link::after {
+/* Sin underline en los links que abren dropdowns (el ::after se superpone
+   con el menú desplegable que aparece encima/bajando) */
+.sticky-nav .nav-link.dropdown-toggle {
+    padding-bottom: 0.375rem;
+}
+
+.sticky-nav .nav-link:not(.dropdown-toggle)::after {
     content: '';
     position: absolute;
     left: 0;
@@ -60,8 +66,8 @@ body {
     transition: width 0.3s ease;
 }
 
-.sticky-nav .nav-link:hover::after,
-.sticky-nav .nav-link.active::after {
+.sticky-nav .nav-link:not(.dropdown-toggle):hover::after,
+.sticky-nav .nav-link:not(.dropdown-toggle).active::after {
     width: 100%;
 }
 
@@ -334,6 +340,23 @@ Para que la imagen ocupe todo el espacio de la card
     left: auto;
 }
 
+/* Marca centrada horizontalmente en el navbar (solo en desktop) */
+.navbar-brand-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* En mobile la vuelve al flujo normal para no chocar con el botón hamburguesa */
+@media (max-width: 991.98px) {
+    .navbar-brand-center {
+        position: static;
+        transform: none;
+    }
+}
+
 /* Quita el subrayado de los botones sociales */
 .btn-social {
     text-decoration: none !important;
@@ -399,13 +422,11 @@ Para que la imagen ocupe todo el espacio de la card
 /* (Eliminado por redundancia con .subcategory-card) */
 
 
-/* Agregar background.webp a elementos específicos, NO a cards o forms */
-/* Reglas responsive: ocultar logo y navbar en pantallas pequeñas
-   y mostrar el h1 accesible dentro de #sobre-nosotros */
+/* Reglas responsive: el hero-logo y el h1 accesible en pantallas pequeñas.
+   La navbar siempre queda visible (hamburguesa + Pedido + Cuenta). */
 @media (max-width: 767.98px) {
 
-    .hero-logo,
-    .sticky-nav {
+    .hero-logo {
         display: none !important;
     }
 

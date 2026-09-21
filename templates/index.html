@@ -31,14 +31,20 @@
 
 <body>
     <nav class="navbar sticky-nav navbar-expand-lg px-4 py-3">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold mb-0 bungee-shade-regular f" href="#" id="navbar-title">INDELFRIX S.A.</a>
+        <div class="container-fluid position-relative">
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
+            <!-- Marca centrada (absoluta respecto al container-fluid) -->
+            <a class="navbar-brand navbar-brand-center fw-bold mb-0 bungee-shade-regular f" href="#"
+                id="navbar-title">INDELFRIX S.A.</a>
+
+            <!-- Menús de navegación (izquierda) -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav align-items-lg-center gap-2 nav-categories">
+
 
                     <!-- Tipo: categorías -->
                     <li class="nav-item dropdown">
@@ -107,11 +113,12 @@
                         </ul>
                     </li>
                 </ul>
+            </div>
 
-                <!-- Bloque derecho: Pedido + Cuenta (fuera del ul para evitar clipping del dropdown) -->
-                <div class="nav-actions d-flex align-items-center gap-2 ms-auto">
-                    <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
-                        data-bs-toggle="offcanvas" data-bs-target="#pedidoOffcanvas">
+            <!-- Bloque derecho: Pedido + Cuenta (fuera del collapse: siempre visible) -->
+            <div class="nav-actions d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
+                    data-bs-toggle="offcanvas" data-bs-target="#pedidoOffcanvas">
                         <i class="fas fa-clipboard-list"></i>
                         Pedido
                         <span class="badge text-bg-primary" id="pedidoCountBadge">{{ pedido_count }}</span>
@@ -141,7 +148,6 @@
                     </a>
                     {% endif %}
                 </div>
-            </div>
         </div>
     </nav>
 
