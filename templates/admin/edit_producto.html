@@ -40,8 +40,20 @@
       {% endif %}
     </div>
     <div class="mb-3">
-      <label class="form-label">Agregar nuevas imágenes</label>
-      <input class="form-control" type="file" name="imagenes" accept="image/*" multiple>
+      <label class="form-label">Agregar imágenes</label>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <input class="form-control" type="file" name="imagenes" accept="image/*" multiple>
+        </div>
+        <div class="col-md-6">
+          <button type="button" class="btn btn-outline-primary w-100"
+            onclick="openCloudinarySelector({mode:'image', targetInput: this.closest('form').querySelector('[name=cloudinary_ids]'), displayTarget: 'cloudinaryPreview'})">
+            <i class="fas fa-cloud me-1"></i> Elegir de Cloudinary
+          </button>
+          <div id="cloudinaryPreview" class="mt-1"></div>
+          <input type="hidden" name="cloudinary_ids" value="">
+        </div>
+      </div>
     </div>
     <button class="btn btn-primary">Guardar</button>
     <a class="btn btn-link" href="{{ url_for('admin_dashboard') }}">Cancelar</a>

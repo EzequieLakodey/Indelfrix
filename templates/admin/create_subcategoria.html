@@ -39,14 +39,38 @@
     </div>
     <div class="mb-3">
       <label class="form-label">Imágenes</label>
-      <input class="form-control" type="file" name="imagenes" accept="image/*" multiple>
-      <div class="form-text">Podés seleccionar varias imágenes a la vez (Ctrl+click). Formatos: JPG, PNG, GIF, WebP, SVG.</div>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <input class="form-control" type="file" name="imagenes" accept="image/*" multiple>
+          <div class="form-text">Subir desde este dispositivo.</div>
+        </div>
+        <div class="col-md-6">
+          <button type="button" class="btn btn-outline-primary w-100"
+            onclick="openCloudinarySelector({mode:'image', targetInput: this.closest('form').querySelector('[name=cloudinary_ids]'), displayTarget: 'cloudinaryPreview'})">
+            <i class="fas fa-cloud me-1"></i> Elegir de Cloudinary
+          </button>
+          <div id="cloudinaryPreview" class="mt-1"></div>
+          <input type="hidden" name="cloudinary_ids" value="">
+        </div>
+      </div>
     </div>
     <div class="mb-3">
       <label class="form-label">Ficha técnica (PDF)</label>
       {% if can_edit_fichas %}
-      <input class="form-control" type="file" name="ficha_tecnica" accept="application/pdf,.pdf">
-      <div class="form-text">Modelos, datos técnicos y tablas de la subcategoría. Máximo 25 MB.</div>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <input class="form-control" type="file" name="ficha_tecnica" accept="application/pdf,.pdf">
+          <div class="form-text">Subir PDF nuevo. Máximo 25 MB.</div>
+        </div>
+        <div class="col-md-6">
+          <button type="button" class="btn btn-outline-danger w-100"
+            onclick="openCloudinarySelector({mode:'ficha', targetInput: this.closest('form').querySelector('[name=ficha_cloudinary_id]'), displayTarget: 'fichaCloudinaryPreview'})">
+            <i class="fas fa-cloud me-1"></i> Elegir de Cloudinary
+          </button>
+          <div id="fichaCloudinaryPreview" class="mt-1"></div>
+          <input type="hidden" name="ficha_cloudinary_id" value="">
+        </div>
+      </div>
       {% else %}
       <p class="text-muted small mb-0">Solo {{ ficha_editor_email }} puede cargar fichas técnicas.</p>
       {% endif %}

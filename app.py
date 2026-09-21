@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_from_directory, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from datetime import datetime
@@ -19,11 +19,21 @@ import base64
 import requests
 import cloudinary
 import cloudinary.uploader
+import cloudinary.api  # necesario para cloudinary.api.resources()
 import time
 import collections
 
 load_dotenv()
 cloudinary.reset_config()  # recarga CLOUDINARY_URL / claves luego de dotenv
+# Forzamos la config desde env vars explicitamente (la lectura perezosa del
+# paquete cloudinary a veces no puebla cloudinary.api correctamente)
+if all([os.getenv('CLOUDINARY_CLOUD_NAME'), os.getenv('CLOUDINARY_API_KEY'), os.getenv('CLOUDINARY_API_SECRET')]):
+    cloudinary.config(
+        cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+        api_key=os.getenv('CLOUDINARY_API_KEY'),
+        api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+        secure=True,
+    )
 
 # Ninguna operación de red puede colgar el worker para siempre (SMTP/SMTP bloqueado
 # en Render free, Neon despertando, etc.). Falla rápida después de 20s y el
@@ -429,6 +439,52 @@ def procesar_imagenes(files, entity, entity_type):
             entity.imagenes.append(img)
 
 
+def procesar_imagenes_cloudinary(imagen_ids, entity):
+    """Asocia imágenes ya existentes en la tabla imagenes (no re-subir) a la entidad."""
+    for img_id in imagen_ids:
+        if not img_id:
+            continue
+        try:
+            img_id = int(img_id)
+        except (TypeError, ValueError):
+            continue
+        img = db.session.get(Imagen, img_id)
+        if img and img not in entity.imagenes:
+            entity.imagenes.append(img)
+
+
+def _listar_cloudinary(folder, resource_type='image', formato=None):
+    """Lista recursos de Cloudinary desde la Admin API (máx 100)."""
+    # Inline import: al hacer reset_config() al módulo se le cae el atributo 'api'
+    import cloudinary.api as cloud_api
+    try:
+        resultado = cloudinary.api.resources(
+            resource_type=resource_type,
+            type='upload',
+            prefix=folder,
+            max_results=100,
+        )
+        items = resultado.get('resources', [])
+        # Filtrar por formato si se pide
+        if formato:
+            items = [r for r in items if r.get('format', '').lower() == formato.lower()]
+        # Simplificar para el front
+        return [
+            {
+                'public_id': r['public_id'],
+                'url': r['secure_url'],
+                'format': r.get('format', ''),
+                'width': r.get('width', 0),
+                'height': r.get('height', 0),
+                'bytes': r.get('bytes', 0),
+            }
+            for r in items
+        ]
+    except Exception as exc:
+        app.logger.warning('Error listando Cloudinary (%s): %s', folder, exc)
+        return []
+
+
 def eliminar_imagenes_seleccionadas(entity, form_eliminar_list):
     """Elimina imágenes marcadas con checkboxes en formularios de edición."""
     eliminar_ids = [int(x) for x in form_eliminar_list if x.isdigit()]
@@ -578,14 +634,30 @@ def inject_admin_flags():
 def _apply_ficha_change(sub):
     archivo = request.files.get('ficha_tecnica')
     quitar = request.form.get('quitar_ficha')
-    quiere_cambiar = bool((archivo and archivo.filename) or quitar)
+    ficha_origen_id = request.form.get('ficha_cloudinary_id', '').strip()
+
+    quiere_subir = bool(archivo and archivo.filename)
+    quiere_cloudinary = bool(ficha_origen_id)
+    quiere_cambiar = quiere_subir or quitar or quiere_cloudinary
+
     if not quiere_cambiar:
         return
     if not can_edit_fichas():
         raise PermissionError(
             f'Solo {FICHA_EDITOR_EMAIL} puede cargar, reemplazar o quitar fichas técnicas.'
         )
-    if archivo and archivo.filename:
+
+    if quiere_cloudinary:
+        # ficha_cloudinary_id = id_subcategoria de la ficha de origen a reutilizar
+        try:
+            fuente = db.session.get(Subcategoria, int(ficha_origen_id))
+        except (TypeError, ValueError):
+            fuente = None
+        if not fuente:
+            raise ValueError('La ficha de origen seleccionada no existe.')
+        sub.ficha_tecnica_url = fuente.ficha_tecnica_url
+        sub.ficha_tecnica_public_id = fuente.ficha_tecnica_public_id
+    elif quiere_subir:
         save_ficha(sub, archivo)
     elif quitar:
         delete_ficha_file(sub)
@@ -803,6 +875,7 @@ def admin_create_subcategoria():
         db.session.add(nueva)
         db.session.flush()
         procesar_imagenes(request.files.getlist('imagenes'), nueva, 'subcategoria')
+        procesar_imagenes_cloudinary(request.form.getlist('cloudinary_ids'), nueva)
         try:
             _apply_ficha_change(nueva)
         except PermissionError as exc:
@@ -838,6 +911,7 @@ def admin_edit_subcategoria(id):
         sub.tags = [t for t in tags if t.id_tag in tags_sel]
         eliminar_imagenes_seleccionadas(sub, request.form.getlist('eliminar_imagen'))
         procesar_imagenes(request.files.getlist('imagenes'), sub, 'subcategoria')
+        procesar_imagenes_cloudinary(request.form.getlist('cloudinary_ids'), sub)
         try:
             _apply_ficha_change(sub)
         except PermissionError as exc:
@@ -896,6 +970,7 @@ def admin_create_producto():
         db.session.add(nuevo)
         db.session.flush()
         procesar_imagenes(request.files.getlist('imagenes'), nuevo, 'producto')
+        procesar_imagenes_cloudinary(request.form.getlist('cloudinary_ids'), nuevo)
         db.session.commit()
         flash('Producto creado', 'success')
         return redirect(url_for('admin_dashboard'))
@@ -916,6 +991,7 @@ def admin_edit_producto(id):
         prod.id_subcategoria = request.form.get('id_subcategoria', type=int) or prod.id_subcategoria
         eliminar_imagenes_seleccionadas(prod, request.form.getlist('eliminar_imagen'))
         procesar_imagenes(request.files.getlist('imagenes'), prod, 'producto')
+        procesar_imagenes_cloudinary(request.form.getlist('cloudinary_ids'), prod)
         db.session.commit()
         flash('Producto actualizado', 'success')
         return redirect(url_for('admin_dashboard'))
@@ -1031,6 +1107,34 @@ def admin_pedido_estado(id):
     db.session.commit()
     flash(f'Pedido #{pedido.id:05d} → estado "{nuevo}"', 'success')
     return redirect(url_for('admin_pedido_detalle', id=id))
+
+
+@app.route('/api/admin/imagenes')
+@admin_required
+def api_admin_imagenes():
+    """Lista todas las imágenes de la tabla imagenes para reutilizar/admin."""
+    imagenes = Imagen.query.order_by(Imagen.id_imagen.desc()).all()
+    def img_url(img):
+        if img.url.startswith('http'):
+            return img.url
+        return url_for('static', filename='img/' + img.url)
+    return jsonify([{
+        'id': i.id_imagen,
+        'url': img_url(i),
+        'nombre': i.public_id or i.url,
+    } for i in imagenes])
+
+
+@app.route('/api/admin/fichas')
+@admin_required
+def api_admin_fichas():
+    """Lista todas las subcategorías que tienen ficha técnica, para reutilizar."""
+    subs = Subcategoria.query.filter(Subcategoria.ficha_tecnica_url != '').all()
+    return jsonify([{
+        'id_subcategoria': s.id_subcategoria,
+        'subcategoria': s.nombre,
+        'url': s.ficha_tecnica_url,
+    } for s in subs])
 
 
 @app.route('/api/productos/<int:sub_id>')
