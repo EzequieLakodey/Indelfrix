@@ -218,7 +218,7 @@
                     {% set nueva_sel = ids_activos + [t.id_tag] %}
                     {% endif %}
                     <a href="{{ url_for('inicio', tags=nueva_sel | join(',')) }}#catalogo"
-                        class="btn rounded-pill fw-semibold px-4 text-white tag-filter-btn {% if t.id_tag in ids_activos %}tag-filter-active{% endif %}"
+                        class="btn rounded-pill fw-semibold px-4 text-black tag-filter-btn {% if t.id_tag in ids_activos %}tag-filter-active{% endif %}"
                         style="background-color: {{ t.color or '#6c757d' }};">
                         {{ t.nombre }}
                         {% if t.id_tag in ids_activos %}<i class="fas fa-check ms-1"></i>{% endif %}
@@ -230,7 +230,8 @@
 
             {% if tags_activos and not categorias_vista %}
             <p class="text-center text-muted py-4">
-                No hay productos que tengan {% if tags_activos|length > 1 %}todos estos tags{% else %}este tag{% endif %}:
+                No hay productos que tengan {% if tags_activos|length > 1 %}todos estos tags{% else %}este tag{% endif
+                %}:
                 <strong>{{ tags_activos | map(attribute='nombre') | join(' + ') }}</strong>.
                 Probá quitando alguno.
             </p>
@@ -270,7 +271,7 @@
                                     data-ficha-url="{{ sub.ficha_public_url() or '' }}"
                                     data-productos="{{ sub.productos | map(attribute='nombre') | list | tojson | e }}"
                                     data-productos-ids="{{ sub.productos | map(attribute='id_producto') | list | tojson | e }}">
-                                     <div class="card-header bg-primary text-white p-3">
+                                    <div class="card-header bg-primary text-white p-3">
                                         <h5 class="mb-0 fw-bold text-uppercase text-center">{{ sub.nombre }}</h5>
                                         {% if sub.tags %}
                                         <div class="mt-2 d-flex flex-wrap justify-content-center gap-1">
@@ -279,10 +280,11 @@
                                             {% if ids_activos is defined and t.id_tag in ids_activos %}
                                             {% set badge_sel = ids_activos | reject('equalto', t.id_tag) | list %}
                                             {% else %}
-                                            {% set badge_sel = (ids_activos if ids_activos is defined else []) + [t.id_tag] %}
+                                            {% set badge_sel = (ids_activos if ids_activos is defined else []) +
+                                            [t.id_tag] %}
                                             {% endif %}
                                             <a href="{{ url_for('inicio', tags=badge_sel | join(',')) }}#catalogo"
-                                                class="badge text-decoration-none text-white border border-light"
+                                                class="badge text-decoration-none text-black border border-light"
                                                 style="background-color: {{ t.color or '#6c757d' }}">{{ t.nombre }}</a>
                                             {% endfor %}
                                         </div>
