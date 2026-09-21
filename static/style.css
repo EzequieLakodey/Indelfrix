@@ -317,6 +317,23 @@ Para que la imagen ocupe todo el espacio de la card
     box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
 }
 
+/* Navbar: fondo más opaco, menos translúcido */
+.sticky-nav {
+    background: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* Dropdown scrollable para menú Líneas (muchas subcategorías) */
+.dropdown-menu-scrollable {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Asegurar que el dropdown de cuenta quede alineado a la derecha */
+.nav-actions .dropdown-menu-end {
+    right: 0;
+    left: auto;
+}
+
 /* Quita el subrayado de los botones sociales */
 .btn-social {
     text-decoration: none !important;
@@ -691,9 +708,7 @@ Para que la imagen ocupe todo el espacio de la card
 
 /* Hide category nav items on tablet and smaller */
 @media (max-width: 1023.98px) {
-    .nav-categories {
-        display: none !important;
-    }
+    /* Ya no ocultamos todo: el collapse muestra los menús (Tipo/Líneas/Función/Empresa) */
 }
 
 /* Subcategory card: fixed carousel dimensions so all cards match */

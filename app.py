@@ -316,13 +316,22 @@ def inicio():
     ).all()
     tags_db = Tag.query.order_by(Tag.nombre).all()
 
-    # Filtro server-side por tag (?tag=<id>): solo subcategorías que tengan ese tag
-    tag_id = request.args.get('tag', type=int)
-    tag_activo = db.session.get(Tag, tag_id) if tag_id else None
+    # Filtro server-side por tags: ?tags=1,3 (AND: la subcategoría debe tener
+    # TODOS los seleccionados). Retrocompatible con ?tag=X.
+    sel_ids = set()
+    raw = request.args.get('tags', '')
+    if raw:
+        sel_ids = {int(t) for t in raw.split(',') if t.strip().isdigit()}
+    tag_suelto = request.args.get('tag', type=int)
+    if tag_suelto:
+        sel_ids.add(tag_suelto)
+    tags_activos = [t for t in tags_db if t.id_tag in sel_ids]
+
     categorias_vista = []
     for cat in categorias_db:
-        if tag_activo:
-            subs = [s for s in cat.subcategorias if tag_activo in s.tags]
+        if tags_activos:
+            subs = [s for s in cat.subcategorias
+                    if all(t in s.tags for t in tags_activos)]
         else:
             subs = list(cat.subcategorias)
         if subs:
@@ -331,7 +340,8 @@ def inicio():
     # Pasamos el año actual para el footer
     current_year = datetime.now().year
     return render_template('index.html', categorias=categorias_db, subcategorias=subcategorias_db,
-                           categorias_vista=categorias_vista, tags=tags_db, tag_activo=tag_activo,
+                           categorias_vista=categorias_vista, tags=tags_db,
+                           tags_activos=tags_activos, tag_activo=tags_activos[0] if len(tags_activos) == 1 else None,
                            current_year=current_year)
 
 

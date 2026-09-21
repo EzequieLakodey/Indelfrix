@@ -37,31 +37,89 @@
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                <ul class="navbar-nav align-items-center gap-3 nav-categories">
-                    {% for cat in categorias %}
-                    <li class="nav-item">
-                        <a class="nav-link cat-link" href="#categoria-{{ cat.id_categoria }}"
-                            data-target="#categoria-{{ cat.id_categoria }}">{{ cat.nombre }}</a>
-                    </li>
-                    {% endfor %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="#sobre-nosotros">Nosotros</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#contacto">Contacto</a>
-                    </li>
-                    <li class="nav-item">
-                        <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
-                            data-bs-toggle="offcanvas" data-bs-target="#pedidoOffcanvas">
-                            <i class="fas fa-clipboard-list"></i>
-                            Pedido
-                            <span class="badge text-bg-primary" id="pedidoCountBadge">{{ pedido_count }}</span>
-                        </button>
-                    </li>
-                    {% if cliente %}
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center gap-2 nav-categories">
+
+                    <!-- Tipo: categorías -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            Tipo
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for cat in categorias %}
+                            <li>
+                                <a class="dropdown-item cat-link" href="#categoria-{{ cat.id_categoria }}"
+                                    data-target="#categoria-{{ cat.id_categoria }}">{{ cat.nombre }}</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+
+                    <!-- Líneas: subcategorías (líneas de productos) agrupadas por categoría -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            Líneas
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-scrollable">
+                            {% for cat in categorias %}
+                            <li>
+                                <h6 class="dropdown-header text-uppercase fw-bold small text-primary mb-0">{{
+                                    cat.nombre }}</h6>
+                            </li>
+                            {% for sub in cat.subcategorias %}
+                            <li>
+                                <a class="dropdown-item cat-link ps-4" href="#subcategoria-{{ sub.id_subcategoria }}"
+                                    data-target="#subcategoria-{{ sub.id_subcategoria }}">{{ sub.nombre }}</a>
+                            </li>
+                            {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </li>
+
+                    <!-- Función/Rubro: tags -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            Función / Rubro
+                        </a>
+                        <ul class="dropdown-menu">
+                            {% for t in tags %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('inicio', tags=t.id_tag) }}#catalogo">
+                                    <span class="badge rounded-pill me-1"
+                                        style="background-color: {{ t.color or '#6c757d' }}; width:.6rem; height:.6rem;"></span>
+                                    {{ t.nombre }}
+                                </a>
+                            </li>
+                            {% else %}
+                            <li><span class="dropdown-item-text small text-muted">Sin etiquetas aún</span></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+
+                    <!-- Empresa: Nosotros + Contacto -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            Empresa
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#sobre-nosotros">Quiénes somos</a></li>
+                            <li><a class="dropdown-item" href="#contacto">Contacto</a></li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <!-- Bloque derecho: Pedido + Cuenta (fuera del ul para evitar clipping del dropdown) -->
+                <div class="nav-actions d-flex align-items-center gap-2 ms-auto">
+                    <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
+                        data-bs-toggle="offcanvas" data-bs-target="#pedidoOffcanvas">
+                        <i class="fas fa-clipboard-list"></i>
+                        Pedido
+                        <span class="badge text-bg-primary" id="pedidoCountBadge">{{ pedido_count }}</span>
+                    </button>
+
+                    {% if cliente %}
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle p-0" href="#" role="button" data-bs-toggle="dropdown"
                             aria-expanded="false" title="Mi cuenta">
                             <i class="fas fa-user-circle fa-lg"></i>
                         </a>
@@ -76,15 +134,13 @@
                             <li><a class="dropdown-item" href="{{ url_for('cliente_logout') }}"><i
                                         class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</a></li>
                         </ul>
-                    </li>
+                    </div>
                     {% elif google_ready %}
-                    <li class="nav-item">
-                        <a class="btn btn-sm btn-primary" href="{{ url_for('google_login', next=url_for('inicio')) }}">
-                            <i class="fab fa-google me-1"></i> Ingresar
-                        </a>
-                    </li>
+                    <a class="btn btn-sm btn-primary" href="{{ url_for('google_login', next=url_for('inicio')) }}">
+                        <i class="fab fa-google me-1"></i> Ingresar
+                    </a>
                     {% endif %}
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
@@ -141,24 +197,43 @@
     <main class="container">
         <section id="catalogo" class="mb-5">
             {% if tags %}
+            {# set de IDs activos para facilitar lógica de toggle #}
+            {% set ids_activos = tags_activos | map(attribute='id_tag') | list %}
             <div class="tag-filter-bar text-center my-4 py-3 px-3 mx-auto rounded-4 shadow-sm" data-aos="fade-up">
                 <h5 class="fw-bold text-primary mb-3">
                     <i class="fas fa-filter me-2"></i>Filtrar por propósito
+                    {% if tags_activos %}<small class="text-muted fw-normal d-block mt-1" style="font-size:.8rem;">
+                        combinando: {{ tags_activos | map(attribute='nombre') | join(' + ') }}</small>{% endif %}
                 </h5>
                 <div class="d-flex flex-wrap justify-content-center gap-2">
                     <a href="{{ url_for('inicio') }}#catalogo"
-                        class="btn rounded-pill fw-semibold px-4 {% if not tag_activo %}btn-primary{% else %}btn-outline-secondary{% endif %}">Todos</a>
+                        class="btn rounded-pill fw-semibold px-4 {% if not tags_activos %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                        <i class="fas fa-times me-1{% if not tags_activos %} d-none{% endif %}"></i>Todos
+                    </a>
                     {% for t in tags %}
-                    <a href="{{ url_for('inicio', tag=t.id_tag) }}#catalogo"
-                        class="btn rounded-pill fw-semibold px-4 text-black tag-filter-btn {% if tag_activo and tag_activo.id_tag == t.id_tag %}tag-filter-active{% endif %}"
-                        style="background-color: {{ t.color or '#6c757d' }};">{{ t.nombre }}</a>
+                    {# Toggle: si está activo lo quitamos, si no lo agregamos #}
+                    {% if t.id_tag in ids_activos %}
+                    {% set nueva_sel = ids_activos | reject('equalto', t.id_tag) | list %}
+                    {% else %}
+                    {% set nueva_sel = ids_activos + [t.id_tag] %}
+                    {% endif %}
+                    <a href="{{ url_for('inicio', tags=nueva_sel | join(',')) }}#catalogo"
+                        class="btn rounded-pill fw-semibold px-4 text-white tag-filter-btn {% if t.id_tag in ids_activos %}tag-filter-active{% endif %}"
+                        style="background-color: {{ t.color or '#6c757d' }};">
+                        {{ t.nombre }}
+                        {% if t.id_tag in ids_activos %}<i class="fas fa-check ms-1"></i>{% endif %}
+                    </a>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
 
-            {% if tag_activo and not categorias_vista %}
-            <p class="text-center text-muted py-4">Todavía no hay productos con el tag "{{ tag_activo.nombre }}".</p>
+            {% if tags_activos and not categorias_vista %}
+            <p class="text-center text-muted py-4">
+                No hay productos que tengan {% if tags_activos|length > 1 %}todos estos tags{% else %}este tag{% endif %}:
+                <strong>{{ tags_activos | map(attribute='nombre') | join(' + ') }}</strong>.
+                Probá quitando alguno.
+            </p>
             {% endif %}
 
             {% for item in categorias_vista %}
@@ -195,13 +270,19 @@
                                     data-ficha-url="{{ sub.ficha_public_url() or '' }}"
                                     data-productos="{{ sub.productos | map(attribute='nombre') | list | tojson | e }}"
                                     data-productos-ids="{{ sub.productos | map(attribute='id_producto') | list | tojson | e }}">
-                                    <div class="card-header bg-primary text-white p-3">
+                                     <div class="card-header bg-primary text-white p-3">
                                         <h5 class="mb-0 fw-bold text-uppercase text-center">{{ sub.nombre }}</h5>
                                         {% if sub.tags %}
                                         <div class="mt-2 d-flex flex-wrap justify-content-center gap-1">
                                             {% for t in sub.tags %}
-                                            <a href="{{ url_for('inicio', tag=t.id_tag) }}#catalogo"
-                                                class="badge text-decoration-none text-black border border-light"
+                                            {# Toggle: si ya está activa la quita, si no la agrega #}
+                                            {% if ids_activos is defined and t.id_tag in ids_activos %}
+                                            {% set badge_sel = ids_activos | reject('equalto', t.id_tag) | list %}
+                                            {% else %}
+                                            {% set badge_sel = (ids_activos if ids_activos is defined else []) + [t.id_tag] %}
+                                            {% endif %}
+                                            <a href="{{ url_for('inicio', tags=badge_sel | join(',')) }}#catalogo"
+                                                class="badge text-decoration-none text-white border border-light"
                                                 style="background-color: {{ t.color or '#6c757d' }}">{{ t.nombre }}</a>
                                             {% endfor %}
                                         </div>
@@ -730,7 +811,7 @@
             // Se hace tras 'load' (imágenes incluidas) para que el salto no quede
             // desplazado por el layout-shift de los carruseles.
             window.addEventListener('load', function () {
-                if (location.hash === '#catalogo' && new URLSearchParams(location.search).has('tag')) {
+                if (location.hash === '#catalogo' && (new URLSearchParams(location.search).has('tag') || new URLSearchParams(location.search).has('tags'))) {
                     document.getElementById('catalogo')?.scrollIntoView();
                 }
             });
