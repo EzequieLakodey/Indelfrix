@@ -179,7 +179,21 @@
       </div>
 
       <!-- Resultado -->
-      <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Equipo/s recomendado/s</h6>
+      {% if producto_especifico %}
+      <div class="card border-primary shadow mb-4">
+        <div class="card-header bg-primary text-white fw-bold">
+          <i class="fas fa-star me-2"></i>Producto recomendado
+        </div>
+        <div class="card-body text-center py-4">
+          <i class="fas fa-box fa-2x text-primary mb-2"></i>
+          <h4 class="fw-bold">{{ producto_especifico.nombre }}</h4>
+          <a href="{{ url_for('inicio') }}#subcategoria-{{ producto_especifico.subcategoria.id_subcategoria }}"
+             class="btn btn-outline-primary btn-sm mt-2">Ver en catálogo</a>
+        </div>
+      </div>
+      {% endif %}
+
+      <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Línea / Subcategoría recomendada</h6>
       {% if recomendados %}
         <div class="row g-3">
           {% for sub in recomendados %}

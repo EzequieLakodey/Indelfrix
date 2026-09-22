@@ -1,0 +1,145 @@
+{% extends 'admin/base_admin.html' %}
+{% block content %}
+<div class="container mt-4" style="max-width:860px;">
+  <h3>Editar regla #{{ regla.id }}</h3>
+  <form method="post">
+    <div class="row g-3 mb-3">
+      <div class="col-md-8">
+        <label class="form-label fw-bold">Nombre</label>
+        <input class="form-control" name="nombre" value="{{ regla.nombre or '' }}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-bold">Prioridad</label>
+        <input class="form-control" type="number" name="prioridad" value="{{ regla.prioridad or 100 }}" min="1">
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header fw-bold small">Condiciones (vacío = no aplica)</div>
+      <div class="card-body row g-3">
+        <div class="col-md-3">
+          <label class="form-label small">Vol. mín (m³)</label>
+          <input class="form-control form-control-sm" type="number" step="0.1" name="volumen_min_m3"
+                 value="{{ regla.volumen_min_m3 or '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">Vol. máx (m³)</label>
+          <input class="form-control form-control-sm" type="number" step="0.1" name="volumen_max_m3"
+                 value="{{ regla.volumen_max_m3 or '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">Temp. máx (°C)</label>
+          <input class="form-control form-control-sm" type="number" step="0.5" name="temp_deseada_max_c"
+                 value="{{ regla.temp_deseada_max_c or '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">Temp. mín (°C)</label>
+          <input class="form-control form-control-sm" type="number" step="0.5" name="temp_deseada_min_c"
+                 value="{{ regla.temp_deseada_min_c or '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Tipo producto</label>
+          <input class="form-control form-control-sm" name="producto_tipo" value="{{ regla.producto_tipo or '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Frecuencia apertura</label>
+          <select class="form-select form-select-sm" name="frecuencia_apertura">
+            <option value="">Cualquiera</option>
+            {% for f in ['Alta','Media','Baja'] %}
+            <option value="{{ f }}" {% if regla.frecuencia_apertura==f %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Antecámara</label>
+          <select class="form-select form-select-sm" name="posee_antecamara">
+            <option value="">Cualquiera</option>
+            {% for a in ['Si','No'] %}
+            <option value="{{ a }}" {% if regla.posee_antecamara==a %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header fw-bold small">Resultado recomendado</div>
+      <div class="card-body">
+        <div class="row g-3 mb-2">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Categoría *</label>
+            <select class="form-select form-select-sm" id="selCategoria" name="resultado_categoria" required
+                    onchange="cargarSubs()">
+              <option value="">Seleccionar…</option>
+              {% for c in cascada %}
+              <option value="{{ c.nombre }}" {% if regla.resultado_categoria==c.nombre %}selected{% endif %}>{{ c.nombre }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Subcategoría</label>
+            <select class="form-select form-select-sm" id="selSubcategoria" name="resultado_subcategoria"
+                    onchange="cargarProds()">
+              <option value="">— Todas / ninguna —</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Producto específico</label>
+            <select class="form-select form-select-sm" id="selProducto" name="resultado_producto_id">
+              <option value="">— Sin especificar —</option>
+            </select>
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-bold">Mensaje para el usuario</label>
+          <input class="form-control form-control-sm" name="resultado_mensaje"
+                 value="{{ regla.resultado_mensaje or '' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary">Guardar cambios</button>
+      <a href="{{ url_for('admin_reglas') }}" class="btn btn-link">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+const cascada = {{ cascada | tojson }};
+const regla = {{ {'resultado_categoria': regla.resultado_categoria, 'resultado_subcategoria': regla.resultado_subcategoria, 'resultado_producto_id': regla.resultado_producto_id} | tojson }};
+
+function cargarSubs() {
+  const catNombre = document.getElementById('selCategoria').value;
+  const subSel = document.getElementById('selSubcategoria');
+  const prodSel = document.getElementById('selProducto');
+  subSel.innerHTML = '<option value="">— Todas / ninguna —</option>';
+  prodSel.innerHTML = '<option value="">— Sin especificar —</option>';
+  if (!catNombre) return;
+  const cat = cascada.find(c => c.nombre === catNombre);
+  if (!cat) return;
+  cat.subcategorias.forEach(s => {
+    const opt = new Option(s.nombre, s.nombre, false, regla.resultado_subcategoria === s.nombre);
+    subSel.appendChild(opt);
+  });
+}
+
+function cargarProds() {
+  const catNombre = document.getElementById('selCategoria').value;
+  const subNombre = document.getElementById('selSubcategoria').value;
+  const prodSel = document.getElementById('selProducto');
+  prodSel.innerHTML = '<option value="">— Sin especificar —</option>';
+  if (!catNombre || !subNombre) return;
+  const cat = cascada.find(c => c.nombre === catNombre);
+  const sub = cat?.subcategorias.find(s => s.nombre === subNombre);
+  if (!sub || !sub.productos.length) return;
+  sub.productos.forEach(p => {
+    prodSel.appendChild(new Option(p.nombre, String(p.id), false, regla.resultado_producto_id == p.id));
+  });
+}
+
+// Pre-cargar al montar si ya hay valores
+cargarSubs();
+cargarProds();
+</script>
+{% endblock %}

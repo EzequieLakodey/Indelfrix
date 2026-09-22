@@ -303,6 +303,7 @@ class ReglaCalculadora(db.Model):
     Se evalúan en orden de 'prioridad' (menor primero)."""
     __tablename__ = 'reglas_calculadora'
     id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(200))  # identificador interno para el admin
 
     # --- Condiciones (rangos / match) ---
     volumen_min_m3 = db.Column(db.Float)          # None = sin límite inferior
@@ -316,8 +317,11 @@ class ReglaCalculadora(db.Model):
     # --- Resultado ---
     resultado_categoria = db.Column(db.String(100))    # nombre de Categoria recomendada
     resultado_subcategoria = db.Column(db.String(100)) # nombre de Subcategoria recomendada
+    resultado_producto_id = db.Column(db.Integer, db.ForeignKey('productos.id_producto'), nullable=True)
     resultado_mensaje = db.Column(db.Text)             # explicación para el usuario
     prioridad = db.Column(db.Integer, default=100)     # menor = se evalúa antes
+
+    resultado_producto = db.relationship('Producto', backref='reglas_que_lo_recomiendan')
 
     def __repr__(self):
         return f'<Regla #{self.id} → {self.resultado_categoria}>{self.resultado_subcategoria}>'
@@ -410,6 +414,16 @@ def _ensure_schema():
         if 'localidad' not in cols:
             db.session.execute(text("ALTER TABLE pedidos ADD COLUMN localidad VARCHAR(200)"))
             db.session.commit()
+    if 'reglas_calculadora' in inspector.get_table_names():
+        cols = {col['name'] for col in inspector.get_columns('reglas_calculadora')}
+        for stmt in [
+            "ALTER TABLE reglas_calculadora ADD COLUMN resultado_producto_id INTEGER",
+            "ALTER TABLE reglas_calculadora ADD COLUMN nombre VARCHAR(200)",
+        ]:
+            col_name = stmt.split()[5]  # 'resultado_producto_id' o 'nombre'
+            if col_name not in cols:
+                db.session.execute(text(stmt))
+                db.session.commit()
 
 
 def _cloudinary_ready():
@@ -1101,6 +1115,21 @@ def admin_delete_tag(id):
 
 
 # --- RUTAS ADMIN: REGLAS CALCULADORA ---
+def _productos_cascada():
+    """Datos para los selects en cascada del form de reglas (cat→sub→producto)."""
+    from sqlalchemy.orm import selectinload
+    cats = Categoria.query.options(
+        selectinload(Categoria.subcategorias).selectinload(Subcategoria.productos)
+    ).all()
+    return [{
+        'id': c.id_categoria, 'nombre': c.nombre,
+        'subcategorias': [{
+            'id': s.id_subcategoria, 'nombre': s.nombre,
+            'productos': [{'id': p.id_producto, 'nombre': p.nombre} for p in s.productos],
+        } for s in c.subcategorias]
+    } for c in cats]
+
+
 @app.route('/admin/reglas', methods=['GET', 'POST'])
 @admin_required
 def admin_reglas():
@@ -1119,8 +1148,10 @@ def admin_reglas():
             # Campos numéricos opcionales → None si están vacíos
             for campo in ['volumen_min_m3', 'volumen_max_m3', 'temp_deseada_min_c', 'temp_deseada_max_c', 'prioridad']:
                 val = request.form.get(campo, '').strip()
-                setattr(regla, campo, float(val) if val and '.' in val or val.replace('-','').isdigit() else None)
-            # Campos string opcionales
+                setattr(regla, campo, float(val) if val and val.replace('.','').replace('-','').isdigit() else None)
+            # Subcategoría → producto en cascada
+            prod_id = request.form.get('resultado_producto_id', '').strip()
+            regla.resultado_producto_id = int(prod_id) if prod_id.isdigit() else None
             regla.producto_tipo = request.form.get('producto_tipo', '').strip() or None
             regla.frecuencia_apertura = request.form.get('frecuencia_apertura', '').strip() or None
             regla.posee_antecamara = request.form.get('posee_antecamara', '').strip() or None
@@ -1129,7 +1160,8 @@ def admin_reglas():
             flash(f'Regla "{nombre}" creada', 'success')
         return redirect(url_for('admin_reglas'))
     reglas = ReglaCalculadora.query.order_by(ReglaCalculadora.prioridad).all()
-    return render_template('admin/reglas.html', reglas=reglas, categorias=categorias, subcategorias=subcategorias)
+    return render_template('admin/reglas.html', reglas=reglas, categorias=categorias,
+                           subcategorias=subcategorias, cascada=_productos_cascada())
 
 
 @app.route('/admin/reglas/<int:id>/editar', methods=['GET', 'POST'])
@@ -1142,6 +1174,8 @@ def admin_edit_regla(id):
         regla.resultado_categoria = request.form.get('resultado_categoria', '').strip()
         regla.resultado_subcategoria = request.form.get('resultado_subcategoria', '').strip()
         regla.resultado_mensaje = request.form.get('resultado_mensaje', '')
+        prod_id = request.form.get('resultado_producto_id', '').strip()
+        regla.resultado_producto_id = int(prod_id) if prod_id.isdigit() else None
         for campo in ['volumen_min_m3', 'volumen_max_m3', 'temp_deseada_min_c', 'temp_deseada_max_c', 'prioridad']:
             val = request.form.get(campo, '').strip()
             if not val:
@@ -1155,7 +1189,8 @@ def admin_edit_regla(id):
         db.session.commit()
         flash('Regla actualizada', 'success')
         return redirect(url_for('admin_reglas'))
-    return render_template('admin/regla_edit.html', regla=regla, categorias=categorias, subcategorias=subcategorias)
+    return render_template('admin/regla_edit.html', regla=regla, categorias=categorias,
+                           subcategorias=subcategorias, cascada=_productos_cascada())
 
 
 @app.route('/admin/reglas/<int:id>/eliminar')

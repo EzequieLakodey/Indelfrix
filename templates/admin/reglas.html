@@ -3,9 +3,9 @@
 <div class="container-fluid mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3 class="mb-0">Reglas de la Calculadora</h3>
-    <a href="#" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaRegla">Nueva regla</a>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaRegla">Nueva regla</button>
   </div>
-  <p class="text-muted small mb-3">Las reglas se evalúan en orden de prioridad (de menor a mayor). El primer match se aplica.</p>
+  <p class="text-muted small mb-3">Las reglas se evalúan en orden de prioridad (menor primero). El primer match se aplica.</p>
 
   <div class="table-responsive">
     <table class="table table-hover align-middle small">
@@ -13,12 +13,8 @@
         <tr>
           <th>#</th>
           <th>Prioridad</th>
-          <th>Volumen (m³)</th>
-          <th>Temp max (°C)</th>
-          <th>Producto</th>
-          <th>Frecuencia</th>
-          <th>Antecám.</th>
-          <th>→ Recomienda</th>
+          <th>Condiciones</th>
+          <th>→ Resultado</th>
           <th></th>
         </tr>
       </thead>
@@ -27,18 +23,18 @@
         <tr>
           <td>{{ r.id }}</td>
           <td><span class="badge text-bg-secondary">{{ r.prioridad }}</span></td>
-          <td>
-            {% if r.volumen_min_m3 or r.volumen_max_m3 %}
-              {{ r.volumen_min_m3 or '0' }}–{{ r.volumen_max_m3 or '∞' }}
-            {% else %}—{% endif %}
+          <td class="small">
+            {{ r.nombre or '—' }}<br>
+            {% if r.volumen_min_m3 or r.volumen_max_m3 %}Vol: {{ r.volumen_min_m3 or '0' }}–{{ r.volumen_max_m3 or '∞' }} m³ ·{% endif %}
+            {% if r.temp_deseada_max_c %}Temp ≤ {{ r.temp_deseada_max_c }}°C ·{% endif %}
+            {% if r.producto_tipo %}Prod: {{ r.producto_tipo }} ·{% endif %}
+            {% if r.frecuencia_apertura %}Frec: {{ r.frecuencia_apertura }} ·{% endif %}
+            {% if r.posee_antecamara %}Antec: {{ r.posee_antecamara }}{% endif %}
           </td>
-          <td>{{ r.temp_deseada_max_c or '—' }}</td>
-          <td>{{ r.producto_tipo or '—' }}</td>
-          <td>{{ r.frecuencia_apertura or '—' }}</td>
-          <td>{{ r.posee_antecamara or '—' }}</td>
           <td>
             <strong>{{ r.resultado_categoria }}</strong>
             {% if r.resultado_subcategoria %}<br><small class="text-muted">{{ r.resultado_subcategoria }}</small>{% endif %}
+            {% if r.resultado_producto_id %}<br><span class="badge text-bg-primary">{{ r.resultado_producto.nombre if r.resultado_producto else '' }}</span>{% endif %}
           </td>
           <td class="text-end">
             <a href="{{ url_for('admin_edit_regla', id=r.id) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
@@ -47,14 +43,14 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="text-muted text-center py-4">No hay reglas configuradas todavía.</td></tr>
+        <tr><td colspan="5" class="text-muted text-center py-4">No hay reglas configuradas todavía.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- Modal crear regla -->
+<!-- Modal nueva regla -->
 <div class="modal fade" id="modalNuevaRegla" tabindex="-1">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -64,26 +60,26 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <div class="row g-2">
-            <div class="col-md-6 mb-2">
+          <div class="row g-2 mb-2">
+            <div class="col-md-8">
               <label class="form-label small fw-bold">Nombre de la regla</label>
-              <input class="form-control form-control-sm" name="nombre" placeholder="ej: Camara pequeña cárnica" required>
+              <input class="form-control form-control-sm" name="nombre" placeholder="ej: Cámara pequeña cárnica" required>
             </div>
-            <div class="col-md-3 mb-2">
+            <div class="col-md-4">
               <label class="form-label small fw-bold">Prioridad</label>
               <input class="form-control form-control-sm" type="number" name="prioridad" value="100" min="1">
             </div>
           </div>
           <hr>
-          <h6 class="small fw-bold text-primary">Condiciones (dejar vacío = no aplica)</h6>
+          <h6 class="small fw-bold text-primary mb-2">Condiciones (dejar vacío = no aplica)</h6>
           <div class="row g-2">
             <div class="col-md-3 mb-2">
               <label class="form-label small">Volumen mín. m³</label>
-              <input class="form-control form-control-sm" type="number" step="0.1" name="volumen_min_m3">
+              <input class="form-control form-control-sm" type="number" step="0.1" min="0" name="volumen_min_m3">
             </div>
             <div class="col-md-3 mb-2">
               <label class="form-label small">Volumen máx. m³</label>
-              <input class="form-control form-control-sm" type="number" step="0.1" name="volumen_max_m3">
+              <input class="form-control form-control-sm" type="number" step="0.1" min="0" name="volumen_max_m3">
             </div>
             <div class="col-md-3 mb-2">
               <label class="form-label small">Temp. máx. deseada °C</label>
@@ -97,10 +93,10 @@
           <div class="row g-2">
             <div class="col-md-4 mb-2">
               <label class="form-label small">Tipo de producto</label>
-              <input class="form-control form-control-sm" name="producto_tipo" placeholder="Carnicos, Lacteos, etc.">
+              <input class="form-control form-control-sm" name="producto_tipo" placeholder="Carnicos, Lacteos…">
             </div>
             <div class="col-md-4 mb-2">
-              <label class="form-label small">Frecuencia apertura</label>
+              <label class="form-label small">Frec. apertura</label>
               <select class="form-select form-select-sm" name="frecuencia_apertura">
                 <option value="">Cualquiera</option>
                 <option value="Alta">Alta</option>
@@ -118,30 +114,36 @@
             </div>
           </div>
           <hr>
-          <h6 class="small fw-bold text-primary">Resultado recomendado</h6>
-          <div class="row g-2">
-            <div class="col-md-6 mb-2">
-              <label class="form-label small">Categoría *</label>
-              <select class="form-select form-select-sm" name="resultado_categoria" required>
-                <option value="">Seleccionar...</option>
-                {% for c in categorias %}
+          <h6 class="small fw-bold text-primary mb-2">Resultado recomendado</h6>
+          <div class="row g-2 mb-2">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Categoría *</label>
+              <select class="form-select form-select-sm" id="selCategoria" name="resultado_categoria" required
+                      onchange="cargarSubs()">
+                <option value="">Seleccionar categoría…</option>
+                {% for c in cascada %}
                 <option value="{{ c.nombre }}">{{ c.nombre }}</option>
                 {% endfor %}
               </select>
             </div>
-            <div class="col-md-6 mb-2">
-              <label class="form-label small">Subcategoría</label>
-              <select class="form-select form-select-sm" name="resultado_subcategoria">
-                <option value="">Todas/ninguna</option>
-                {% for s in subcategorias %}
-                <option value="{{ s.nombre }}">{{ s.nombre }}</option>
-                {% endfor %}
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Subcategoría</label>
+              <select class="form-select form-select-sm" id="selSubcategoria" name="resultado_subcategoria"
+                      onchange="cargarProds()">
+                <option value="">— Todas / ninguna —</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Producto específico</label>
+              <select class="form-select form-select-sm" id="selProducto" name="resultado_producto_id">
+                <option value="">— Sin especificar —</option>
               </select>
             </div>
           </div>
           <div class="mb-2">
-            <label class="form-label small">Mensaje para el usuario</label>
-            <input class="form-control form-control-sm" name="resultado_mensaje" placeholder="Explicá por qué recomendás ese equipo">
+            <label class="form-label small fw-bold">Mensaje para el usuario</label>
+            <input class="form-control form-control-sm" name="resultado_mensaje"
+                   placeholder="Explicá por qué recomendás ese equipo">
           </div>
         </div>
         <div class="modal-footer">
@@ -152,4 +154,40 @@
     </div>
   </div>
 </div>
+
+<script>
+const cascada = {{ cascada | tojson }};
+
+function cargarSubs(selectedSub = null) {
+  const catNombre = document.getElementById('selCategoria').value;
+  const subSel = document.getElementById('selSubcategoria');
+  const prodSel = document.getElementById('selProducto');
+  subSel.innerHTML = '<option value="">— Todas / ninguna —</option>';
+  prodSel.innerHTML = '<option value="">— Sin especificar —</option>';
+  prodSel.disabled = true;
+  if (!catNombre) return;
+  const cat = cascada.find(c => c.nombre === catNombre);
+  if (!cat) return;
+  cat.subcategorias.forEach(s => {
+    const opt = new Option(s.nombre, s.nombre, selectedSub === s.nombre, selectedSub === s.nombre);
+    subSel.appendChild(opt);
+  });
+  subSel.disabled = false;
+}
+
+function cargarProds(selectedProd = null) {
+  const catNombre = document.getElementById('selCategoria').value;
+  const subNombre = document.getElementById('selSubcategoria').value;
+  const prodSel = document.getElementById('selProducto');
+  prodSel.innerHTML = '<option value="">— Sin especificar —</option>';
+  if (!catNombre || !subNombre) { prodSel.disabled = true; return; }
+  const cat = cascada.find(c => c.nombre === catNombre);
+  const sub = cat?.subcategorias.find(s => s.nombre === subNombre);
+  if (!sub || !sub.productos.length) { prodSel.disabled = true; return; }
+  sub.productos.forEach(p => {
+    prodSel.appendChild(new Option(p.nombre, p.id, selectedProd == p.id, selectedProd == p.id));
+  });
+  prodSel.disabled = false;
+}
+</script>
 {% endblock %}

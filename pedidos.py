@@ -435,10 +435,17 @@ def calculadora():
                   'Te recomendamos contactarnos por el formulario de consulta.', 'warning')
             return render_template('calculadora.html')
 
-        # Buscar productos recomendados
+        # Producto específico si la regla lo tiene asignado
+        from app import Producto
+        producto_especifico = None
+        if regla.resultado_producto_id:
+            producto_especifico = db.session.get(Producto, regla.resultado_producto_id)
+
+        # Buscar subcategorías recomendados (las que matchean por nombre)
         recomendados = _subs_con_equipos(regla.resultado_categoria, regla.resultado_subcategoria)
         return render_template('calculadora.html',
                                regla=regla,
+                               producto_especifico=producto_especifico,
                                recomendados=recomendados,
                                datos_form=request.form,
                                calculado=True)
