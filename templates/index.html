@@ -205,33 +205,31 @@
     <main class="container">
         <section id="catalogo" class="mb-5">
             {% if tags %}
-            {# set de IDs activos para facilitar lógica de toggle #}
             {% set ids_activos = tags_activos | map(attribute='id_tag') | list %}
             <div class="tag-filter-bar text-center my-4 py-3 px-3 mx-auto rounded-4 shadow-sm" data-aos="fade-up">
-                <h5 class="fw-bold text-primary mb-3">
+                <h5 class="fw-bold text-primary mb-1">
                     <i class="fas fa-filter me-2"></i>Filtrar por propósito
-                    {% if tags_activos %}<small class="text-muted fw-normal d-block mt-1" style="font-size:.8rem;">
-                        combinando: {{ tags_activos | map(attribute='nombre') | join(' + ') }}</small>{% endif %}
                 </h5>
-                <div class="d-flex flex-wrap justify-content-center gap-2">
-                    <a href="{{ url_for('inicio') }}#catalogo"
-                        class="btn rounded-pill fw-semibold px-4 {% if not tags_activos %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-                        <i class="fas fa-times me-1{% if not tags_activos %} d-none{% endif %}"></i>Todos
-                    </a>
+                <p class="text-muted small mb-3">Marcá los criterios y presioná “Filtrar”.</p>
+                <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
                     {% for t in tags %}
-                    {# Toggle: si está activo lo quitamos, si no lo agregamos #}
-                    {% if t.id_tag in ids_activos %}
-                    {% set nueva_sel = ids_activos | reject('equalto', t.id_tag) | list %}
-                    {% else %}
-                    {% set nueva_sel = ids_activos + [t.id_tag] %}
-                    {% endif %}
-                    <a href="{{ url_for('inicio', tags=nueva_sel | join(',')) }}#catalogo"
-                        class="btn rounded-pill fw-semibold px-4 text-black tag-filter-btn {% if t.id_tag in ids_activos %}tag-filter-active{% endif %}"
-                        style="background-color: {{ t.color or '#6c757d' }};">
+                    <button type="button"
+                        class="btn rounded-pill fw-semibold px-3 tag-chip {% if t.id_tag in ids_activos %}tag-filter-active{% endif %}"
+                        data-tag-id="{{ t.id_tag }}"
+                        style="background-color: {{ t.color or '#6c757d' }}; color: #fff;">
                         {{ t.nombre }}
                         {% if t.id_tag in ids_activos %}<i class="fas fa-check ms-1"></i>{% endif %}
-                    </a>
+                    </button>
                     {% endfor %}
+                </div>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" id="btnAplicarFiltro" class="btn btn-primary fw-bold px-4" disabled>
+                        <i class="fas fa-filter me-1"></i> Filtrar
+                    </button>
+                    <a href="{{ url_for('inicio') }}#catalogo" id="btnLimpiarFiltro"
+                        class="btn btn-outline-secondary {% if not tags_activos %}d-none{% endif %}">
+                        Limpiar filtros
+                    </a>
                 </div>
             </div>
             {% endif %}
@@ -284,16 +282,9 @@
                                         {% if sub.tags %}
                                         <div class="mt-2 d-flex flex-wrap justify-content-center gap-1">
                                             {% for t in sub.tags %}
-                                            {# Toggle: si ya está activa la quita, si no la agrega #}
-                                            {% if ids_activos is defined and t.id_tag in ids_activos %}
-                                            {% set badge_sel = ids_activos | reject('equalto', t.id_tag) | list %}
-                                            {% else %}
-                                            {% set badge_sel = (ids_activos if ids_activos is defined else []) +
-                                            [t.id_tag] %}
-                                            {% endif %}
-                                            <a href="{{ url_for('inicio', tags=badge_sel | join(',')) }}#catalogo"
-                                                class="badge text-decoration-none text-black border border-light"
-                                                style="background-color: {{ t.color or '#6c757d' }}">{{ t.nombre }}</a>
+                                            <button type="button" class="badge text-decoration-none text-white border border-light badge-tag"
+                                                data-tag-id="{{ t.id_tag }}"
+                                                style="background-color: {{ t.color or '#6c757d' }}">{{ t.nombre }}</button>
                                             {% endfor %}
                                         </div>
                                         {% endif %}
@@ -883,6 +874,60 @@
                     });
                 });
             }
+
+            // --- Filtro de tags: toggle local, botón "Filtrar" aplica (una recarga) ---
+            (function () {
+                const chips = document.querySelectorAll('.tag-chip');
+                const badges = document.querySelectorAll('.badge-tag');
+                const btnFiltrar = document.getElementById('btnAplicarFiltro');
+                const btnLimpiar = document.getElementById('btnLimpiarFiltro');
+                if (!chips.length && !badges.length) return;
+
+                function toggleTag(tagId) {
+                    const chip = document.querySelector(`.tag-chip[data-tag-id="${tagId}"]`);
+                    if (chip) chip.classList.toggle('tag-filter-active');
+                    actualizarBtn();
+                }
+
+                function actualizarBtn() {
+                    const activos = document.querySelectorAll('.tag-chip.tag-filter-active');
+                    if (btnFiltrar) btnFiltrar.disabled = activos.length === 0;
+                }
+
+                chips.forEach(chip => {
+                    chip.addEventListener('click', function () {
+                        this.classList.toggle('tag-filter-active');
+                        actualizarBtn();
+                    });
+                });
+
+                // Al cargar con filtros activos (desde URL), habilitar el botón
+                actualizarBtn();
+
+                // Badges en las cards de subcategoría: marcan el chip correspondiente
+                badges.forEach(badge => {
+                    badge.addEventListener('click', function () {
+                        toggleTag(this.dataset.tagId);
+                        // feedback visual propio
+                        this.classList.toggle('border-white');
+                        this.classList.toggle('opacity-75');
+                    });
+                });
+
+                if (btnFiltrar) {
+                    btnFiltrar.addEventListener('click', function () {
+                        const activos = [...document.querySelectorAll('.tag-chip.tag-filter-active')]
+                            .map(c => c.dataset.tagId);
+                        if (!activos.length) return;
+                        window.location.href = '/?tags=' + activos.join(',') + '#catalogo';
+                    });
+                }
+                if (btnLimpiar) {
+                    btnLimpiar.addEventListener('click', function () {
+                        window.location.href = '/?tags=#catalogo';
+                    });
+                }
+            })();
 
             // --- Manejo de Galería Ampliada (Modal) ---
             const subcardModalEl = document.getElementById('subcardModal');

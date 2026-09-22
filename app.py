@@ -374,6 +374,8 @@ def inicio():
                     if all(t in s.tags for t in tags_activos)]
         else:
             subs = list(cat.subcategorias)
+        # Orden alfabético A–Z por nombre de subcategoría
+        subs.sort(key=lambda s: (s.nombre or '').lower())
         if subs:
             categorias_vista.append({'cat': cat, 'subs': subs})
 
