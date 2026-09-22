@@ -345,3 +345,102 @@ def pedido_checkout():
         flash('Todavía no hay productos en el pedido.', 'info')
         return redirect(url_for('inicio') + '#catalogo')
     return render_template('pedido.html', pedido=pedido)
+
+
+# ------------------ CALCULADORA TÉCNICA ------------------
+
+def _evaluar_reglas(form):
+    """Evalúa las reglas en orden de prioridad; retorna la primera que coincida,
+    o None si ninguna aplica."""
+    from app import ReglaCalculadora
+    reglas = ReglaCalculadora.query.order_by(ReglaCalculadora.prioridad).all()
+    for r in reglas:
+        # Volumen: largo × ancho × alto (m³)
+        try:
+            largo = float(form.get('camara_largo') or 0)
+            ancho = float(form.get('camara_ancho') or 0)
+            alto = float(form.get('camara_alto') or 0)
+        except (TypeError, ValueError):
+            continue
+        volumen = largo * ancho * alto
+        if r.volumen_min_m3 is not None and volumen < r.volumen_min_m3:
+            continue
+        if r.volumen_max_m3 is not None and volumen > r.volumen_max_m3:
+            continue
+
+        # Temperatura deseada
+        try:
+            temp_deseada = float(form.get('temp_deseada') or 0)
+        except (TypeError, ValueError):
+            temp_deseada = None
+        if temp_deseada is not None:
+            if r.temp_deseada_min_c is not None and temp_deseada < r.temp_deseada_min_c:
+                continue
+            if r.temp_deseada_max_c is not None and temp_deseada > r.temp_deseada_max_c:
+                continue
+
+        # Tipo de producto
+        if r.producto_tipo and r.producto_tipo != 'Todos':
+            if form.get('producto_tipo', '').strip().lower() != r.producto_tipo.lower():
+                continue
+
+        # Frecuencia de apertura
+        if r.frecuencia_apertura and r.frecuencia_apertura != 'Todos':
+            if form.get('frecuencia_apertura', '').strip() != r.frecuencia_apertura:
+                continue
+
+        # Antecámara
+        if r.posee_antecamara and r.posee_antecamara != 'Todos':
+            if form.get('posee_antecamara', '').strip() != r.posee_antecamara:
+                continue
+
+        # Si pasó todas las condiciones → match
+        return r
+    return None
+
+
+def _subs_con_equipos(resultado_categoria, resultado_subcategoria):
+    """Busca subcategorías que coincidan con el nombre (insensible a mayúsculas)
+    y devuelve las que tienen productos dentro."""
+    from app import Subcategoria
+    if not resultado_categoria:
+        return []
+    subs = Subcategoria.query.filter(
+        db.func.lower(Subcategoria.nombre).like(f'%{resultado_subcategoria.lower()}%')
+        if resultado_subcategoria else None
+    )
+    if resultado_categoria:
+        # Filtrar también por categoría padre
+        from app import Categoria
+        cats = Categoria.query.filter(
+            db.func.lower(Categoria.nombre).like(f'%{resultado_categoria.lower()}%')
+        ).all()
+        cat_ids = {c.id_categoria for c in cats}
+        subs = [s for s in subs if any(c.id_categoria in cat_ids for c in s.categorias)]
+    return [s for s in subs if s.productos]
+
+
+@app.route('/calculadora', methods=['GET', 'POST'])
+def calculadora():
+    """Calculadora técnica de equipamiento. Requiere login de cliente."""
+    cliente = cliente_actual()
+    if not cliente:
+        flash('Iniciá sesión con tu cuenta de Google para usar la calculadora.', 'warning')
+        return redirect(url_for('google_login', next=url_for('calculadora')))
+
+    if request.method == 'POST':
+        regla = _evaluar_reglas(request.form)
+        if not regla:
+            flash('No encontramos una recomendación automática para esos datos. ' +
+                  'Te recomendamos contactarnos por el formulario de consulta.', 'warning')
+            return render_template('calculadora.html')
+
+        # Buscar productos recomendados
+        recomendados = _subs_con_equipos(regla.resultado_categoria, regla.resultado_subcategoria)
+        return render_template('calculadora.html',
+                               regla=regla,
+                               recomendados=recomendados,
+                               datos_form=request.form,
+                               calculado=True)
+
+    return render_template('calculadora.html')

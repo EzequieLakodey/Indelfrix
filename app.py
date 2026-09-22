@@ -296,6 +296,32 @@ class PedidoItem(db.Model):
     categoria = db.Column(db.String(100))
     subcategoria = db.Column(db.String(100))
 
+
+class ReglaCalculadora(db.Model):
+    """Reglas del cotizador/calculadora: dadas condiciones técnicas (volumen, temp,
+    producto, frecuencia, aislamiento) → recomendar una categoría y subcategoría.
+    Se evalúan en orden de 'prioridad' (menor primero)."""
+    __tablename__ = 'reglas_calculadora'
+    id = db.Column(db.Integer, primary_key=True)
+
+    # --- Condiciones (rangos / match) ---
+    volumen_min_m3 = db.Column(db.Float)          # None = sin límite inferior
+    volumen_max_m3 = db.Column(db.Float)          # None = sin límite superior
+    temp_deseada_max_c = db.Column(db.Float)      # None = sin límite superior (ej: -18 = solo congela)
+    temp_deseada_min_c = db.Column(db.Float)      # None = sin límite inferior
+    producto_tipo = db.Column(db.String(100))     # '' = cualquiera; si no vacío, match exacto
+    frecuencia_apertura = db.Column(db.String(50)) # '' = cualquiera; 'Alta','Media','Baja'
+    posee_antecamara = db.Column(db.String(10))   # '' = cualquiera; 'Si','No'
+
+    # --- Resultado ---
+    resultado_categoria = db.Column(db.String(100))    # nombre de Categoria recomendada
+    resultado_subcategoria = db.Column(db.String(100)) # nombre de Subcategoria recomendada
+    resultado_mensaje = db.Column(db.Text)             # explicación para el usuario
+    prioridad = db.Column(db.Integer, default=100)     # menor = se evalúa antes
+
+    def __repr__(self):
+        return f'<Regla #{self.id} → {self.resultado_categoria}>{self.resultado_subcategoria}>'
+
 # --- RUTAS ---
 @app.template_filter('fecha_ar')
 def _fecha_hora_ar(dt):
@@ -1072,6 +1098,75 @@ def admin_delete_tag(id):
     db.session.commit()
     flash('Tag eliminado (se quitó de todas las subcategorías)', 'info')
     return redirect(url_for('admin_tags'))
+
+
+# --- RUTAS ADMIN: REGLAS CALCULADORA ---
+@app.route('/admin/reglas', methods=['GET', 'POST'])
+@admin_required
+def admin_reglas():
+    categorias = Categoria.query.order_by(Categoria.nombre).all()
+    subcategorias = Subcategoria.query.order_by(Subcategoria.nombre).all()
+    if request.method == 'POST':
+        nombre = (request.form.get('nombre') or '').strip()
+        if not nombre:
+            flash('El nombre de la regla es obligatorio', 'danger')
+        else:
+            regla = ReglaCalculadora(
+                resultado_categoria=request.form.get('resultado_categoria', '').strip(),
+                resultado_subcategoria=request.form.get('resultado_subcategoria', '').strip(),
+                resultado_mensaje=request.form.get('resultado_mensaje', ''),
+            )
+            # Campos numéricos opcionales → None si están vacíos
+            for campo in ['volumen_min_m3', 'volumen_max_m3', 'temp_deseada_min_c', 'temp_deseada_max_c', 'prioridad']:
+                val = request.form.get(campo, '').strip()
+                setattr(regla, campo, float(val) if val and '.' in val or val.replace('-','').isdigit() else None)
+            # Campos string opcionales
+            regla.producto_tipo = request.form.get('producto_tipo', '').strip() or None
+            regla.frecuencia_apertura = request.form.get('frecuencia_apertura', '').strip() or None
+            regla.posee_antecamara = request.form.get('posee_antecamara', '').strip() or None
+            db.session.add(regla)
+            db.session.commit()
+            flash(f'Regla "{nombre}" creada', 'success')
+        return redirect(url_for('admin_reglas'))
+    reglas = ReglaCalculadora.query.order_by(ReglaCalculadora.prioridad).all()
+    return render_template('admin/reglas.html', reglas=reglas, categorias=categorias, subcategorias=subcategorias)
+
+
+@app.route('/admin/reglas/<int:id>/editar', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_regla(id):
+    regla = ReglaCalculadora.query.get_or_404(id)
+    categorias = Categoria.query.order_by(Categoria.nombre).all()
+    subcategorias = Subcategoria.query.order_by(Subcategoria.nombre).all()
+    if request.method == 'POST':
+        regla.resultado_categoria = request.form.get('resultado_categoria', '').strip()
+        regla.resultado_subcategoria = request.form.get('resultado_subcategoria', '').strip()
+        regla.resultado_mensaje = request.form.get('resultado_mensaje', '')
+        for campo in ['volumen_min_m3', 'volumen_max_m3', 'temp_deseada_min_c', 'temp_deseada_max_c', 'prioridad']:
+            val = request.form.get(campo, '').strip()
+            if not val:
+                setattr(regla, campo, None)
+            else:
+                try: setattr(regla, campo, float(val))
+                except ValueError: pass
+        regla.producto_tipo = request.form.get('producto_tipo', '').strip() or None
+        regla.frecuencia_apertura = request.form.get('frecuencia_apertura', '').strip() or None
+        regla.posee_antecamara = request.form.get('posee_antecamara', '').strip() or None
+        db.session.commit()
+        flash('Regla actualizada', 'success')
+        return redirect(url_for('admin_reglas'))
+    return render_template('admin/regla_edit.html', regla=regla, categorias=categorias, subcategorias=subcategorias)
+
+
+@app.route('/admin/reglas/<int:id>/eliminar')
+@admin_required
+def admin_delete_regla(id):
+    regla = db.session.get(ReglaCalculadora, id)
+    if regla:
+        db.session.delete(regla)
+        db.session.commit()
+        flash('Regla eliminada', 'info')
+    return redirect(url_for('admin_reglas'))
 
 
 # --- RUTAS ADMIN: PEDIDOS ---

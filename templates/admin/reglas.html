@@ -1,0 +1,155 @@
+{% extends 'admin/base_admin.html' %}
+{% block content %}
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Reglas de la Calculadora</h3>
+    <a href="#" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaRegla">Nueva regla</a>
+  </div>
+  <p class="text-muted small mb-3">Las reglas se evalúan en orden de prioridad (de menor a mayor). El primer match se aplica.</p>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle small">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>Prioridad</th>
+          <th>Volumen (m³)</th>
+          <th>Temp max (°C)</th>
+          <th>Producto</th>
+          <th>Frecuencia</th>
+          <th>Antecám.</th>
+          <th>→ Recomienda</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reglas %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td><span class="badge text-bg-secondary">{{ r.prioridad }}</span></td>
+          <td>
+            {% if r.volumen_min_m3 or r.volumen_max_m3 %}
+              {{ r.volumen_min_m3 or '0' }}–{{ r.volumen_max_m3 or '∞' }}
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ r.temp_deseada_max_c or '—' }}</td>
+          <td>{{ r.producto_tipo or '—' }}</td>
+          <td>{{ r.frecuencia_apertura or '—' }}</td>
+          <td>{{ r.posee_antecamara or '—' }}</td>
+          <td>
+            <strong>{{ r.resultado_categoria }}</strong>
+            {% if r.resultado_subcategoria %}<br><small class="text-muted">{{ r.resultado_subcategoria }}</small>{% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('admin_edit_regla', id=r.id) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
+            <a href="{{ url_for('admin_delete_regla', id=r.id) }}" class="btn btn-sm btn-outline-danger"
+               onclick="return confirm('¿Eliminar esta regla?')">Eliminar</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="text-muted text-center py-4">No hay reglas configuradas todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal crear regla -->
+<div class="modal fade" id="modalNuevaRegla" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('admin_reglas') }}">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Nueva regla</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-md-6 mb-2">
+              <label class="form-label small fw-bold">Nombre de la regla</label>
+              <input class="form-control form-control-sm" name="nombre" placeholder="ej: Camara pequeña cárnica" required>
+            </div>
+            <div class="col-md-3 mb-2">
+              <label class="form-label small fw-bold">Prioridad</label>
+              <input class="form-control form-control-sm" type="number" name="prioridad" value="100" min="1">
+            </div>
+          </div>
+          <hr>
+          <h6 class="small fw-bold text-primary">Condiciones (dejar vacío = no aplica)</h6>
+          <div class="row g-2">
+            <div class="col-md-3 mb-2">
+              <label class="form-label small">Volumen mín. m³</label>
+              <input class="form-control form-control-sm" type="number" step="0.1" name="volumen_min_m3">
+            </div>
+            <div class="col-md-3 mb-2">
+              <label class="form-label small">Volumen máx. m³</label>
+              <input class="form-control form-control-sm" type="number" step="0.1" name="volumen_max_m3">
+            </div>
+            <div class="col-md-3 mb-2">
+              <label class="form-label small">Temp. máx. deseada °C</label>
+              <input class="form-control form-control-sm" type="number" step="0.5" name="temp_deseada_max_c">
+            </div>
+            <div class="col-md-3 mb-2">
+              <label class="form-label small">Temp. mín. deseada °C</label>
+              <input class="form-control form-control-sm" type="number" step="0.5" name="temp_deseada_min_c">
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-4 mb-2">
+              <label class="form-label small">Tipo de producto</label>
+              <input class="form-control form-control-sm" name="producto_tipo" placeholder="Carnicos, Lacteos, etc.">
+            </div>
+            <div class="col-md-4 mb-2">
+              <label class="form-label small">Frecuencia apertura</label>
+              <select class="form-select form-select-sm" name="frecuencia_apertura">
+                <option value="">Cualquiera</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baja">Baja</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-2">
+              <label class="form-label small">¿Tiene antecámara?</label>
+              <select class="form-select form-select-sm" name="posee_antecamara">
+                <option value="">Cualquiera</option>
+                <option value="Si">Sí</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+          <hr>
+          <h6 class="small fw-bold text-primary">Resultado recomendado</h6>
+          <div class="row g-2">
+            <div class="col-md-6 mb-2">
+              <label class="form-label small">Categoría *</label>
+              <select class="form-select form-select-sm" name="resultado_categoria" required>
+                <option value="">Seleccionar...</option>
+                {% for c in categorias %}
+                <option value="{{ c.nombre }}">{{ c.nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-2">
+              <label class="form-label small">Subcategoría</label>
+              <select class="form-select form-select-sm" name="resultado_subcategoria">
+                <option value="">Todas/ninguna</option>
+                {% for s in subcategorias %}
+                <option value="{{ s.nombre }}">{{ s.nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Mensaje para el usuario</label>
+            <input class="form-control form-control-sm" name="resultado_mensaje" placeholder="Explicá por qué recomendás ese equipo">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar regla</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

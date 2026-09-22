@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Equipamiento | Indelfrix</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.webp') }}">
+</head>
+<body class="bg-light d-flex flex-column min-vh-100">
+  <nav class="navbar navbar-dark" style="background-color: #002B5B;">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('inicio') }}">Indelfrix</a>
+      <div class="d-flex align-items-center">
+        {% if cliente %}
+        <span class="text-white-50 small me-3"><i class="fas fa-user me-1"></i>{{ cliente.nombre or cliente.email }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-5" style="max-width: 860px;">
+    {% if not calculado %}
+    <!-- ─────────────── FORMULARIO ─────────────── -->
+    <div class="bg-white shadow rounded-4 p-4">
+      <div class="text-center mb-4">
+        <i class="fas fa-calculator fa-3x text-primary mb-3"></i>
+        <h1 class="h3">Calculadora de Equipamiento</h1>
+        <p class="text-muted">Ingresá los datos de tu cámara o instalación y te recomendamos el equipo adecuado.</p>
+      </div>
+
+      <form method="post">
+        <!-- Dimensiones -->
+        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Dimensiones de la cámara / espacio</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Largo (m) *</label>
+            <input class="form-control" type="number" step="0.1" min="0.1" name="camara_largo" required
+                   value="{{ request.form.get('camara_largo','') }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Ancho (m) *</label>
+            <input class="form-control" type="number" step="0.1" min="0.1" name="camara_ancho" required
+                   value="{{ request.form.get('camara_ancho','') }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Alto (m) *</label>
+            <input class="form-control" type="number" step="0.1" min="0.1" name="camara_alto" required
+                   value="{{ request.form.get('camara_alto','') }}">
+          </div>
+        </div>
+
+        <!-- Producto y uso -->
+        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Producto y uso</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Tipo de producto *</label>
+            <select class="form-select" name="producto_tipo" required>
+              <option value="">Seleccionar...</option>
+              <option value="Carnicos" {% if request.form.get('producto_tipo')=='Carnicos' %}selected{% endif %}>Cárnicos (carnes, embutidos)</option>
+              <option value="Lacteos" {% if request.form.get('producto_tipo')=='Lacteos' %}selected{% endif %}>Lácteos</option>
+              <option value="Alimentos" {% if request.form.get('producto_tipo')=='Alimentos' %}selected{% endif %}>Alimentos en general</option>
+              <option value="Farmaceutico" {% if request.form.get('producto_tipo')=='Farmaceutico' %}selected{% endif %}>Farmacéutico</option>
+              <option value="Otro" {% if request.form.get('producto_tipo')=='Otro' %}selected{% endif %}>Otro</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-bold">Cantidad / Ritmo (info)</label>
+            <input class="form-control" type="number" name="cantidad_kg" min="1" placeholder="kg / día (opcional)"
+                   value="{{ request.form.get('cantidad_kg','') }}">
+          </div>
+        </div>
+
+        <!-- Temperaturas -->
+        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Temperaturas y tiempo</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Temp. entrada producto (°C)</label>
+            <input class="form-control" type="number" step="0.5" name="temp_entrada"
+                   value="{{ request.form.get('temp_entrada','') }}" placeholder="Ej: 20°">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Temp. deseada (°C) *</label>
+            <input class="form-control" type="number" step="0.5" name="temp_deseada" required
+                   value="{{ request.form.get('temp_deseada','') }}" placeholder="Ej: -18°">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Horas para llegar a temp. *</label>
+            <input class="form-control" type="number" step="0.5" min="0.5" name="tiempo_objetivo" required
+                   value="{{ request.form.get('tiempo_objetivo','') }}" placeholder="Ej: 4">
+          </div>
+        </div>
+
+        <!-- Aislamiento y estructura -->
+        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Estructura y aislación</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Tipo de cámara</label>
+            <select class="form-select" name="tipo_camara">
+              <option value="">Seleccionar...</option>
+              <option value="Con camara" {% if request.form.get('tipo_camara')=='Con camara' %}selected{% endif %}>Con cámara frigorífica</option>
+              <option value="Sin camara" {% if request.form.get('tipo_camara')=='Sin camara' %}selected{% endif %}>Sin cámara (solo equipo)</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Tipo de aislación</label>
+            <select class="form-select" name="aislacion_tipo">
+              <option value="">No especificada</option>
+              <option value="Poliuretano" {% if request.form.get('aislacion_tipo')=='Poliuretano' %}selected{% endif %}>Poliuretano inyectado</option>
+              <option value="Lana" {% if request.form.get('aislacion_tipo')=='Lana' %}selected{% endif %}>Lana mineral</option>
+              <option value="Otro" {% if request.form.get('aislacion_tipo')=='Otro' %}selected{% endif %}>Otro</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Espesor panel (mm)</label>
+            <input class="form-control" type="number" name="aislacion_espesor" min="0"
+                   value="{{ request.form.get('aislacion_espesor','') }}" placeholder="Ej: 100">
+          </div>
+        </div>
+
+        <!-- Extras -->
+        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Extras</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Frecuencia apertura puerta</label>
+            <select class="form-select" name="frecuencia_apertura">
+              <option value="">No especificada</option>
+              <option value="Alta" {% if request.form.get('frecuencia_apertura')=='Alta' %}selected{% endif %}>Alta (más de 20 veces/día)</option>
+              <option value="Media" {% if request.form.get('frecuencia_apertura')=='Media' %}selected{% endif %}>Media (5-20 veces/día)</option>
+              <option value="Baja" {% if request.form.get('frecuencia_apertura')=='Baja' %}selected{% endif %}>Baja (menos de 5 veces/día)</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">¿Tiene antecámara?</label>
+            <select class="form-select" name="posee_antecamara">
+              <option value="">No especificado</option>
+              <option value="Si" {% if request.form.get('posee_antecamara')=='Si' %}selected{% endif %}>Sí</option>
+              <option value="No" {% if request.form.get('posee_antecamara')=='No' %}selected{% endif %}>No</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">Envoltorio del producto</label>
+            <select class="form-select" name="producto_envoltorio">
+              <option value="">No especificado</option>
+              <option value="Si" {% if request.form.get('producto_envoltorio')=='Si' %}selected{% endif %}>Sí</option>
+              <option value="No" {% if request.form.get('producto_envoltorio')=='No' %}selected{% endif %}>No</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+          <i class="fas fa-calculator me-2"></i> Calcular equipamiento recomendado
+        </button>
+      </form>
+    </div>
+
+    {% else %}
+    <!-- ─────────────── RESULTADO ─────────────── -->
+    <div class="bg-white shadow rounded-4 p-4">
+      <div class="text-center mb-4">
+        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+        <h1 class="h3">Recomendación generada</h1>
+        <p class="text-muted">Basada en los datos ingresados. Verificá los detalles.</p>
+      </div>
+
+      <!-- Regla que aplicó -->
+      <div class="alert alert-light border mb-4">
+        <strong>Condición detectada:</strong>
+        {% if regla.volumen_min_m3 or regla.volumen_max_m3 %}
+          Volumen {{ regla.volumen_min_m3 or '0' }}–{{ regla.volumen_max_m3 or '∞' }} m³;
+        {% endif %}
+        {% if regla.temp_deseada_max_c %}Temperatura ≤ {{ regla.temp_deseada_max_c }}°C;{% endif %}
+        {% if regla.producto_tipo %}Producto: {{ regla.producto_tipo }};{% endif %}
+        <br>
+        <strong>Equipo sugerido:</strong> {{ regla.resultado_categoria }}{% if regla.resultado_subcategoria %} › {{ regla.resultado_subcategoria }}{% endif %}
+        <br>
+        <strong>Detalle:</strong> {{ regla.resultado_mensaje or '—' }}
+      </div>
+
+      <!-- Resultado -->
+      <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Equipo/s recomendado/s</h6>
+      {% if recomendados %}
+        <div class="row g-3">
+          {% for sub in recomendados %}
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm text-center">
+              <div class="card-body">
+                <i class="fas fa-snowflake fa-2x text-primary mb-2"></i>
+                <h6 class="card-title">{{ sub.nombre }}</h6>
+                <a href="{{ url_for('inicio') }}#subcategoria-{{ sub.id_subcategoria }}" class="btn btn-sm btn-outline-primary mt-2">
+                  Ver en catálogo
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted">No se encontraron productos que coincidan con la recomendación. Te sugerimos contactarnos directamente.</p>
+      {% endif %}
+
+      <hr class="my-4">
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('calculadora') }}" class="btn btn-outline-secondary">
+          <i class="fas fa-redo me-1"></i> Nueva consulta
+        </a>
+        <a href="{{ url_for('inicio') }}#contacto" class="btn btn-outline-primary ms-auto">
+          <i class="fas fa-envelope me-1"></i> Contactar por consulta técnica
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </main>
+
+  <footer class="bg-dark text-white text-center py-3 mt-auto">
+    <em>INDELFRIX S.A. — Todos los derechos reservados</em>
+  </footer>
+</body>
+</html>
