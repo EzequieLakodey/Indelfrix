@@ -131,6 +131,9 @@ Tablas de relación N-N generadas: `categorias_imagenes`, `subcategorias_imagene
 - [x] Despliegue en Render (`ProxyFix` para headers de proxy).
 - [x] API interna `/api/productos/<sub_id>`.
 - [x] **Anti-spam en el formulario de contacto**: honeypot oculto + rate limit por IP (máx. 3 envíos/60s).
+- [x] **Specs técnicas en productos**: hp, kcal/h, watts/h, cant/Ø vents, dimensiones (L×A×P),
+      precio (Numeric exacto) + moneda. Visibles en el catálogo público (expandible) y
+      administrables desde el panel.
 - [x] **Orden alfabético**: las cards dentro de cada categoría muestran sus subcategorías A–Z.
 - [x] **Filtro por tags con botón "Filtrar"**: los chips/tags se marcan primero, y un solo click
       aplica la combinación (evita recargas múltiples).
