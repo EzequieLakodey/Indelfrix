@@ -300,26 +300,36 @@ Para que la imagen ocupe todo el espacio de la card
 }
 
 .tag-filter-bar {
-    max-width: 720px;
     background: #fff;
     border: 1px solid rgba(0, 0, 0, .08);
+}
+
+/* Contenedor scrolleable para muchos tags (máx ~2.5 hileras) */
+.tag-chip-container {
+    max-height: 104px;
+    overflow-y: auto;
+    padding: 2px;
+    scrollbar-width: thin;
 }
 
 .tag-chip {
     opacity: .7;
     border: 2px solid transparent;
-    transition: opacity .2s, transform .2s, box-shadow .2s, border-color .2s;
+    transition: opacity .15s, transform .15s, border-color .15s;
+    font-size: .8rem;
+    padding: .2rem .7rem;
+    white-space: nowrap;
 }
 
 .tag-chip:hover {
     opacity: 1;
-    transform: scale(1.05);
+    transform: scale(1.04);
 }
 
 .tag-chip.tag-filter-active {
     opacity: 1;
     border-color: rgba(0, 0, 0, .35);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .2);
 }
 
 /* Navbar: fondo más opaco, menos translúcido */

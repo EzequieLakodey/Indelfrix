@@ -206,28 +206,31 @@
         <section id="catalogo" class="mb-5">
             {% if tags %}
             {% set ids_activos = tags_activos | map(attribute='id_tag') | list %}
-            <div class="tag-filter-bar text-center my-4 py-3 px-3 mx-auto rounded-4 shadow-sm" data-aos="fade-up">
-                <h5 class="fw-bold text-primary mb-1">
-                    <i class="fas fa-filter me-2"></i>Filtrar por propósito
-                </h5>
-                <p class="text-muted small mb-3">Marcá los criterios y presioná “Filtrar”.</p>
-                <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+            <div class="tag-filter-bar my-3 py-2 px-3 rounded-3 shadow-sm" data-aos="fade-up">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <span class="fw-bold text-primary small">
+                        <i class="fas fa-filter me-1"></i>Filtrar por propósito
+                    </span>
+                    <span class="text-muted small" id="tagSelectionCount">
+                        {% if ids_activos %}{{ ids_activos|length }} seleccionado{{ 's' if ids_activos|length > 1 }}{% else %}Ninguno — tocá para marcar{% endif %}
+                    </span>
+                </div>
+                <div class="tag-chip-container d-flex flex-wrap gap-1 mb-2">
                     {% for t in tags %}
                     <button type="button"
-                        class="btn rounded-pill fw-semibold px-3 tag-chip {% if t.id_tag in ids_activos %}tag-filter-active{% endif %}"
+                        class="btn btn-sm rounded-pill tag-chip {% if t.id_tag in ids_activos %}tag-filter-active{% endif %}"
                         data-tag-id="{{ t.id_tag }}"
                         style="background-color: {{ t.color or '#6c757d' }}; color: #fff;">
-                        {{ t.nombre }}
-                        {% if t.id_tag in ids_activos %}<i class="fas fa-check ms-1"></i>{% endif %}
+                        {{ t.nombre }}{% if t.id_tag in ids_activos %} <i class="fas fa-check ms-1"></i>{% endif %}
                     </button>
                     {% endfor %}
                 </div>
                 <div class="d-flex justify-content-center gap-2">
-                    <button type="button" id="btnAplicarFiltro" class="btn btn-primary fw-bold px-4" disabled>
+                    <button type="button" id="btnAplicarFiltro" class="btn btn-primary btn-sm fw-bold px-4" disabled>
                         <i class="fas fa-filter me-1"></i> Filtrar
                     </button>
                     <a href="{{ url_for('inicio') }}#catalogo" id="btnLimpiarFiltro"
-                        class="btn btn-outline-secondary {% if not tags_activos %}d-none{% endif %}">
+                        class="btn btn-outline-secondary btn-sm {% if not tags_activos %}d-none{% endif %}">
                         Limpiar filtros
                     </a>
                 </div>
@@ -892,6 +895,12 @@
                 function actualizarBtn() {
                     const activos = document.querySelectorAll('.tag-chip.tag-filter-active');
                     if (btnFiltrar) btnFiltrar.disabled = activos.length === 0;
+                    const count = document.getElementById('tagSelectionCount');
+                    if (count) {
+                        count.textContent = activos.length
+                            ? activos.length + ' seleccionado' + (activos.length > 1 ? 's' : '')
+                            : 'Ninguno — tocá para marcar';
+                    }
                 }
 
                 chips.forEach(chip => {
