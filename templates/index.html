@@ -361,17 +361,50 @@
                                                 id="collapse-prods-{{ cat.id_categoria }}-{{ sub.id_subcategoria }}">
                                                 <div class="card card-body p-2">
                                                     {% for prod in sub.productos %}
-                                                    <div class="d-flex align-items-center gap-2 py-1 border-bottom pedido-prod-row"
+                                                    <div class="py-2 border-bottom pedido-prod-row"
                                                         data-producto-id="{{ prod.id_producto }}">
-                                                        <span class="small flex-grow-1">{{ prod.nombre }}</span>
-                                                        <input type="number" min="1" max="9999" value="1"
-                                                            class="form-control form-control-sm prod-qty"
-                                                            style="width:4.2rem" aria-label="Cantidad">
-                                                        <button type="button"
-                                                            class="btn btn-sm btn-primary btn-add-pedido"
-                                                            title="Agregar a pedido">
-                                                            Agregar
-                                                        </button>
+                                                        <!-- Fila principal -->
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="flex-grow-1">
+                                                                <span class="small fw-semibold">{{ prod.nombre }}</span>
+                                                                {% if prod.precio is not none %}
+                                                                <span class="text-success small fw-bold ms-1">{{ prod.precio_formateado() }}</span>
+                                                                {% endif %}
+                                                            </div>
+                                                            {% if prod.specs_lista() %}
+                                                            <button type="button"
+                                                                class="btn btn-sm btn-outline-secondary btn-toggle-specs flex-shrink-0"
+                                                                data-bs-toggle="collapse"
+                                                                data-bs-target="#specs-prod-{{ prod.id_producto }}"
+                                                                title="Ver especificaciones">
+                                                                <i class="fas fa-chevron-down"></i>
+                                                            </button>
+                                                            {% endif %}
+                                                            <input type="number" min="1" max="9999" value="1"
+                                                                class="form-control form-control-sm prod-qty"
+                                                                style="width:4.2rem" aria-label="Cantidad">
+                                                            <button type="button"
+                                                                class="btn btn-sm btn-primary btn-add-pedido"
+                                                                title="Agregar a pedido">
+                                                                <i class="fas fa-plus"></i>
+                                                            </button>
+                                                        </div>
+                                                        <!-- Specs expandibles -->
+                                                        {% if prod.specs_lista() %}
+                                                        <div class="collapse mt-1" id="specs-prod-{{ prod.id_producto }}">
+                                                            <div class="card card-body p-2 bg-light border-0"
+                                                                style="font-size:.78rem;">
+                                                                {% for icono, label, valor in prod.specs_lista() %}
+                                                                <div class="d-flex align-items-center gap-2 text-muted">
+                                                                    <i class="{{ icono }} text-primary"
+                                                                        style="width:14px;"></i>
+                                                                    <span>{{ label }}: <strong
+                                                                            class="text-dark">{{ valor }}</strong></span>
+                                                                </div>
+                                                                {% endfor %}
+                                                            </div>
+                                                        </div>
+                                                        {% endif %}
                                                     </div>
                                                     {% endfor %}
                                                 </div>

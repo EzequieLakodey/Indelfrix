@@ -256,6 +256,56 @@ class Producto(db.Model):
     id_subcategoria = db.Column(db.Integer, db.ForeignKey('subcategorias.id_subcategoria'), nullable=False)
     imagenes = db.relationship('Imagen', secondary=productos_imagenes, backref='productos')
 
+    # Especificaciones técnicas (todas opcionales)
+    hp = db.Column(db.Numeric(4, 2))                    # potencia: 0.5, 1.5, 2.25 hp
+    kcal_por_hora = db.Column(db.Integer)
+    watts_por_hora = db.Column(db.Integer)
+    cantidad_vents = db.Column(db.Integer)
+    diametro_vents_mm = db.Column(db.Integer)
+    largo_mm = db.Column(db.Integer)
+    alto_mm = db.Column(db.Integer)
+    profundidad_mm = db.Column(db.Integer)
+    precio = db.Column(db.Numeric(12, 2))               # exacto para dinero
+    moneda = db.Column(db.String(3), default='ARS')
+
+    def specs_lista(self):
+        """Lista de specs con valor asignado, en orden de importancia (para UI)."""
+        specs = []
+        if self.hp is not None:
+            specs.append(('fas fa-bolt', 'Potencia', f'{self.hp.normalize()} HP'))
+        if self.kcal_por_hora is not None:
+            specs.append(('fas fa-snowflake', 'Frío', f'{self.kcal_por_hora:,} kcal/h'.replace(',', '.')))
+        if self.watts_por_hora is not None:
+            specs.append(('fas fa-plug', 'Potencia eléctrica', f'{self.watts_por_hora:,} W'.replace(',', '.')))
+        if self.cantidad_vents is not None:
+            d = f' Ø{self.diametro_vents_mm}mm' if self.diametro_vents_mm else ''
+            specs.append(('fas fa-fan', 'Ventiladores', f'{self.cantidad_vents}{d}'))
+        elif self.diametro_vents_mm is not None:
+            specs.append(('fas fa-fan', 'Ventiladores', f'Ø{self.diametro_vents_mm}mm'))
+        dims = [d for d in (self.largo_mm, self.alto_mm, self.profundidad_mm) if d is not None]
+        if dims:
+            if len(dims) == 3:
+                specs.append(('fas fa-ruler-combined', 'Dimensiones', f'{dims[0]}×{dims[1]}×{dims[2]} mm'))
+            else:
+                specs.append(('fas fa-ruler', 'Dimensión', ' × '.join(str(d) for d in dims) + ' mm'))
+        return specs
+
+    def tiene_precio(self):
+        return self.precio is not None
+
+    def precio_formateado(self):
+        """Precio en formato ARS: $ 1.250.000,00"""
+        if self.precio is None:
+            return None
+        entero, dec = f'{self.precio:.2f}'.split('.')
+        entero_fmt = ''
+        while len(entero) > 3:
+            entero_fmt = '.' + entero[-3:] + entero_fmt
+            entero = entero[:-3]
+        entero_fmt = entero + entero_fmt
+        simbolo = 'US$' if self.moneda == 'USD' else '$'
+        return f'{simbolo} {entero_fmt},{dec}'
+
 
 class Cliente(db.Model):
     __tablename__ = 'clientes'
@@ -340,6 +390,17 @@ def _fecha_hora_ar(dt):
     return dt.astimezone(ZoneInfo('America/Argentina/Buenos_Aires')).strftime('%d/%m/%Y %H:%M')
 
 
+@app.template_filter('precio_ars')
+def _precio_ars(producto_o_tupla):
+    """Formatea precio ARS: $ 1.250.000,00  |  recibe Producto.
+    Alternativa manual: filtros de precio sin modelo."""
+    if producto_o_tupla is None:
+        return ''
+    if hasattr(producto_o_tupla, 'precio_formateado'):
+        return producto_o_tupla.precio_formateado() or ''
+    return str(producto_o_tupla)
+
+
 @app.route('/')
 def inicio():
     # Eager loading: traemos toda la jerarquía del catálogo en ~5 queries
@@ -414,6 +475,21 @@ def _ensure_schema():
         if 'nombre' not in cols:
             db.session.execute(text("ALTER TABLE productos ADD COLUMN nombre VARCHAR(200) DEFAULT ''"))
             db.session.commit()
+        for col_name, col_type in [
+            ('hp', 'NUMERIC(4,2)'),
+            ('kcal_por_hora', 'INTEGER'),
+            ('watts_por_hora', 'INTEGER'),
+            ('cantidad_vents', 'INTEGER'),
+            ('diametro_vents_mm', 'INTEGER'),
+            ('largo_mm', 'INTEGER'),
+            ('alto_mm', 'INTEGER'),
+            ('profundidad_mm', 'INTEGER'),
+            ('precio', 'NUMERIC(12,2)'),
+            ('moneda', "VARCHAR(3) DEFAULT 'ARS'"),
+        ]:
+            if col_name not in cols:
+                db.session.execute(text(f"ALTER TABLE productos ADD COLUMN {col_name} {col_type}"))
+                db.session.commit()
     if 'pedidos' in inspector.get_table_names():
         cols = {col['name'] for col in inspector.get_columns('pedidos')}
         if 'localidad' not in cols:
@@ -999,6 +1075,22 @@ def admin_delete_subcategoria(id):
 
 
 # --- RUTAS CRUD PRODUCTOS ---
+def _aplicar_specs_producto(prod, form):
+    """Lee los campos de especificaciones técnicas del formulario y los aplica.
+    Vacío → None (nullable). Mal formato → None."""
+    int_fields = ['kcal_por_hora', 'watts_por_hora', 'cantidad_vents',
+                  'diametro_vents_mm', 'largo_mm', 'alto_mm', 'profundidad_mm']
+    num_fields = ['hp', 'precio']
+    for campo in int_fields:
+        val = form.get(campo, '').strip()
+        setattr(prod, campo, int(val) if val.isdigit() else None)
+    for campo in num_fields:
+        val = form.get(campo, '').strip().replace(',', '.')
+        setattr(prod, campo, float(val) if val else None)
+    moneda = form.get('moneda', '').strip().upper()
+    prod.moneda = moneda if moneda in ('ARS', 'USD') else 'ARS'
+
+
 @app.route('/admin/productos/nuevo', methods=['GET', 'POST'])
 @admin_required
 def admin_create_producto():
@@ -1014,6 +1106,7 @@ def admin_create_producto():
             flash('Subcategoría inválida', 'danger')
             return render_template('admin/create_producto.html', subcategorias=subcategorias)
         nuevo = Producto(nombre=nombre, id_subcategoria=id_subcategoria)
+        _aplicar_specs_producto(nuevo, request.form)
         db.session.add(nuevo)
         db.session.flush()
         procesar_imagenes(request.files.getlist('imagenes'), nuevo, 'producto')
@@ -1036,6 +1129,7 @@ def admin_edit_producto(id):
             return render_template('admin/edit_producto.html', producto=prod, subcategorias=subcategorias)
         prod.nombre = nombre
         prod.id_subcategoria = request.form.get('id_subcategoria', type=int) or prod.id_subcategoria
+        _aplicar_specs_producto(prod, request.form)
         eliminar_imagenes_seleccionadas(prod, request.form.getlist('eliminar_imagen'))
         procesar_imagenes(request.files.getlist('imagenes'), prod, 'producto')
         procesar_imagenes_cloudinary(request.form.getlist('cloudinary_ids'), prod)
@@ -1281,7 +1375,12 @@ def api_admin_fichas():
 @app.route('/api/productos/<int:sub_id>')
 def api_productos(sub_id):
     sub = Subcategoria.query.get_or_404(sub_id)
-    productos = [{'id': p.id_producto, 'nombre': p.nombre} for p in sub.productos]
+    productos = [{
+        'id': p.id_producto,
+        'nombre': p.nombre,
+        'precio': p.precio_formateado(),
+        'specs': [{'icono': i, 'label': l, 'valor': v} for i, l, v in p.specs_lista()],
+    } for p in sub.productos]
     return {'productos': productos}
 
 

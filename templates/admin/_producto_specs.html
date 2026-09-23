@@ -1,0 +1,64 @@
+{# Partial reutilizable: sección de especificaciones técnicas del producto.
+   Usa `producto` si está definido (edit) o vacía (create). #}
+{% set p = producto if producto is defined else None %}
+<div class="card mb-3">
+  <div class="card-header fw-bold small">
+    <i class="fas fa-sliders-h me-1"></i> Especificaciones técnicas
+    <span class="text-muted fw-normal">(todo opcional — lo que no se complete no se muestra en el catálogo)</span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label small fw-bold">Potencia (HP)</label>
+        <input class="form-control form-control-sm" type="number" step="0.01" min="0" name="hp"
+               value="{{ p.hp if p and p.hp is not none else '' }}" placeholder="2.50">
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label small fw-bold">kcal/hora</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0" name="kcal_por_hora"
+               value="{{ p.kcal_por_hora if p and p.kcal_por_hora is not none else '' }}">
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label small fw-bold">Watts/hora</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0" name="watts_por_hora"
+               value="{{ p.watts_por_hora if p and p.watts_por_hora is not none else '' }}">
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label small fw-bold">Precio</label>
+        <div class="input-group input-group-sm">
+          <select class="form-select" name="moneda" style="max-width:80px;">
+            <option value="ARS" {% if not p or p.moneda == 'ARS' %}selected{% endif %}>ARS</option>
+            <option value="USD" {% if p and p.moneda == 'USD' %}selected{% endif %}>USD</option>
+          </select>
+          <input class="form-control" type="number" step="0.01" min="0" name="precio"
+                 value="{{ p.precio if p and p.precio is not none else '' }}" placeholder="1250000.00">
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label small fw-bold">Cant. ventiladores</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0" name="cantidad_vents"
+               value="{{ p.cantidad_vents if p and p.cantidad_vents is not none else '' }}">
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label small fw-bold">Ø ventiladores (mm)</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0" name="diametro_vents_mm"
+               value="{{ p.diametro_vents_mm if p and p.diametro_vents_mm is not none else '' }}" placeholder="300">
+      </div>
+      <div class="col-md-2 col-sm-4">
+        <label class="form-label small fw-bold">Largo (mm)</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0" name="largo_mm"
+               value="{{ p.largo_mm if p and p.largo_mm is not none else '' }}">
+      </div>
+      <div class="col-md-2 col-sm-4">
+        <label class="form-label small fw-bold">Alto (mm)</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0" name="alto_mm"
+               value="{{ p.alto_mm if p and p.alto_mm is not none else '' }}">
+      </div>
+      <div class="col-md-2 col-sm-4">
+        <label class="form-label small fw-bold">Profund. (mm)</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0" name="profundidad_mm"
+               value="{{ p.profundidad_mm if p and p.profundidad_mm is not none else '' }}">
+      </div>
+    </div>
+  </div>
+</div>
