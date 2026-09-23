@@ -220,7 +220,7 @@
                     <button type="button"
                         class="btn btn-sm rounded-pill tag-chip {% if t.id_tag in ids_activos %}tag-filter-active{% endif %}"
                         data-tag-id="{{ t.id_tag }}"
-                        style="background-color: {{ t.color or '#6c757d' }}; color: #fff;">
+                        style="background-color: {{ t.color or '#6c757d' }}; color: #000;">
                         {{ t.nombre }}{% if t.id_tag in ids_activos %} <i class="fas fa-check ms-1"></i>{% endif %}
                     </button>
                     {% endfor %}
@@ -285,9 +285,9 @@
                                         {% if sub.tags %}
                                         <div class="mt-2 d-flex flex-wrap justify-content-center gap-1">
                                             {% for t in sub.tags %}
-                                            <button type="button" class="badge text-decoration-none text-white border border-light badge-tag"
+                                            <button type="button" class="badge text-decoration-none badge-tag"
                                                 data-tag-id="{{ t.id_tag }}"
-                                                style="background-color: {{ t.color or '#6c757d' }}">{{ t.nombre }}</button>
+                                                style="background-color: {{ t.color or '#6c757d' }}; color: #000; border: 1px solid rgba(0,0,0,.25);">{{ t.nombre }}</button>
                                             {% endfor %}
                                         </div>
                                         {% endif %}
