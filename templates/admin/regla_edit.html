@@ -39,7 +39,12 @@
         </div>
         <div class="col-md-4">
           <label class="form-label small">Tipo producto</label>
-          <input class="form-control form-control-sm" name="producto_tipo" value="{{ regla.producto_tipo or '' }}">
+          <select class="form-select form-select-sm" name="producto_tipo">
+            <option value="">Cualquiera</option>
+            {% for opt in ['Carnes','Lacteos','Frutas','Verduras','Helados'] %}
+            <option value="{{ opt }}" {% if regla.producto_tipo==opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="col-md-4">
           <label class="form-label small">Frecuencia apertura</label>
@@ -56,6 +61,33 @@
             <option value="">Cualquiera</option>
             {% for a in ['Si','No'] %}
             <option value="{{ a }}" {% if regla.posee_antecamara==a %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Material antecámara</label>
+          <select class="form-select form-select-sm" name="material_antecamara">
+            <option value="">Cualquiera</option>
+            {% for m in ['Panel','Mamposteria','Chapa','Otro'] %}
+            <option value="{{ m }}" {% if regla.material_antecamara==m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">Grosor aislación (mm)</label>
+          <select class="form-select form-select-sm" name="grosor_aislamiento_mm">
+            <option value="">Cualquiera</option>
+            {% for g in ['50','75','100','150','200'] %}
+            <option value="{{ g }}" {% if regla.grosor_aislamiento_mm==g %}selected{% endif %}>{{ g }} mm</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label small">Material de aislación</label>
+          <select class="form-select form-select-sm" name="material_aislamiento">
+            <option value="">Cualquiera</option>
+            {% for m in ['Poliuretano','Poliuretano inyectado','Lana','EPS','Otro'] %}
+            <option value="{{ m }}" {% if regla.material_aislamiento==m %}selected{% endif %}>{{ m }}</option>
             {% endfor %}
           </select>
         </div>

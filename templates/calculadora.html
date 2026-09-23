@@ -58,11 +58,9 @@
             <label class="form-label small fw-bold">Tipo de producto *</label>
             <select class="form-select" name="producto_tipo" required>
               <option value="">Seleccionar...</option>
-              <option value="Carnicos" {% if request.form.get('producto_tipo')=='Carnicos' %}selected{% endif %}>Cárnicos (carnes, embutidos)</option>
-              <option value="Lacteos" {% if request.form.get('producto_tipo')=='Lacteos' %}selected{% endif %}>Lácteos</option>
-              <option value="Alimentos" {% if request.form.get('producto_tipo')=='Alimentos' %}selected{% endif %}>Alimentos en general</option>
-              <option value="Farmaceutico" {% if request.form.get('producto_tipo')=='Farmaceutico' %}selected{% endif %}>Farmacéutico</option>
-              <option value="Otro" {% if request.form.get('producto_tipo')=='Otro' %}selected{% endif %}>Otro</option>
+              {% for opt in ['Carnes','Lacteos','Frutas','Verduras','Helados'] %}
+              <option value="{{ opt }}" {% if request.form.get('producto_tipo')==opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
             </select>
           </div>
           <div class="col-md-6">
@@ -104,25 +102,31 @@
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-bold">Tipo de aislación</label>
-            <select class="form-select" name="aislacion_tipo">
+            <label class="form-label small fw-bold">Material de aislación</label>
+            <select class="form-select" name="material_aislamiento">
               <option value="">No especificada</option>
-              <option value="Poliuretano" {% if request.form.get('aislacion_tipo')=='Poliuretano' %}selected{% endif %}>Poliuretano inyectado</option>
-              <option value="Lana" {% if request.form.get('aislacion_tipo')=='Lana' %}selected{% endif %}>Lana mineral</option>
-              <option value="Otro" {% if request.form.get('aislacion_tipo')=='Otro' %}selected{% endif %}>Otro</option>
+              <option value="Poliuretano" {% if request.form.get('material_aislamiento')=='Poliuretano' %}selected{% endif %}>Poliuretano</option>
+              <option value="Poliuretano inyectado" {% if request.form.get('material_aislamiento')=='Poliuretano inyectado' %}selected{% endif %}>Poliuretano inyectado</option>
+              <option value="Lana" {% if request.form.get('material_aislamiento')=='Lana' %}selected{% endif %}>Lana mineral</option>
+              <option value="EPS" {% if request.form.get('material_aislamiento')=='EPS' %}selected{% endif %}>EPS (telgopor)</option>
+              <option value="Otro" {% if request.form.get('material_aislamiento')=='Otro' %}selected{% endif %}>Otro</option>
             </select>
           </div>
           <div class="col-md-4">
-            <label class="form-label small fw-bold">Espesor panel (mm)</label>
-            <input class="form-control" type="number" name="aislacion_espesor" min="0"
-                   value="{{ request.form.get('aislacion_espesor','') }}" placeholder="Ej: 100">
+            <label class="form-label small fw-bold">Grosor de aislación (mm)</label>
+            <select class="form-select" name="grosor_aislamiento_mm">
+              <option value="">No especificado</option>
+              {% for g in ['50','75','100','150','200'] %}
+              <option value="{{ g }}" {% if request.form.get('grosor_aislamiento_mm')==g %}selected{% endif %}>{{ g }} mm</option>
+              {% endfor %}
+            </select>
           </div>
         </div>
 
         <!-- Extras -->
         <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">Extras</h6>
         <div class="row g-3 mb-4">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label small fw-bold">Frecuencia apertura puerta</label>
             <select class="form-select" name="frecuencia_apertura">
               <option value="">No especificada</option>
@@ -131,7 +135,7 @@
               <option value="Baja" {% if request.form.get('frecuencia_apertura')=='Baja' %}selected{% endif %}>Baja (menos de 5 veces/día)</option>
             </select>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label small fw-bold">¿Tiene antecámara?</label>
             <select class="form-select" name="posee_antecamara">
               <option value="">No especificado</option>
@@ -139,7 +143,17 @@
               <option value="No" {% if request.form.get('posee_antecamara')=='No' %}selected{% endif %}>No</option>
             </select>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
+            <label class="form-label small fw-bold">Material de antecámara</label>
+            <select class="form-select" name="material_antecamara">
+              <option value="">No especificado</option>
+              <option value="Panel" {% if request.form.get('material_antecamara')=='Panel' %}selected{% endif %}>Panel</option>
+              <option value="Mamposteria" {% if request.form.get('material_antecamara')=='Mamposteria' %}selected{% endif %}>Mampostería</option>
+              <option value="Chapa" {% if request.form.get('material_antecamara')=='Chapa' %}selected{% endif %}>Chapa</option>
+              <option value="Otro" {% if request.form.get('material_antecamara')=='Otro' %}selected{% endif %}>Otro</option>
+            </select>
+          </div>
+          <div class="col-md-3">
             <label class="form-label small fw-bold">Envoltorio del producto</label>
             <select class="form-select" name="producto_envoltorio">
               <option value="">No especificado</option>

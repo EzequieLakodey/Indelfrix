@@ -389,9 +389,24 @@ def _evaluar_reglas(form):
             if form.get('frecuencia_apertura', '').strip() != r.frecuencia_apertura:
                 continue
 
-        # Antecámara
+        # Antecámara (si/no)
         if r.posee_antecamara and r.posee_antecamara != 'Todos':
             if form.get('posee_antecamara', '').strip() != r.posee_antecamara:
+                continue
+
+        # Material de antecámara
+        if r.material_antecamara and r.material_antecamara != 'Todos':
+            if form.get('material_antecamara', '').strip() != r.material_antecamara:
+                continue
+
+        # Grosor de aislación
+        if r.grosor_aislamiento_mm and r.grosor_aislamiento_mm != 'Todos':
+            if form.get('grosor_aislamiento_mm', '').strip() != r.grosor_aislamiento_mm:
+                continue
+
+        # Material de aislación
+        if r.material_aislamiento and r.material_aislamiento != 'Todos':
+            if form.get('material_aislamiento', '').strip().lower() != r.material_aislamiento.lower():
                 continue
 
         # Si pasó todas las condiciones → match

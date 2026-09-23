@@ -313,6 +313,9 @@ class ReglaCalculadora(db.Model):
     producto_tipo = db.Column(db.String(100))     # '' = cualquiera; si no vacío, match exacto
     frecuencia_apertura = db.Column(db.String(50)) # '' = cualquiera; 'Alta','Media','Baja'
     posee_antecamara = db.Column(db.String(10))   # '' = cualquiera; 'Si','No'
+    material_antecamara = db.Column(db.String(100)) # '' = cualquiera
+    grosor_aislamiento_mm = db.Column(db.String(50)) # '' = cualquiera (ej '50', '75-100')
+    material_aislamiento = db.Column(db.String(100)) # '' = cualquiera
 
     # --- Resultado ---
     resultado_categoria = db.Column(db.String(100))    # nombre de Categoria recomendada
@@ -418,13 +421,15 @@ def _ensure_schema():
             db.session.commit()
     if 'reglas_calculadora' in inspector.get_table_names():
         cols = {col['name'] for col in inspector.get_columns('reglas_calculadora')}
-        for stmt in [
-            "ALTER TABLE reglas_calculadora ADD COLUMN resultado_producto_id INTEGER",
-            "ALTER TABLE reglas_calculadora ADD COLUMN nombre VARCHAR(200)",
+        for col_name, col_type in [
+            ('resultado_producto_id', 'INTEGER'),
+            ('nombre', 'VARCHAR(200)'),
+            ('material_antecamara', 'VARCHAR(100)'),
+            ('grosor_aislamiento_mm', 'VARCHAR(50)'),
+            ('material_aislamiento', 'VARCHAR(100)'),
         ]:
-            col_name = stmt.split()[5]  # 'resultado_producto_id' o 'nombre'
             if col_name not in cols:
-                db.session.execute(text(stmt))
+                db.session.execute(text(f"ALTER TABLE reglas_calculadora ADD COLUMN {col_name} {col_type}"))
                 db.session.commit()
 
 
@@ -1151,12 +1156,13 @@ def admin_reglas():
             for campo in ['volumen_min_m3', 'volumen_max_m3', 'temp_deseada_min_c', 'temp_deseada_max_c', 'prioridad']:
                 val = request.form.get(campo, '').strip()
                 setattr(regla, campo, float(val) if val and val.replace('.','').replace('-','').isdigit() else None)
-            # Subcategoría → producto en cascada
-            prod_id = request.form.get('resultado_producto_id', '').strip()
-            regla.resultado_producto_id = int(prod_id) if prod_id.isdigit() else None
+            # Campos string opcionales
             regla.producto_tipo = request.form.get('producto_tipo', '').strip() or None
             regla.frecuencia_apertura = request.form.get('frecuencia_apertura', '').strip() or None
             regla.posee_antecamara = request.form.get('posee_antecamara', '').strip() or None
+            regla.material_antecamara = request.form.get('material_antecamara', '').strip() or None
+            regla.grosor_aislamiento_mm = request.form.get('grosor_aislamiento_mm', '').strip() or None
+            regla.material_aislamiento = request.form.get('material_aislamiento', '').strip() or None
             db.session.add(regla)
             db.session.commit()
             flash(f'Regla "{nombre}" creada', 'success')
@@ -1188,6 +1194,9 @@ def admin_edit_regla(id):
         regla.producto_tipo = request.form.get('producto_tipo', '').strip() or None
         regla.frecuencia_apertura = request.form.get('frecuencia_apertura', '').strip() or None
         regla.posee_antecamara = request.form.get('posee_antecamara', '').strip() or None
+        regla.material_antecamara = request.form.get('material_antecamara', '').strip() or None
+        regla.grosor_aislamiento_mm = request.form.get('grosor_aislamiento_mm', '').strip() or None
+        regla.material_aislamiento = request.form.get('material_aislamiento', '').strip() or None
         db.session.commit()
         flash('Regla actualizada', 'success')
         return redirect(url_for('admin_reglas'))

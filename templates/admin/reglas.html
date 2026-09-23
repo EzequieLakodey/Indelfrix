@@ -93,7 +93,14 @@
           <div class="row g-2">
             <div class="col-md-4 mb-2">
               <label class="form-label small">Tipo de producto</label>
-              <input class="form-control form-control-sm" name="producto_tipo" placeholder="Carnicos, Lacteos…">
+              <select class="form-select form-select-sm" name="producto_tipo">
+                <option value="">Cualquiera</option>
+                <option value="Carnes">Carnes</option>
+                <option value="Lacteos">Lácteos</option>
+                <option value="Frutas">Frutas</option>
+                <option value="Verduras">Verduras</option>
+                <option value="Helados">Helados</option>
+              </select>
             </div>
             <div class="col-md-4 mb-2">
               <label class="form-label small">Frec. apertura</label>
@@ -110,6 +117,40 @@
                 <option value="">Cualquiera</option>
                 <option value="Si">Sí</option>
                 <option value="No">No</option>
+              </select>
+            </div>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-4 mb-2">
+              <label class="form-label small">Material antecámara</label>
+              <select class="form-select form-select-sm" name="material_antecamara">
+                <option value="">Cualquiera</option>
+                <option value="Panel">Panel</option>
+                <option value="Mamposteria">Mampostería</option>
+                <option value="Chapa">Chapa</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-2">
+              <label class="form-label small">Grosor aislación (mm)</label>
+              <select class="form-select form-select-sm" name="grosor_aislamiento_mm">
+                <option value="">Cualquiera</option>
+                <option value="50">50 mm</option>
+                <option value="75">75 mm</option>
+                <option value="100">100 mm</option>
+                <option value="150">150 mm</option>
+                <option value="200">200 mm</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-2">
+              <label class="form-label small">Material de aislación</label>
+              <select class="form-select form-select-sm" name="material_aislamiento">
+                <option value="">Cualquiera</option>
+                <option value="Poliuretano">Poliuretano</option>
+                <option value="Poliuretano inyectado">Poliuretano inyectado</option>
+                <option value="Lana">Lana mineral</option>
+                <option value="EPS">EPS (telgopor)</option>
+                <option value="Otro">Otro</option>
               </select>
             </div>
           </div>
