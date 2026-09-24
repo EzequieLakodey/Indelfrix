@@ -472,6 +472,9 @@ def inicio():
             subs = list(cat.subcategorias)
         # Orden alfabético A–Z por nombre de subcategoría
         subs.sort(key=lambda s: (s.nombre or '').lower())
+        # Productos dentro de cada card ordenados por potencia (HP asc; sin HP al final)
+        for s in subs:
+            s.productos.sort(key=lambda p: (p.hp is None, float(p.hp) if p.hp is not None else 0.0))
         if subs:
             categorias_vista.append({'cat': cat, 'subs': subs})
 
@@ -1444,7 +1447,7 @@ def api_productos(sub_id):
         'nombre': p.nombre,
         'precio': p.precio_formateado(),
         'specs': [{'icono': i, 'label': l, 'valor': v} for i, l, v in p.specs_lista()],
-    } for p in sub.productos]
+    } for p in sorted(sub.productos, key=lambda p: (p.hp is None, float(p.hp or 0)))]
     return {'productos': productos}
 
 
