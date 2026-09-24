@@ -773,9 +773,19 @@ Para que la imagen ocupe todo el espacio de la card
 }
 
 .modal-img-full {
-    height: 70vh;
+    /* La imagen se expande hasta la mayor resolución posible sin desbordar el modal */
+    height: auto;
+    max-height: 75vh;
+    max-width: 100%;
+    width: auto;
     object-fit: contain;
-    padding: 20px;
+    margin: 0 auto;
+    display: block;
+}
+
+/* No forzar altura fija en modal carousel (la imagen manda) */
+.modal-carousel .carousel-item {
+    background: #0b0b0b;
 }
 
 .desc-modal-scroll {

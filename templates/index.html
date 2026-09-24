@@ -275,11 +275,10 @@
                             <div class="col-xl-4 col-lg-6 col-md-6">
                                 {% endif %}
                                 <div class="card h-100 card-hover subcategory-card"
-                                    id="subcategoria-{{ sub.id_subcategoria }}" data-cat-name="{{ cat.nombre }}"
+                                    id="subcategoria-{{ sub.id_subcategoria }}"
+                                    data-cat-name="{{ cat.nombre }}"
                                     data-sub-id="{{ sub.id_subcategoria }}"
-                                    data-ficha-url="{{ sub.ficha_public_url() or '' }}"
-                                    data-productos="{{ sub.productos | map(attribute='nombre') | list | tojson | e }}"
-                                    data-productos-ids="{{ sub.productos | map(attribute='id_producto') | list | tojson | e }}">
+                                    data-ficha-url="{{ sub.ficha_public_url() or '' }}">
                                     <div class="card-header bg-primary text-white p-3">
                                         <h5 class="mb-0 fw-bold text-uppercase text-center">{{ sub.nombre }}</h5>
                                         {% if sub.tags %}
@@ -985,203 +984,49 @@
             let subcardModal = null;
             if (subcardModalEl && typeof bootstrap !== 'undefined') subcardModal = new bootstrap.Modal(subcardModalEl);
 
-            const selectedProducts = {};
-
-            function syncProductosInput() {
-                const lista = document.getElementById('productosSeleccionadosLista');
-                const input = document.getElementById('productosSeleccionados');
-                if (!lista || !input) return;
-                const items = [];
-                lista.innerHTML = '';
-                for (const subId in selectedProducts) {
-                    for (const prod of selectedProducts[subId]) {
-                        items.push(prod);
-                        const wrapper = document.createElement('span');
-                        wrapper.className = 'badge bg-primary d-flex align-items-center gap-1';
-                        wrapper.innerHTML = `
-                            ${prod.cat || ''} &gt; ${prod.sub || ''}: ${prod.nombre}
-                            <input type="number" min="1" max="9999" value="${prod.cantidad || 1}"
-                                class="form-control form-control-sm d-inline-block text-center border-0 bg-white bg-opacity-25 text-white"
-                                style="width:50px; height:20px; font-size:0.75rem; padding:0 2px;"
-                                data-qty-id="${prod.id}">
-                            <button type="button" class="btn-close btn-close-white ms-1" style="font-size:0.6em" data-remove-id="${prod.id}"></button>
-                        `;
-                        lista.appendChild(wrapper);
-                    }
-                }
-                if (items.length === 0) {
-                    lista.innerHTML = '<small class="text-muted">Ningún producto seleccionado</small>';
-                }
-                input.value = JSON.stringify(items);
-
-                lista.querySelectorAll('[data-qty-id]').forEach(qtyInput => {
-                    qtyInput.addEventListener('change', function () {
-                        const pid = this.dataset.qtyId;
-                        for (const subId in selectedProducts) {
-                            const prod = selectedProducts[subId].find(p => p.id == pid);
-                            if (prod) { prod.cantidad = parseInt(this.value) || 1; break; }
-                        }
-                        input.value = JSON.stringify(items);
-                    });
-                });
-            }
-
-            const productosSeleccionadosLista = document.getElementById('productosSeleccionadosLista');
-            if (productosSeleccionadosLista) {
-                productosSeleccionadosLista.addEventListener('click', function (e) {
-                    const btn = e.target.closest('[data-remove-id]');
-                    if (!btn) return;
-                    const prodId = btn.dataset.removeId;
-                    for (const subId in selectedProducts) {
-                        selectedProducts[subId] = selectedProducts[subId].filter(p => p.id != prodId);
-                        if (selectedProducts[subId].length === 0) delete selectedProducts[subId];
-                    }
-                    document.querySelectorAll(`.prod-check-card[value="${prodId}"], .prod-check[value="${prodId}"]`).forEach(cb => cb.checked = false);
-                    syncProductosInput();
-                });
-            }
-
-            function toggleProduct(checkbox) {
-                const pid = checkbox.value;
-                const pname = checkbox.dataset.prodName;
-                const psub = checkbox.dataset.prodSub;
-                const pcat = checkbox.dataset.catName || '';
-                const psubName = checkbox.dataset.subName || '';
-                if (!selectedProducts[psub]) selectedProducts[psub] = [];
-                if (checkbox.checked) {
-                    if (!selectedProducts[psub].some(p => p.id == pid)) {
-                        selectedProducts[psub].push({ id: pid, nombre: pname, cat: pcat, sub: psubName, subId: psub, cantidad: 1 });
-                    }
-                } else {
-                    selectedProducts[psub] = selectedProducts[psub].filter(p => p.id != pid);
-                    if (selectedProducts[psub].length === 0) delete selectedProducts[psub];
-                }
-                document.querySelectorAll(`.prod-check-card[value="${pid}"], .prod-check[data-prod-id="${pid}"]`).forEach(cb => {
-                    cb.checked = checkbox.checked;
-                });
-                syncProductosInput();
-            }
-
-            document.querySelectorAll('.prod-check-card').forEach(cb => {
-                cb.addEventListener('change', function () { toggleProduct(this); });
-            });
-
-            syncProductosInput();
-
             function openGallery(targetId, startImageSrc = null) {
                 const card = document.querySelector(`#subcategoria-${targetId}`);
                 if (!card) return;
 
-                const catName = card.dataset.catName || '';
-                const subId = card.dataset.subId || targetId;
+                // 1ra fila: título = subcategoria.nombre
                 const title = card.querySelector('.card-header h5')?.textContent || '';
+                document.getElementById('subcardModalLabel').textContent = title;
+
+                // 2da fila: carousel con imágenes a máxima resolución
                 const imgs = [];
                 card.querySelectorAll('.carousel-inner img').forEach(img => imgs.push(img.src));
-                const desc = card.querySelector('.desc-content')?.innerHTML || '';
-                const fichaUrl = card.dataset.fichaUrl || '';
-
-                let prodNames = [];
-                let prodIds = [];
-                try { prodNames = JSON.parse(card.dataset.productos || '[]'); } catch (_) { }
-                try { prodIds = JSON.parse(card.dataset.productosIds || '[]'); } catch (_) { }
-
-                const modalBody = document.getElementById('subcardModalBody');
-                const modalTitle = document.getElementById('subcardModalLabel');
-                modalTitle.textContent = `${catName} - ${title}`;
-
-                let startIndex = 0;
-                if (startImageSrc) {
-                    startIndex = imgs.findIndex(src => src === startImageSrc);
-                    if (startIndex === -1) startIndex = 0;
-                }
+                let startIndex = startImageSrc ? Math.max(0, imgs.findIndex(src => src === startImageSrc)) : 0;
+                if (startIndex === -1) startIndex = 0;
 
                 const carouselId = `modalCarousel-${targetId}`;
-
-                let productosHtml = '';
-                if (prodNames.length > 0) {
-                    const checksHtml = prodNames.map((name, i) => {
-                        const pid = prodIds[i] || i;
-                        const checked = (selectedProducts[subId] || []).some(p => p.id == pid) ? 'checked' : '';
-                        return `<div class="form-check">
-                            <input class="form-check-input prod-check" type="checkbox" value="${pid}" id="modal-prod-${pid}"
-                                data-prod-name="${name}" data-prod-sub="${subId}"
-                                data-cat-name="${catName}" data-sub-name="${title}" ${checked}>
-                            <label class="form-check-label" for="modal-prod-${pid}">${name}</label>
-                        </div>`;
-                    }).join('');
-                    productosHtml = `
-                        <div class="mt-3 pt-3 border-top">
-                            <h6 class="fw-bold text-primary mb-2"><i class="fas fa-box me-1"></i>Productos</h6>
-                            <div class="small">${checksHtml}</div>
-                            <div class="form-text">Seleccioná los productos sobre los que deseás consultar.</div>
-                        </div>
-                        <div class="mt-3 pt-3 border-top">
-                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-cart-plus me-1"></i>Agregar al pedido</h6>
-                            <div class="small">
-                                ${prodNames.map((name, i) => {
-                        const pid = prodIds[i] || i;
-                        return `<div class="d-flex align-items-center gap-2 py-1 border-bottom pedido-prod-row" data-producto-id="${pid}">
-                                        <span class="small flex-grow-1">${name}</span>
-                                        <input type="number" min="1" max="9999" value="1" class="form-control form-control-sm prod-qty" style="width:4.2rem" aria-label="Cantidad">
-                                        <button type="button" class="btn btn-sm btn-success btn-add-pedido" title="Agregar a pedido">Agregar</button>
-                                    </div>`;
-                    }).join('')}
-                            </div>
-                            <div class="form-text">Ingresá con Google para confirmar tu pedido.</div>
-                        </div>`;
-                }
-
-                const carouselHtml = `
-                    <div class="row g-0">
-                        <div class="col-lg-8 bg-dark d-flex align-items-center" style="min-height: 50vh;">
-                            <div id="${carouselId}" class="carousel slide modal-carousel w-100" data-bs-ride="false">
-                                <div class="carousel-inner">
-                                    ${imgs.length === 0
-                        ? '<div class="carousel-item active text-center p-5 bg-light"><span class="text-muted">No hay imágenes disponibles</span></div>'
-                        : imgs.map((s, i) => `
-                                            <div class="carousel-item ${i === startIndex ? 'active' : ''}">
-                                                <img src="${s}" class="d-block w-100 modal-img-full" alt="Imagen ampliada">
-                                            </div>
-                                          `).join('')
-                    }
+                const carouselHtml = imgs.length === 0
+                    ? '<div class="text-center p-5 bg-light"><span class="text-muted">No hay imágenes disponibles</span></div>'
+                    : `<div id="${carouselId}" class="carousel slide modal-carousel" data-bs-ride="false">
+                        <div class="carousel-inner">
+                            ${imgs.map((s, i) => `
+                                <div class="carousel-item ${i === startIndex ? 'active' : ''}">
+                                    <img src="${s}" class="d-block w-100 modal-img-full" alt="Imagen ampliada">
                                 </div>
-                                ${imgs.length > 1 ? `
-                                    <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
-                                        <span class="carousel-control-prev-icon bg-white rounded-circle shadow-sm" aria-hidden="true"></span>
-                                    </button>
-                                    <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
-                                        <span class="carousel-control-next-icon bg-white rounded-circle shadow-sm" aria-hidden="true"></span>
-                                    </button>
-                                ` : ''}
-                            </div>
+                            `).join('')}
                         </div>
-                        <div class="col-lg-4 p-4 bg-white d-flex flex-column">
-                            <h4 class="fw-bold mb-3 text-primary border-bottom pb-2">Descripción</h4>
-                            <div class="desc-modal-scroll flex-grow-1">
-                                ${desc ? desc : '<p class="text-muted">Sin descripción disponible.</p>'}
-                            </div>
-                            ${productosHtml}
-                            <div class="mt-4 pt-3 border-top">
-                                ${fichaUrl
-                        ? `<a href="${fichaUrl}" target="_blank" rel="noopener" class="btn btn-outline-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2">
-                                    <i class="fas fa-file-pdf"></i> Descargar Ficha Técnica
-                                </a>`
-                        : `<button type="button" class="btn btn-outline-secondary w-100 fw-bold" disabled>
-                                    <i class="fas fa-file-pdf"></i> Ficha técnica no disponible
-                                </button>`
-                    }
-                            </div>
-                        </div>
-                    </div>
-                `;
+                        ${imgs.length > 1 ? `
+                            <button class="carousel-control-prev" type="button" data-bs-target="#${carouselId}" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon bg-white rounded-circle shadow-sm"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#${carouselId}" data-bs-slide="next">
+                                <span class="carousel-control-next-icon bg-white rounded-circle shadow-sm"></span>
+                            </button>
+                        ` : ''}
+                    </div>`;
 
-                modalBody.innerHTML = carouselHtml;
+                // 3ra fila: descripción de la subcategoría
+                const desc = card.querySelector('.desc-content')?.innerHTML || '';
+                const descHtml = desc
+                    ? `<div class="p-3 bg-light border-top desc-modal-scroll flex-grow-1">${desc}</div>`
+                    : '';
 
-                modalBody.querySelectorAll('.prod-check').forEach(cb => {
-                    cb.addEventListener('change', function () { toggleProduct(this); });
-                });
-
-                modalTitle.textContent = "Detalles del Producto";
+                // Modal: solo 3 filas (título → carousel → descripción)
+                document.getElementById('subcardModalBody').innerHTML = carouselHtml + descHtml;
                 if (subcardModal) subcardModal.show();
             }
 
