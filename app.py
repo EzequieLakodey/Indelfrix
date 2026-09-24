@@ -266,7 +266,7 @@ class Producto(db.Model):
     alto_mm = db.Column(db.Integer)
     profundidad_mm = db.Column(db.Integer)
     precio = db.Column(db.Numeric(12, 2))               # exacto para dinero
-    moneda = db.Column(db.String(3), default='ARS')
+    moneda = db.Column(db.String(3), default='USD')
 
     def nombre_display(self):
         """Nombre legible para el usuario: subcategoría + HP si los tiene.
@@ -316,6 +316,30 @@ class Producto(db.Model):
         return f'{simbolo} {entero_fmt},{dec}'
 
 
+class VarianteProducto(db.Model):
+    """Variante de un producto (solo cambia el precio; las specs son las mismas).
+    Ej: 'Estándar' $780 vs 'Eléctrico (con resistencias)' $1.050."""
+    __tablename__ = 'variantes_producto'
+    id = db.Column(db.Integer, primary_key=True)
+    id_producto = db.Column(db.Integer, db.ForeignKey('productos.id_producto'), nullable=False)
+    etiqueta = db.Column(db.String(200), nullable=False)  # ej: 'Eléctrico'
+    precio = db.Column(db.Numeric(12, 2))
+    orden = db.Column(db.Integer, default=0)
+
+    producto = db.relationship('Producto', backref=db.backref('variantes', lazy=True, cascade='all, delete-orphan', order_by='VarianteProducto.orden'))
+
+    def precio_formateado(self, moneda_simbolo='US$'):
+        if self.precio is None:
+            return None
+        entero, dec = f'{self.precio:.2f}'.split('.')
+        entero_fmt = ''
+        while len(entero) > 3:
+            entero_fmt = '.' + entero[-3:] + entero_fmt
+            entero = entero[:-3]
+        entero_fmt = entero + entero_fmt
+        return f'{moneda_simbolo} {entero_fmt},{dec}'
+
+
 class Cliente(db.Model):
     __tablename__ = 'clientes'
     id = db.Column(db.Integer, primary_key=True)
@@ -346,7 +370,6 @@ class Pedido(db.Model):
 
 
 class PedidoItem(db.Model):
-    __tablename__ = 'pedido_items'
     id = db.Column(db.Integer, primary_key=True)
     id_pedido = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
     id_producto = db.Column(db.Integer, db.ForeignKey('productos.id_producto'), nullable=True)
@@ -417,14 +440,14 @@ def inicio():
     # que, con la latencia a Neon/RDS, multiplicaban el tiempo de carga.
     _carga_catalogo = (
         selectinload(Categoria.subcategorias).selectinload(Subcategoria.imagenes),
-        selectinload(Categoria.subcategorias).selectinload(Subcategoria.productos),
+        selectinload(Categoria.subcategorias).selectinload(Subcategoria.productos).selectinload(Producto.variantes),
         selectinload(Categoria.subcategorias).selectinload(Subcategoria.tags),
         selectinload(Categoria.imagenes),
     )
     categorias_db = Categoria.query.options(*_carga_catalogo).all()
     subcategorias_db = Subcategoria.query.options(
         selectinload(Subcategoria.imagenes),
-        selectinload(Subcategoria.productos),
+        selectinload(Subcategoria.productos).selectinload(Producto.variantes),
         selectinload(Subcategoria.tags),
     ).all()
     tags_db = Tag.query.order_by(Tag.nombre).all()
@@ -507,6 +530,11 @@ def _ensure_schema():
             if col_name not in cols:
                 db.session.execute(text(f"ALTER TABLE productos ADD COLUMN {col_name} {col_type}"))
                 db.session.commit()
+    # La tabla de variantes se crea con create_all; para DBs viejas migramos el default de moneda
+    if 'productos' in inspector.get_table_names():
+        db.session.execute(text("UPDATE productos SET moneda = 'USD' WHERE moneda IS NULL OR moneda = 'ARS'"))
+        db.session.commit()
+
     if 'pedidos' in inspector.get_table_names():
         cols = {col['name'] for col in inspector.get_columns('pedidos')}
         if 'localidad' not in cols:
@@ -1092,6 +1120,26 @@ def admin_delete_subcategoria(id):
 
 
 # --- RUTAS CRUD PRODUCTOS ---
+def _aplicar_variantes_producto(prod, form):
+    """Sincroniza las variantes del producto con las filas del formulario.
+    Estrategia: borrar las existentes y recrear (las variantes son simples)."""
+    etiquetas = form.getlist('variante_etiqueta')
+    precios = form.getlist('variante_precio')
+    # Limpiar existentes (SQLAlchemy lo hace por la relación con cascade=all, delete-orphan)
+    prod.variantes = []
+    db.session.flush()
+    # Crear las nuevas (pares etiqueta/precio, saltea filas vacías)
+    for idx, (et, pr) in enumerate(zip(etiquetas, precios)):
+        et = (et or '').strip()
+        if not et:
+            continue
+        try:
+            precio = float(pr.replace(',', '.')) if pr.strip() else None
+        except (ValueError, AttributeError):
+            precio = None
+        prod.variantes.append(VarianteProducto(etiqueta=et, precio=precio, orden=idx))
+
+
 def _aplicar_specs_producto(prod, form):
     """Lee los campos de especificaciones técnicas del formulario y los aplica.
     Vacío → None (nullable). Mal formato → None."""
@@ -1124,6 +1172,7 @@ def admin_create_producto():
             return render_template('admin/create_producto.html', subcategorias=subcategorias)
         nuevo = Producto(nombre=nombre or None, id_subcategoria=id_subcategoria)
         _aplicar_specs_producto(nuevo, request.form)
+        _aplicar_variantes_producto(nuevo, request.form)
         db.session.add(nuevo)
         db.session.flush()
         procesar_imagenes(request.files.getlist('imagenes'), nuevo, 'producto')
@@ -1144,6 +1193,7 @@ def admin_edit_producto(id):
         prod.nombre = nombre or None  # vacío = se infiere de subcategoría + HP
         prod.id_subcategoria = request.form.get('id_subcategoria', type=int) or prod.id_subcategoria
         _aplicar_specs_producto(prod, request.form)
+        _aplicar_variantes_producto(prod, request.form)
         eliminar_imagenes_seleccionadas(prod, request.form.getlist('eliminar_imagen'))
         procesar_imagenes(request.files.getlist('imagenes'), prod, 'producto')
         procesar_imagenes_cloudinary(request.form.getlist('cloudinary_ids'), prod)

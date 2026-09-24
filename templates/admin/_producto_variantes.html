@@ -1,0 +1,75 @@
+{# Variantes del producto: filas repetibles (etiqueta + precio). Manejo 100% client-side;
+   el backend las procesa como listas paralelas. #}
+{% set p = producto if producto is defined else None %}
+<div class="card mb-3">
+  <div class="card-header fw-bold small d-flex justify-content-between align-items-center">
+    <span><i class="fas fa-layer-group me-1"></i> Variantes (mismo producto, otro precio)</span>
+    <button type="button" class="btn btn-sm btn-outline-primary" id="btnAgregarVariante">
+      <i class="fas fa-plus me-1"></i> Agregar
+    </button>
+  </div>
+  <div class="card-body p-2">
+    <p class="text-muted small mb-2">Ej: "Estándar" y "Eléctrico (resistencias)" — solo cambia el precio.</p>
+    <div id="variantesLista">
+      {% if p %}
+        {% for v in p.variantes %}
+        <div class="row g-2 align-items-end mb-2 variante-row">
+          <div class="col-md-6">
+            <input class="form-control form-control-sm" name="variante_etiqueta" value="{{ v.etiqueta }}" placeholder='Etiqueta (ej: "Eléctrico")' maxlength="200">
+          </div>
+          <div class="col-md-4">
+            <input class="form-control form-control-sm" type="number" step="0.01" min="0" name="variante_precio" value="{{ v.precio }}" placeholder="Precio (USD)">
+          </div>
+          <div class="col-md-2">
+            <button type="button" class="btn btn-sm btn-outline-danger w-100 btn-quitar-variante" title="Quitar esta variante">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+    <div id="varianteVaciaMsg" class="text-muted small" {% if p and p.variantes %}style="display:none"{% endif %}>
+      Sin variantes. El precio del producto es único.
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const lista = document.getElementById('variantesLista');
+  const vacioMsg = document.getElementById('varianteVaciaMsg');
+  const btnAdd = document.getElementById('btnAgregarVariante');
+
+  function actualizarVacio() {
+    vacioMsg.style.display = lista.querySelectorAll('.variante-row').length === 0 ? '' : 'none';
+  }
+
+  function agregarRow(etiqueta = '', precio = '') {
+    const row = document.createElement('div');
+    row.className = 'row g-2 align-items-end mb-2 variante-row';
+    row.innerHTML = `
+      <div class="col-md-6">
+        <input class="form-control form-control-sm" name="variante_etiqueta" value="${etiqueta}" placeholder='Etiqueta (ej: "Eléctrico")' maxlength="200">
+      </div>
+      <div class="col-md-4">
+        <input class="form-control form-control-sm" type="number" step="0.01" min="0" name="variante_precio" value="${precio}" placeholder="Precio (USD)">
+      </div>
+      <div class="col-md-2">
+        <button type="button" class="btn btn-sm btn-outline-danger w-100 btn-quitar-variante" title="Quitar">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>`;
+    lista.appendChild(row);
+    actualizarVacio();
+  }
+
+  btnAdd.addEventListener('click', () => agregarRow());
+  lista.addEventListener('click', function(e) {
+    if (e.target.closest('.btn-quitar-variante')) {
+      e.target.closest('.variante-row').remove();
+      actualizarVacio();
+    }
+  });
+})();
+</script>

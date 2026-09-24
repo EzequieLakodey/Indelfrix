@@ -368,7 +368,7 @@
                                                             <div class="flex-grow-1">
                                                                 <span class="small fw-semibold">{{ prod.nombre_display() }}</span>
                                                             </div>
-                                                            {% if prod.specs_lista() or prod.precio is not none %}
+                                                            {% if prod.specs_lista() or prod.precio is not none or prod.variantes %}
                                                             <button type="button"
                                                                 class="btn btn-sm btn-outline-secondary btn-toggle-specs flex-shrink-0"
                                                                 data-bs-toggle="collapse"
@@ -402,10 +402,15 @@
                                                                 {% if prod.precio is not none %}
                                                                 <div class="d-flex align-items-center gap-2 mt-1 pt-1 border-top">
                                                                     <i class="fas fa-tag text-success" style="width:14px;"></i>
-                                                                    <span>Precio: <strong class="text-success fs-6">{{ prod.precio_formateado() }}</strong>
-                                                                        <small class="text-muted">{{ prod.moneda }}</small></span>
+                                                                    <span>Estándar: <strong class="text-success fs-6">{{ prod.precio_formateado() }}</strong></span>
                                                                 </div>
                                                                 {% endif %}
+                                                                {% for var in prod.variantes %}
+                                                                <div class="d-flex align-items-center gap-2 ps-2">
+                                                                    <i class="fas fa-angle-right text-muted" style="width:14px;"></i>
+                                                                    <span>{{ var.etiqueta }}: <strong class="text-dark fs-6">{{ var.precio_formateado(prod.moneda == 'USD' and 'US$' or '$') }}</strong></span>
+                                                                </div>
+                                                                {% endfor %}
                                                             </div>
                                                         </div>
                                                         {% endif %}
