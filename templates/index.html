@@ -367,16 +367,13 @@
                                                         <div class="d-flex align-items-center gap-2">
                                                             <div class="flex-grow-1">
                                                                 <span class="small fw-semibold">{{ prod.nombre_display() }}</span>
-                                                                {% if prod.precio is not none %}
-                                                                <span class="text-success small fw-bold ms-1">{{ prod.precio_formateado() }}</span>
-                                                                {% endif %}
                                                             </div>
-                                                            {% if prod.specs_lista() %}
+                                                            {% if prod.specs_lista() or prod.precio is not none %}
                                                             <button type="button"
                                                                 class="btn btn-sm btn-outline-secondary btn-toggle-specs flex-shrink-0"
                                                                 data-bs-toggle="collapse"
                                                                 data-bs-target="#specs-prod-{{ prod.id_producto }}"
-                                                                title="Ver especificaciones">
+                                                                title="Ver especificaciones y precio">
                                                                 <i class="fas fa-chevron-down"></i>
                                                             </button>
                                                             {% endif %}
@@ -389,8 +386,8 @@
                                                                 <i class="fas fa-plus"></i>
                                                             </button>
                                                         </div>
-                                                        <!-- Specs expandibles -->
-                                                        {% if prod.specs_lista() %}
+                                                         <!-- Specs expandibles -->
+                                                        {% if prod.specs_lista() or prod.precio is not none %}
                                                         <div class="collapse mt-1" id="specs-prod-{{ prod.id_producto }}">
                                                             <div class="card card-body p-2 bg-light border-0"
                                                                 style="font-size:.78rem;">
@@ -402,6 +399,13 @@
                                                                             class="text-dark">{{ valor }}</strong></span>
                                                                 </div>
                                                                 {% endfor %}
+                                                                {% if prod.precio is not none %}
+                                                                <div class="d-flex align-items-center gap-2 mt-1 pt-1 border-top">
+                                                                    <i class="fas fa-tag text-success" style="width:14px;"></i>
+                                                                    <span>Precio: <strong class="text-success fs-6">{{ prod.precio_formateado() }}</strong>
+                                                                        <small class="text-muted">{{ prod.moneda }}</small></span>
+                                                                </div>
+                                                                {% endif %}
                                                             </div>
                                                         </div>
                                                         {% endif %}
