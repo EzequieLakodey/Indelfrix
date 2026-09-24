@@ -181,7 +181,7 @@ def _agregar_producto(cliente, producto_id, cantidad):
             pedido=pedido,
             id_producto=producto.id_producto,
             cantidad=cantidad,
-            nombre=producto.nombre,
+            nombre=producto.nombre_display(),
             categoria=cat,
             subcategoria=sub,
         )

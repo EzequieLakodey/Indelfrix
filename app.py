@@ -252,7 +252,7 @@ class Tag(db.Model):
 class Producto(db.Model):
     __tablename__ = 'productos'
     id_producto = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(200), nullable=False)
+    nombre = db.Column(db.String(200))  # ahora opcional: se genera auto si está en blanco
     id_subcategoria = db.Column(db.Integer, db.ForeignKey('subcategorias.id_subcategoria'), nullable=False)
     imagenes = db.relationship('Imagen', secondary=productos_imagenes, backref='productos')
 
@@ -267,6 +267,15 @@ class Producto(db.Model):
     profundidad_mm = db.Column(db.Integer)
     precio = db.Column(db.Numeric(12, 2))               # exacto para dinero
     moneda = db.Column(db.String(3), default='ARS')
+
+    def nombre_display(self):
+        """Nombre legible para el usuario: subcategoría + HP si los tiene.
+        Siempre devuelve algo útil (no vacío)."""
+        if self.nombre and self.nombre.strip():
+            return self.nombre
+        sub = self.subcategoria.nombre if self.subcategoria else 'Producto'
+        hp_txt = f' {float(self.hp)} HP' if self.hp is not None else ''
+        return f'{sub}{hp_txt}'
 
     def specs_lista(self):
         """Lista de specs con valor asignado, en orden de importancia (para UI)."""
@@ -475,6 +484,14 @@ def _ensure_schema():
         if 'nombre' not in cols:
             db.session.execute(text("ALTER TABLE productos ADD COLUMN nombre VARCHAR(200) DEFAULT ''"))
             db.session.commit()
+        else:
+            # Remover NOT NULL: el nombre ahora es opcional (se infiere de subcategoría+hp)
+            if any(c['name'] == 'nombre' and c.get('nullable') is False for c in inspector.get_columns('productos')):
+                try:
+                    db.session.execute(text("ALTER TABLE productos ALTER COLUMN nombre DROP NOT NULL"))
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()  # SQLite no soporta DROP NOT NULL — se ignora
         for col_name, col_type in [
             ('hp', 'NUMERIC(4,2)'),
             ('kcal_por_hora', 'INTEGER'),
@@ -1098,14 +1115,14 @@ def admin_create_producto():
     if request.method == 'POST':
         nombre = (request.form.get('nombre') or '').strip()
         id_subcategoria = request.form.get('id_subcategoria', type=int)
-        if not nombre or not id_subcategoria:
-            flash('Nombre y subcategoría son obligatorios', 'danger')
+        if not id_subcategoria:
+            flash('La subcategoría es obligatoria', 'danger')
             return render_template('admin/create_producto.html', subcategorias=subcategorias)
         sub = Subcategoria.query.get(id_subcategoria)
         if not sub:
             flash('Subcategoría inválida', 'danger')
             return render_template('admin/create_producto.html', subcategorias=subcategorias)
-        nuevo = Producto(nombre=nombre, id_subcategoria=id_subcategoria)
+        nuevo = Producto(nombre=nombre or None, id_subcategoria=id_subcategoria)
         _aplicar_specs_producto(nuevo, request.form)
         db.session.add(nuevo)
         db.session.flush()
@@ -1124,10 +1141,7 @@ def admin_edit_producto(id):
     subcategorias = Subcategoria.query.order_by(Subcategoria.nombre).all()
     if request.method == 'POST':
         nombre = (request.form.get('nombre') or '').strip()
-        if not nombre:
-            flash('El nombre es obligatorio', 'danger')
-            return render_template('admin/edit_producto.html', producto=prod, subcategorias=subcategorias)
-        prod.nombre = nombre
+        prod.nombre = nombre or None  # vacío = se infiere de subcategoría + HP
         prod.id_subcategoria = request.form.get('id_subcategoria', type=int) or prod.id_subcategoria
         _aplicar_specs_producto(prod, request.form)
         eliminar_imagenes_seleccionadas(prod, request.form.getlist('eliminar_imagen'))

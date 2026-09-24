@@ -4,8 +4,8 @@
   <h3>Editar Producto</h3>
   <form method="post" enctype="multipart/form-data">
     <div class="mb-3">
-      <label class="form-label">Nombre</label>
-      <input class="form-control" name="nombre" value="{{ producto.nombre }}" required>
+      <label class="form-label">Nombre <span class="text-muted fw-normal">(opcional — si está vacío se muestra subcategoría + HP)</span></label>
+      <input class="form-control" name="nombre" value="{{ producto.nombre or '' }}" placeholder="{{ producto.nombre_display() }}">
     </div>
     <div class="mb-3">
       <label class="form-label">Subcategoría</label>

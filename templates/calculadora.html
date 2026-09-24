@@ -200,7 +200,7 @@
         </div>
         <div class="card-body text-center py-4">
           <i class="fas fa-box fa-2x text-primary mb-2"></i>
-          <h4 class="fw-bold">{{ producto_especifico.nombre }}</h4>
+          <h4 class="fw-bold">{{ producto_especifico.nombre_display() }}</h4>
           <a href="{{ url_for('inicio') }}#subcategoria-{{ producto_especifico.subcategoria.id_subcategoria }}"
              class="btn btn-outline-primary btn-sm mt-2">Ver en catálogo</a>
         </div>

@@ -34,7 +34,7 @@
           <td>
             <strong>{{ r.resultado_categoria }}</strong>
             {% if r.resultado_subcategoria %}<br><small class="text-muted">{{ r.resultado_subcategoria }}</small>{% endif %}
-            {% if r.resultado_producto_id %}<br><span class="badge text-bg-primary">{{ r.resultado_producto.nombre if r.resultado_producto else '' }}</span>{% endif %}
+            {% if r.resultado_producto_id %}<br><span class="badge text-bg-primary">{{ r.resultado_producto.nombre_display() if r.resultado_producto else '' }}</span>{% endif %}
           </td>
           <td class="text-end">
             <a href="{{ url_for('admin_edit_regla', id=r.id) }}" class="btn btn-sm btn-outline-secondary">Editar</a>

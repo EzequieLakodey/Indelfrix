@@ -366,7 +366,7 @@
                                                         <!-- Fila principal -->
                                                         <div class="d-flex align-items-center gap-2">
                                                             <div class="flex-grow-1">
-                                                                <span class="small fw-semibold">{{ prod.nombre }}</span>
+                                                                <span class="small fw-semibold">{{ prod.nombre_display() }}</span>
                                                                 {% if prod.precio is not none %}
                                                                 <span class="text-success small fw-bold ms-1">{{ prod.precio_formateado() }}</span>
                                                                 {% endif %}

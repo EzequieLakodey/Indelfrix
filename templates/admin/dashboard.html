@@ -74,7 +74,7 @@
           {% for prod in sub.productos %}
           <li class="list-group-item d-flex justify-content-between align-items-center">
             <span>
-              {{ prod.nombre }}
+              {{ prod.nombre_display() }}
               {% if prod.imagenes|length > 0 %}
               <span class="badge text-bg-info ms-1">{{ prod.imagenes|length }} img</span>
               {% endif %}
