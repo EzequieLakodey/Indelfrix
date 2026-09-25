@@ -378,11 +378,14 @@ class Pedido(db.Model):
 
 
 class PedidoItem(db.Model):
+    __tablename__ = 'pedido_items'
     id = db.Column(db.Integer, primary_key=True)
     id_pedido = db.Column(db.Integer, db.ForeignKey('pedidos.id'), nullable=False)
     id_producto = db.Column(db.Integer, db.ForeignKey('productos.id_producto'), nullable=True)
+    id_variante = db.Column(db.Integer, db.ForeignKey('variantes_producto.id'), nullable=True)
     cantidad = db.Column(db.Integer, nullable=False, default=1)
     nombre = db.Column(db.String(200), nullable=False)
+    variante_etiqueta = db.Column(db.String(200))
     categoria = db.Column(db.String(100))
     subcategoria = db.Column(db.String(100))
 
@@ -578,6 +581,22 @@ def _ensure_schema():
         if 'localidad' not in cols:
             db.session.execute(text("ALTER TABLE pedidos ADD COLUMN localidad VARCHAR(200)"))
             db.session.commit()
+    if 'pedido_items' in inspector.get_table_names():
+        cols = {col['name'] for col in inspector.get_columns('pedido_items')}
+        for col_name, col_type in [
+            ('id_variante', 'INTEGER'),
+            ('variante_etiqueta', 'VARCHAR(200)'),
+        ]:
+            if col_name not in cols:
+                db.session.execute(text(f"ALTER TABLE pedido_items ADD COLUMN {col_name} {col_type}"))
+                db.session.commit()
+    # Limpieza: tabla huérfana creada por un bug de __tablename__
+    if 'pedido_item' in inspector.get_table_names():
+        try:
+            db.session.execute(text('DROP TABLE pedido_item'))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     if 'reglas_calculadora' in inspector.get_table_names():
         cols = {col['name'] for col in inspector.get_columns('reglas_calculadora')}
         for col_name, col_type in [

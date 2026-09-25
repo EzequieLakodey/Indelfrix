@@ -389,7 +389,7 @@
                                                             </button>
                                                         </div>
                                                          <!-- Specs expandibles -->
-                                                        {% if prod.specs_lista() or prod.precio is not none %}
+                                                        {% if prod.specs_lista() or prod.precio is not none or prod.variantes %}
                                                         <div class="collapse mt-1" id="specs-prod-{{ prod.id_producto }}">
                                                             <div class="card card-body p-2 bg-light border-0"
                                                                 style="font-size:.78rem;">
@@ -404,13 +404,22 @@
                                                                 {% if prod.precio is not none %}
                                                                 <div class="d-flex align-items-center gap-2 mt-1 pt-1 border-top">
                                                                     <i class="fas fa-tag text-success" style="width:14px;"></i>
-                                                                    <span>Estándar: <strong class="text-success fs-6">{{ prod.precio_formateado() }}</strong></span>
+                                                                    <span class="flex-grow-1">Estándar: <strong class="text-success fs-6">{{ prod.precio_formateado() }}</strong></span>
                                                                 </div>
                                                                 {% endif %}
                                                                 {% for var in prod.variantes %}
-                                                                <div class="d-flex align-items-center gap-2 ps-2">
-                                                                    <i class="fas fa-angle-right text-muted" style="width:14px;"></i>
-                                                                    <span>{{ var.etiqueta }}: <strong class="text-dark fs-6">{{ var.precio_formateado(prod.moneda == 'USD' and 'US$' or '$') }}</strong></span>
+                                                                <div class="d-flex align-items-center gap-1 ps-2 mt-1 variante-row"
+                                                                    data-variante-id="{{ var.id }}">
+                                                                    <i class="fas fa-angle-right text-muted" style="width:12px;"></i>
+                                                                    <span class="flex-grow-1">{{ var.etiqueta }}: <strong class="text-dark">{{ var.precio_formateado(prod.moneda == 'USD' and 'US$' or '$') }}</strong></span>
+                                                                    <input type="number" min="1" max="9999" value="1"
+                                                                        class="form-control form-control-sm var-qty" style="width:3.4rem"
+                                                                        aria-label="Cantidad variante">
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary btn-add-pedido"
+                                                                        title="Agregar variante a pedido">
+                                                                        <i class="fas fa-plus"></i>
+                                                                    </button>
                                                                 </div>
                                                                 {% endfor %}
                                                             </div>
@@ -1061,7 +1070,7 @@
         const googleReady = {{ 'true' if google_ready else 'false' }};
         const clienteLogueado = {{ 'true' if cliente else 'false' }};
 
-        async function agregarAlPedido(productoId, cantidad) {
+        async function agregarAlPedido(productoId, cantidad, varianteId = null) {
             if (!clienteLogueado && !googleReady) {
                 alert('Para armar pedidos es necesario iniciar sesión con Google.\n\nNota: Las credenciales de Google OAuth no están configuradas en este entorno local/desarrollo (.env vacío).');
                 const offcanvasEl = document.getElementById('pedidoOffcanvas');
@@ -1072,10 +1081,12 @@
                 return false;
             }
 
+            const payload = { id_producto: productoId, cantidad: cantidad };
+            if (varianteId) payload.id_variante = varianteId;
             const resp = await fetch('{{ url_for("pedido_agregar") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id_producto: productoId, cantidad: cantidad })
+                body: JSON.stringify(payload)
             });
             const data = await resp.json();
             if (!resp.ok) {
@@ -1130,7 +1141,7 @@
                                     data-item-id="${item.id}">
                                 <div>
                                     ${item.categoria || item.subcategoria ? `<small class="text-muted d-block">${item.categoria || ''}${item.categoria && item.subcategoria ? ' › ' : ''}${item.subcategoria || ''}</small>` : ''}
-                                    <span class="fw-medium">${item.nombre}</span>
+                                    <span class="fw-medium">${item.nombre}${item.variante ? ` <em class="text-muted">(${item.variante})</em>` : ''}</span>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pedido-item"
@@ -1163,14 +1174,22 @@
 
         // Botones "Agregar al pedido" en las cards (delegación)
         document.body.addEventListener('click', function (e) {
-            if (e.target.matches('.btn-add-pedido')) {
-                const row = e.target.closest('.pedido-prod-row');
-                if (!row) return;
-                const productoId = parseInt(row.dataset.productoId);
-                const qtyInput = row.querySelector('.prod-qty');
-                const cantidad = parseInt(qtyInput?.value) || 1;
-                agregarAlPedido(productoId, cantidad);
+            const btn = e.target.closest('.btn-add-pedido');
+            if (!btn) return;
+            const row = btn.closest('.pedido-prod-row');
+            if (!row) return;
+            const productoId = parseInt(row.dataset.productoId);
+
+            // ¿El botón pertenece a una fila de variante?
+            const varRow = btn.closest('.variante-row');
+            if (varRow) {
+                const varianteId = varRow.dataset.varianteId;
+                const cantidad = parseInt(varRow.querySelector('.var-qty')?.value) || 1;
+                agregarAlPedido(productoId, cantidad, varianteId);
+                return;
             }
+            const cantidad = parseInt(row.querySelector('.prod-qty')?.value) || 1;
+            agregarAlPedido(productoId, cantidad);
         });
 
         // El offcanvas está más abajo en el HTML: esperar a que el DOM termine de parsear
@@ -1219,7 +1238,7 @@
                                 <small class="text-muted d-block">{{ item.categoria }}{% if item.categoria and
                                     item.subcategoria %} › {% endif %}{{ item.subcategoria }}</small>
                                 {% endif %}
-                                <span class="fw-medium">{{ item.nombre }}</span>
+                                <span class="fw-medium">{{ item.nombre }}{% if item.variante_etiqueta %} <em class="text-muted">({{ item.variante_etiqueta }})</em>{% endif %}</span>
                             </div>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pedido-item"

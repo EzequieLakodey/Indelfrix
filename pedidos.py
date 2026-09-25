@@ -60,13 +60,23 @@ def _items_payload(pedido):
         {
             'id': item.id,
             'id_producto': item.id_producto,
+            'id_variante': item.id_variante,
             'nombre': item.nombre,
+            'variante': item.variante_etiqueta or '',
             'categoria': item.categoria or '',
             'subcategoria': item.subcategoria or '',
             'cantidad': item.cantidad,
         }
         for item in pedido.items
     ]
+
+
+def _linea_item(item):
+    """Línea de un ítem del pedido, con variante si la tiene."""
+    ruta = ' > '.join(p for p in [item.categoria, item.subcategoria] if p)
+    prefix = f'{ruta}: ' if ruta else ''
+    variante = f' [Variante: {item.variante_etiqueta}]' if item.variante_etiqueta else ''
+    return f'{prefix}{item.nombre}{variante}'
 
 
 def _pedido_texto(pedido, cliente):
@@ -84,9 +94,7 @@ def _pedido_texto(pedido, cliente):
         'PRODUCTOS SOLICITADOS (sin precios ni stock):',
     ]
     for item in pedido.items:
-        ruta = ' > '.join(p for p in [item.categoria, item.subcategoria] if p)
-        prefix = f'{ruta}: ' if ruta else ''
-        lineas.append(f'- {prefix}{item.nombre}  x{item.cantidad}')
+        lineas.append(f'- {_linea_item(item)}  x{item.cantidad}')
     if pedido.observaciones:
         lineas.append('')
         lineas.append('OBSERVACIONES:')
@@ -111,9 +119,7 @@ def _pedido_whatsapp_texto(pedido, cliente):
         '*PRODUCTOS:*',
     ]
     for item in pedido.items:
-        ruta = ' > '.join(p for p in [item.categoria, item.subcategoria] if p)
-        prefix = f'{ruta}: ' if ruta else ''
-        lineas.append(f'- {prefix}{item.nombre} x{item.cantidad}')
+        lineas.append(f'- {_linea_item(item)} x{item.cantidad}')
     if pedido.observaciones:
         lineas.append('')
         lineas.append('*OBSERVACIONES:*')
@@ -163,25 +169,39 @@ def _send_pedido_mail_async(pedido_id):
 
 
 
-def _agregar_producto(cliente, producto_id, cantidad):
+def _agregar_producto(cliente, producto_id, cantidad, variante_id=None):
     producto = db.session.get(Producto, producto_id)
     if not producto:
         return None, 'Producto no encontrado'
     cantidad = max(1, min(int(cantidad or 1), 9999))
     pedido = _ensure_open_pedido(cliente)
-    item = next((i for i in pedido.items if i.id_producto == producto.id_producto), None)
+
+    # Validar variante (si viene): debe pertenecer al producto
+    variante = None
+    if variante_id:
+        from app import VarianteProducto
+        variante = db.session.get(VarianteProducto, int(variante_id))
+        if not variante or variante.id_producto != producto.id_producto:
+            return None, 'Variante no válida'
+
+    # Identidad del ítem = (producto, variante). Misma combinación acumula cantidad.
+    item = next((i for i in pedido.items
+                 if i.id_producto == producto.id_producto and i.id_variante == (variante.id if variante else None)), None)
     cat, sub = _producto_labels(producto)
     if item:
         item.cantidad = min(item.cantidad + cantidad, 9999)
-        item.nombre = producto.nombre
+        item.nombre = producto.nombre_display()
+        item.variante_etiqueta = variante.etiqueta if variante else None
         item.categoria = cat
         item.subcategoria = sub
     else:
         item = PedidoItem(
             pedido=pedido,
             id_producto=producto.id_producto,
+            id_variante=variante.id if variante else None,
             cantidad=cantidad,
             nombre=producto.nombre_display(),
+            variante_etiqueta=variante.etiqueta if variante else None,
             categoria=cat,
             subcategoria=sub,
         )
@@ -273,12 +293,14 @@ def pedido_agregar():
     data = request.get_json(silent=True) or {}
     producto_id = data.get('id_producto') or request.form.get('id_producto', type=int)
     cantidad = data.get('cantidad') or request.form.get('cantidad', 1)
+    variante_id = data.get('id_variante') or request.form.get('id_variante')
     try:
         producto_id = int(producto_id)
         cantidad = int(cantidad)
+        variante_id = int(variante_id) if variante_id else None
     except (TypeError, ValueError):
         return jsonify({'ok': False, 'error': 'Datos inválidos'}), 400
-    pedido, error = _agregar_producto(cliente_actual(), producto_id, cantidad)
+    pedido, error = _agregar_producto(cliente_actual(), producto_id, cantidad, variante_id)
     if error:
         return jsonify({'ok': False, 'error': error}), 404
     return jsonify({
