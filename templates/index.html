@@ -1141,7 +1141,7 @@
                                     data-item-id="${item.id}">
                                 <div>
                                     ${item.categoria || item.subcategoria ? `<small class="text-muted d-block">${item.categoria || ''}${item.categoria && item.subcategoria ? ' › ' : ''}${item.subcategoria || ''}</small>` : ''}
-                                    <span class="fw-medium">${item.nombre}${item.variante ? ` <em class="text-muted">(${item.variante})</em>` : ''}</span>
+                                    <span class="fw-medium">${item.nombre}${item.variante ? ` <em class="text-muted">(${item.variante})</em>` : ''}${item.precio ? ` <small class="text-success">${item.precio}</small>` : ''}</span>
                                 </div>
                             </div>
                             <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-pedido-item"

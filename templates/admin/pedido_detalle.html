@@ -39,23 +39,47 @@
     <div class="card-header fw-bold">Productos ({{ pedido.items|length }})</div>
     <ul class="list-group list-group-flush">
       {% for item in pedido.items %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>
-          {% if item.categoria or item.subcategoria %}
-          <small class="text-muted d-block">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</small>
-          {% endif %}
-          {{ item.nombre }}
-          {% if item.variante %}
-          <span class="badge text-bg-primary ms-1">{{ item.variante.etiqueta }}</span>
-          <span class="badge text-bg-success ms-1">US$ {{ '%.2f' % item.variante.precio }}</span>
-          {% endif %}
-        </span>
-        <span class="badge text-bg-secondary">×{{ item.cantidad }}</span>
+      <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            {% if item.categoria or item.subcategoria %}
+            <small class="text-muted d-block">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</small>
+            {% endif %}
+            <strong>{{ item.nombre }}</strong>
+            {% if item.variante_etiqueta %}
+            <span class="badge text-bg-primary ms-1">{{ item.variante_etiqueta }}</span>
+            {% endif %}
+            {% if item.specs_texto %}
+            <div class="text-muted" style="font-size:.78rem;"><i class="fas fa-sliders-h me-1"></i>{{ item.specs_texto }}</div>
+            {% endif %}
+          </div>
+          <div class="text-end ms-2" style="min-width:150px;">
+            {% if item.precio_unitario is not none %}
+            <div class="small">{{ 'US$' if (item.moneda or 'USD') == 'USD' else '$' }} {{ '%.2f' % item.precio_unitario }} c/u</div>
+            <div class="fw-bold">{{ 'US$' if (item.moneda or 'USD') == 'USD' else '$' }} {{ '%.2f' % (item.precio_unitario * item.cantidad) }}</div>
+            {% else %}
+            <span class="text-muted small">a cotizar</span>
+            {% endif %}
+            <span class="badge text-bg-secondary">×{{ item.cantidad }}</span>
+          </div>
+        </div>
       </li>
       {% else %}
       <li class="list-group-item text-muted">Sin productos.</li>
       {% endfor %}
     </ul>
+    {% set totales = {} %}
+    {% for item in pedido.items if item.precio_unitario is not none %}
+      {% set _ = totales.update({(item.moneda or 'USD'): totales.get((item.moneda or 'USD'), 0) + item.precio_unitario * item.cantidad}) %}
+    {% endfor %}
+    {% if totales %}
+    <div class="card-footer d-flex justify-content-end gap-2">
+      <span class="fw-bold">TOTAL:</span>
+      {% for mon, val in totales.items() %}
+      <span class="fw-bold text-success">{{ 'US$' if mon == 'USD' else '$' }} {{ '%.2f' % val }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 
   {% if pedido.observaciones %}
@@ -72,6 +96,7 @@
       <p class="mb-1"><strong>Enviado:</strong> {{ pedido.enviado_at|fecha_ar or '—' }}</p>
       <p class="mb-3"><strong>Email de respaldo:</strong>
         {% if pedido.mail_enviado %}<span class="text-success">enviado ✔</span>{% else %}<span class="text-danger">no enviado ✗</span>{% endif %}
+        {% if pedido.mail_error %}<br><small class="text-danger">Error: {{ pedido.mail_error }}</small>{% endif %}
       </p>
       <form method="post" action="{{ url_for('admin_pedido_estado', id=pedido.id) }}" class="d-flex gap-2 align-items-center">
         <label class="form-label mb-0 fw-bold">Cambiar estado:</label>

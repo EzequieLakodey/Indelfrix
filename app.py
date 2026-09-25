@@ -307,6 +307,10 @@ class Producto(db.Model):
                 specs.append(('fas fa-ruler', 'Dimensión', ' × '.join(str(d) for d in dims) + ' mm'))
         return specs
 
+    def specs_texto(self):
+        """Specs en una línea: 'Potencia: 0.25 HP · Ventiladores: 0 · ...'"""
+        return ' · '.join(f'{label}: {valor}' for _icono, label, valor in self.specs_lista())
+
     def tiene_precio(self):
         return self.precio is not None
 
@@ -369,6 +373,7 @@ class Pedido(db.Model):
     localidad = db.Column(db.String(200))
     observaciones = db.Column(db.Text)
     mail_enviado = db.Column(db.Boolean, default=False)
+    mail_error = db.Column(db.String(500))
     whatsapp_enviado = db.Column(db.Boolean, default=False)
     whatsapp_error = db.Column(db.String(500))
     creado = db.Column(db.DateTime, default=datetime.utcnow)
@@ -388,6 +393,10 @@ class PedidoItem(db.Model):
     variante_etiqueta = db.Column(db.String(200))
     categoria = db.Column(db.String(100))
     subcategoria = db.Column(db.String(100))
+    # Snapshots al momento de agregar (precio y specs pueden cambiar después)
+    precio_unitario = db.Column(db.Numeric(12, 2))
+    moneda = db.Column(db.String(3))
+    specs_texto = db.Column(db.String(600))
 
     variante = db.relationship('VarianteProducto', foreign_keys=[id_variante])
 
@@ -583,11 +592,17 @@ def _ensure_schema():
         if 'localidad' not in cols:
             db.session.execute(text("ALTER TABLE pedidos ADD COLUMN localidad VARCHAR(200)"))
             db.session.commit()
+        if 'mail_error' not in cols:
+            db.session.execute(text("ALTER TABLE pedidos ADD COLUMN mail_error VARCHAR(500)"))
+            db.session.commit()
     if 'pedido_items' in inspector.get_table_names():
         cols = {col['name'] for col in inspector.get_columns('pedido_items')}
         for col_name, col_type in [
             ('id_variante', 'INTEGER'),
             ('variante_etiqueta', 'VARCHAR(200)'),
+            ('precio_unitario', 'NUMERIC(12,2)'),
+            ('moneda', 'VARCHAR(3)'),
+            ('specs_texto', 'VARCHAR(600)'),
         ]:
             if col_name not in cols:
                 db.session.execute(text(f"ALTER TABLE pedido_items ADD COLUMN {col_name} {col_type}"))

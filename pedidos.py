@@ -66,17 +66,70 @@ def _items_payload(pedido):
             'categoria': item.categoria or '',
             'subcategoria': item.subcategoria or '',
             'cantidad': item.cantidad,
+            'precio': _fmt_precio(item.precio_unitario, item.moneda) if item.precio_unitario is not None else None,
         }
         for item in pedido.items
     ]
 
 
+def _fmt_precio(valor, moneda='USD'):
+    """Formatea un monto: US$ 1.250.000,00 (o $ para ARS). None -> None."""
+    if valor is None:
+        return None
+    entero, dec = f'{float(valor):.2f}'.split('.')
+    entero_fmt = ''
+    while len(entero) > 3:
+        entero_fmt = '.' + entero[-3:] + entero_fmt
+        entero = entero[:-3]
+    entero_fmt = entero + entero_fmt
+    simbolo = 'US$' if (moneda or 'USD') == 'USD' else '$'
+    return f'{simbolo} {entero_fmt},{dec}'
+
+
 def _linea_item(item):
-    """Línea de un ítem del pedido, con variante si la tiene."""
+    """Título del ítem: ruta + nombre + (variante)."""
     ruta = ' > '.join(p for p in [item.categoria, item.subcategoria] if p)
     prefix = f'{ruta}: ' if ruta else ''
     variante = f' [Variante: {item.variante_etiqueta}]' if item.variante_etiqueta else ''
     return f'{prefix}{item.nombre}{variante}'
+
+
+def _lineas_item(item):
+    """Líneas de un ítem: título + specs + precio unitario/subtotal."""
+    lineas = [f'- {_linea_item(item)}']
+    if item.specs_texto:
+        lineas.append(f'    Specs: {item.specs_texto}')
+    if item.precio_unitario is not None:
+        mon = item.moneda or 'USD'
+        unit = _fmt_precio(item.precio_unitario, mon)
+        subtotal = _fmt_precio(float(item.precio_unitario) * item.cantidad, mon)
+        lineas.append(f'    Precio unitario: {unit}  × {item.cantidad}  =  {subtotal}')
+    else:
+        lineas.append('    Precio: a cotizar')
+    return lineas
+
+
+def _totales_pedido(pedido):
+    """Suma por moneda de los ítems con precio. {moneda: total}."""
+    totales = {}
+    for it in pedido.items:
+        if it.precio_unitario is not None:
+            mon = it.moneda or 'USD'
+            totales[mon] = totales.get(mon, 0.0) + float(it.precio_unitario) * it.cantidad
+    return totales
+
+
+def _bloque_total(pedido, whatsapp=False):
+    """Líneas del TOTAL (y aviso si hay ítems sin precio)."""
+    totales = _totales_pedido(pedido)
+    out = []
+    if totales:
+        montos = ' + '.join(_fmt_precio(v, m) for m, v in totales.items())
+        out.append(f'*TOTAL: {montos}*' if whatsapp else f'TOTAL: {montos}')
+    sin_precio = [it for it in pedido.items if it.precio_unitario is None]
+    if sin_precio:
+        out.append('(Los ítems sin precio se cotizan por separado.)')
+    return out
 
 
 def _pedido_texto(pedido, cliente):
@@ -91,10 +144,12 @@ def _pedido_texto(pedido, cliente):
         f'- Empresa: {pedido.empresa or "-"}',
         f'- Localidad: {pedido.localidad or "-"}',
         '',
-        'PRODUCTOS SOLICITADOS (sin precios ni stock):',
+        'PRODUCTOS SOLICITADOS (precios de referencia):',
     ]
     for item in pedido.items:
-        lineas.append(f'- {_linea_item(item)}  x{item.cantidad}')
+        lineas.extend(_lineas_item(item))
+    lineas.append('')
+    lineas.extend(_bloque_total(pedido))
     if pedido.observaciones:
         lineas.append('')
         lineas.append('OBSERVACIONES:')
@@ -119,7 +174,10 @@ def _pedido_whatsapp_texto(pedido, cliente):
         '*PRODUCTOS:*',
     ]
     for item in pedido.items:
-        lineas.append(f'- {_linea_item(item)} x{item.cantidad}')
+        # WhatsApp: usamos _lineas_item pero con formato un poco más compacto
+        lineas.extend(_lineas_item(item))
+    lineas.append('')
+    lineas.extend(_bloque_total(pedido, whatsapp=True))
     if pedido.observaciones:
         lineas.append('')
         lineas.append('*OBSERVACIONES:*')
@@ -161,9 +219,15 @@ def _send_pedido_mail_async(pedido_id):
             try:
                 _send_pedido_mail(pedido, pedido.cliente, _pedido_texto(pedido, pedido.cliente))
                 pedido.mail_enviado = True
+                pedido.mail_error = None
                 db.session.commit()
             except Exception as exc:
                 db.session.rollback()
+                pedido = db.session.get(Pedido, pedido_id)
+                if pedido:
+                    pedido.mail_enviado = False
+                    pedido.mail_error = str(exc)[:500]
+                    db.session.commit()
                 app.logger.warning('Mail de respaldo del pedido #%s falló: %s', pedido_id, exc)
     threading.Thread(target=_job, daemon=True).start()
 
@@ -188,23 +252,33 @@ def _agregar_producto(cliente, producto_id, cantidad, variante_id=None):
     item = next((i for i in pedido.items
                  if i.id_producto == producto.id_producto and i.id_variante == (variante.id if variante else None)), None)
     cat, sub = _producto_labels(producto)
+    # Precio unitario: usa el de la variante si existe y tiene, si no el del producto
+    precio_unit = None
+    if variante and variante.precio is not None:
+        precio_unit = variante.precio
+    elif producto.precio is not None:
+        precio_unit = producto.precio
+
+    def _snapshot(it):
+        it.nombre = producto.nombre_display()
+        it.variante_etiqueta = variante.etiqueta if variante else None
+        it.categoria = cat
+        it.subcategoria = sub
+        it.precio_unitario = precio_unit
+        it.moneda = producto.moneda or 'USD'
+        it.specs_texto = producto.specs_texto() or None
+
     if item:
         item.cantidad = min(item.cantidad + cantidad, 9999)
-        item.nombre = producto.nombre_display()
-        item.variante_etiqueta = variante.etiqueta if variante else None
-        item.categoria = cat
-        item.subcategoria = sub
+        _snapshot(item)
     else:
         item = PedidoItem(
             pedido=pedido,
             id_producto=producto.id_producto,
             id_variante=variante.id if variante else None,
             cantidad=cantidad,
-            nombre=producto.nombre_display(),
-            variante_etiqueta=variante.etiqueta if variante else None,
-            categoria=cat,
-            subcategoria=sub,
         )
+        _snapshot(item)
         db.session.add(item)
     db.session.commit()
     return pedido, None
