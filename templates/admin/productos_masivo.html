@@ -1,0 +1,210 @@
+{% extends 'admin/base_admin.html' %}
+
+{# ─── Macro: un bloque de producto con nombres indexados p{idx}_... ─── #}
+{% macro bloque_producto(idx, prod) %}
+<div class="card mb-3 bloque-producto" data-idx="{{ idx }}">
+  <div class="card-header d-flex justify-content-between align-items-center bg-light">
+    <span class="fw-bold small"><i class="fas fa-box me-1"></i>Producto <span class="num-producto"></span>
+      {% if prod %}<span class="badge text-bg-secondary ms-1">existente</span>{% endif %}</span>
+    <button type="button" class="btn btn-sm btn-outline-danger btn-quitar-producto" title="Quitar del lote">
+      <i class="fas fa-trash"></i>
+    </button>
+  </div>
+  <div class="card-body p-2">
+    <input type="hidden" name="p{{ idx }}_id_producto" value="{{ prod.id_producto if prod else '' }}">
+    <div class="row g-2">
+      <div class="col-md-6">
+        <label class="form-label small mb-0">Nombre <span class="text-muted">(opcional — se infiere de subcategoría + HP)</span></label>
+        <input class="form-control form-control-sm" name="p{{ idx }}_nombre"
+               value="{{ prod.nombre or '' if prod else '' }}" placeholder="Ej: Unidad 2HP (grande)">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">HP</label>
+        <input class="form-control form-control-sm" type="number" step="0.01" min="0"
+               name="p{{ idx }}_hp" value="{{ prod.hp if prod and prod.hp is not none else '' }}" placeholder="0.25">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">kcal/h</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0"
+               name="p{{ idx }}_kcal_por_hora" value="{{ prod.kcal_por_hora if prod and prod.kcal_por_hora is not none else '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">Watts/h</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0"
+               name="p{{ idx }}_watts_por_hora" value="{{ prod.watts_por_hora if prod and prod.watts_por_hora is not none else '' }}">
+      </div>
+    </div>
+    <div class="row g-2 mt-1">
+      <div class="col-md-2">
+        <label class="form-label small mb-0">Cant. vents</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0"
+               name="p{{ idx }}_cantidad_vents" value="{{ prod.cantidad_vents if prod and prod.cantidad_vents is not none else '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">Ø vents (mm)</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0"
+               name="p{{ idx }}_diametro_vents_mm" value="{{ prod.diametro_vents_mm if prod and prod.diametro_vents_mm is not none else '' }}">
+      </div>
+      <div class="col-md-1">
+        <label class="form-label small mb-0">L (mm)</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0"
+               name="p{{ idx }}_largo_mm" value="{{ prod.largo_mm if prod and prod.largo_mm is not none else '' }}">
+      </div>
+      <div class="col-md-1">
+        <label class="form-label small mb-0">A (mm)</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0"
+               name="p{{ idx }}_alto_mm" value="{{ prod.alto_mm if prod and prod.alto_mm is not none else '' }}">
+      </div>
+      <div class="col-md-1">
+        <label class="form-label small mb-0">P (mm)</label>
+        <input class="form-control form-control-sm" type="number" step="1" min="0"
+               name="p{{ idx }}_profundidad_mm" value="{{ prod.profundidad_mm if prod and prod.profundidad_mm is not none else '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small mb-0">Precio</label>
+        <div class="input-group input-group-sm">
+          <select class="form-select" name="p{{ idx }}_moneda" style="max-width:72px;">
+            <option value="USD" {% if not prod or prod.moneda != 'ARS' %}selected{% endif %}>USD</option>
+            <option value="ARS" {% if prod and prod.moneda == 'ARS' %}selected{% endif %}>ARS</option>
+          </select>
+          <input class="form-control" type="number" step="0.01" min="0"
+                 name="p{{ idx }}_precio" value="{{ prod.precio if prod and prod.precio is not none else '' }}" placeholder="780.00">
+        </div>
+      </div>
+    </div>
+
+    <!-- Variantes -->
+    <div class="mt-2 border-top pt-2">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="small fw-bold"><i class="fas fa-layer-group me-1"></i>Variantes</span>
+        <button type="button" class="btn btn-sm btn-outline-primary btn-agregar-variante">
+          <i class="fas fa-plus me-1"></i>Variante
+        </button>
+      </div>
+      <div class="variantes-lista">
+        {% if prod %}
+          {% for v in prod.variantes %}
+          <div class="row g-2 align-items-center mb-1 fila-variante">
+            <div class="col-md-6">
+              <input class="form-control form-control-sm" name="p{{ idx }}_var_etiqueta"
+                     value="{{ v.etiqueta }}" placeholder='Etiqueta (ej: "Eléctrico")' maxlength="200">
+            </div>
+            <div class="col-md-4">
+              <input class="form-control form-control-sm" type="number" step="0.01" min="0"
+                     name="p{{ idx }}_var_precio" value="{{ v.precio }}" placeholder="Precio USD">
+            </div>
+            <div class="col-md-2">
+              <button type="button" class="btn btn-sm btn-outline-danger w-100 btn-quitar-variante">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="container-fluid mt-4" style="max-width: 1000px;">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h3 class="mb-0">Carga masiva de productos</h3>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-link">← Volver al panel</a>
+  </div>
+  <p class="text-muted small">Cargá o editá varios productos a la vez y guardá todo con un solo botón.
+    Las imágenes se agregan después, editando cada producto individualmente.</p>
+
+  <!-- Selector de subcategoría -->
+  <form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-md-6">
+      <label class="form-label fw-bold mb-1">Subcategoría del lote</label>
+      <select class="form-select" name="sub" onchange="this.form.submit()">
+        <option value="">— Elegí una subcategoría —</option>
+        {% for sub in subcategorias %}
+        <option value="{{ sub.id_subcategoria }}" {% if sub.id_subcategoria == sub_id %}selected{% endif %}>{{ sub.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  {% if sub_id %}
+  <form method="post" id="formMasivo">
+    <input type="hidden" name="id_subcategoria" value="{{ sub_id }}">
+
+    <div id="productosLista">
+      {% for prod in productos %}
+        {{ bloque_producto(loop.index0, prod) }}
+      {% endfor %}
+    </div>
+
+    <div class="d-flex gap-2 mb-5">
+      <button type="button" class="btn btn-outline-primary" id="btnAgregarProducto">
+        <i class="fas fa-plus me-1"></i> Agregar producto
+      </button>
+      <button type="submit" class="btn btn-success fw-bold ms-auto">
+        <i class="fas fa-save me-1"></i> Guardar lote
+      </button>
+    </div>
+  </form>
+
+  <!-- Plantilla para bloques nuevos -->
+  <template id="tplProducto">{{ bloque_producto('__IDX__', None) }}</template>
+
+  <script>
+  (function () {
+    const MAX_LOTE = {{ max_lote }};
+    let nextIdx = {{ productos|length }};
+    const lista = document.getElementById('productosLista');
+
+    function renumerar() {
+      lista.querySelectorAll('.bloque-producto').forEach((b, i) => {
+        b.querySelector('.num-producto').textContent = i + 1;
+      });
+    }
+
+    document.getElementById('btnAgregarProducto').addEventListener('click', function () {
+      const nuevos = [...lista.querySelectorAll('.bloque-producto')]
+        .filter(b => !(b.querySelector('input[name$="_id_producto"]') || {}).value).length;
+      if (nuevos >= MAX_LOTE) {
+        alert('Máximo ' + MAX_LOTE + ' productos nuevos por lote.');
+        return;
+      }
+      const html = document.getElementById('tplProducto').innerHTML.replaceAll('__IDX__', nextIdx);
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html.trim();
+      lista.appendChild(tmp.firstElementChild);
+      nextIdx++;
+      renumerar();
+    });
+
+    lista.addEventListener('click', function (e) {
+      const addVar = e.target.closest('.btn-agregar-variante');
+      if (addVar) {
+        const bloque = addVar.closest('.bloque-producto');
+        const idx = bloque.dataset.idx;
+        const cont = bloque.querySelector('.variantes-lista');
+        const row = document.createElement('div');
+        row.className = 'row g-2 align-items-center mb-1 fila-variante';
+        row.innerHTML = `
+          <div class="col-md-6"><input class="form-control form-control-sm" name="p${idx}_var_etiqueta" placeholder='Etiqueta (ej: "Eléctrico")' maxlength="200"></div>
+          <div class="col-md-4"><input class="form-control form-control-sm" type="number" step="0.01" min="0" name="p${idx}_var_precio" placeholder="Precio USD"></div>
+          <div class="col-md-2"><button type="button" class="btn btn-sm btn-outline-danger w-100 btn-quitar-variante"><i class="fas fa-times"></i></button></div>`;
+        cont.appendChild(row);
+        return;
+      }
+      const delVar = e.target.closest('.btn-quitar-variante');
+      if (delVar) { delVar.closest('.fila-variante').remove(); return; }
+      const delProd = e.target.closest('.btn-quitar-producto');
+      if (delProd) { delProd.closest('.bloque-producto').remove(); renumerar(); }
+    });
+
+    renumerar();
+  })();
+  </script>
+  {% else %}
+  <div class="alert alert-info">Elegí una subcategoría para comenzar a cargar productos en lote.</div>
+  {% endif %}
+</div>
+{% endblock %}

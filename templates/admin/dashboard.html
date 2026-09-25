@@ -73,10 +73,20 @@
     <div class="col-12">
       <h4>Productos</h4>
       <a href="{{ url_for('admin_create_producto') }}" class="btn btn-sm btn-primary mb-2">Nuevo Producto</a>
+      <a href="{{ url_for('admin_productos_masivo') }}" class="btn btn-sm btn-success mb-2">
+        <i class="fas fa-layer-group me-1"></i> Carga masiva
+      </a>
       {% set ns = namespace(current_sub='') %}
       {% for sub in subcategorias %}
         {% if sub.productos|length > 0 %}
-        <h6 class="text-muted mt-3 mb-1">{{ sub.nombre }}</h6>
+        <h6 class="text-muted mt-3 mb-1 d-flex align-items-center gap-2">
+          {{ sub.nombre }}
+          <a href="{{ url_for('admin_productos_masivo', sub=sub.id_subcategoria) }}"
+             class="btn btn-sm btn-outline-success py-0 px-2" style="font-size:.75rem;"
+             title="Editar/cargar productos de esta subcategoría en lote">
+            <i class="fas fa-layer-group"></i> Lote
+          </a>
+        </h6>
         <ul class="list-group mb-2">
           {% for prod in sub.productos %}
           <li class="list-group-item d-flex justify-content-between align-items-center {% if prod.hidden %}opacity-50 bg-light{% endif %}">

@@ -1194,11 +1194,11 @@ def admin_delete_subcategoria(id):
 
 
 # --- RUTAS CRUD PRODUCTOS ---
-def _aplicar_variantes_producto(prod, form):
+def _aplicar_variantes_producto(prod, form, etiqueta_key='variante_etiqueta', precio_key='variante_precio'):
     """Sincroniza las variantes del producto con las filas del formulario.
     Estrategia: borrar las existentes y recrear (las variantes son simples)."""
-    etiquetas = form.getlist('variante_etiqueta')
-    precios = form.getlist('variante_precio')
+    etiquetas = form.getlist(etiqueta_key)
+    precios = form.getlist(precio_key)
     # Limpiar existentes (SQLAlchemy lo hace por la relación con cascade=all, delete-orphan)
     prod.variantes = []
     db.session.flush()
@@ -1214,20 +1214,20 @@ def _aplicar_variantes_producto(prod, form):
         prod.variantes.append(VarianteProducto(etiqueta=et, precio=precio, orden=idx))
 
 
-def _aplicar_specs_producto(prod, form):
+def _aplicar_specs_producto(prod, form, prefix=''):
     """Lee los campos de especificaciones técnicas del formulario y los aplica.
     Vacío → None (nullable). Mal formato → None."""
     int_fields = ['kcal_por_hora', 'watts_por_hora', 'cantidad_vents',
                   'diametro_vents_mm', 'largo_mm', 'alto_mm', 'profundidad_mm']
     num_fields = ['hp', 'precio']
     for campo in int_fields:
-        val = form.get(campo, '').strip()
+        val = form.get(prefix + campo, '').strip()
         setattr(prod, campo, int(val) if val.isdigit() else None)
     for campo in num_fields:
-        val = form.get(campo, '').strip().replace(',', '.')
+        val = form.get(prefix + campo, '').strip().replace(',', '.')
         setattr(prod, campo, float(val) if val else None)
-    moneda = form.get('moneda', '').strip().upper()
-    prod.moneda = moneda if moneda in ('ARS', 'USD') else 'ARS'
+    moneda = form.get(prefix + 'moneda', '').strip().upper()
+    prod.moneda = moneda if moneda in ('ARS', 'USD') else 'USD'
 
 
 @app.route('/admin/productos/nuevo', methods=['GET', 'POST'])
@@ -1288,6 +1288,60 @@ def admin_delete_producto(id):
     db.session.commit()
     flash('Producto eliminado', 'info')
     return redirect(url_for('admin_dashboard'))
+
+
+# --- CARGA MASIVA DE PRODUCTOS ---
+MAX_PRODUCTOS_LOTE = 25
+
+
+@app.route('/admin/productos/masivo', methods=['GET', 'POST'])
+@admin_required
+def admin_productos_masivo():
+    """Carga/edición masiva de productos (specs + variantes) de una subcategoría.
+    Sin imágenes: se agregan individualmente después. Un solo commit."""
+    import re as _re
+    subcategorias = Subcategoria.query.order_by(Subcategoria.nombre).all()
+    sub_id = request.args.get('sub', type=int)
+
+    if request.method == 'POST':
+        sub_id = request.form.get('id_subcategoria', type=int)
+        if not sub_id:
+            flash('Elegí una subcategoría para el lote.', 'danger')
+            return redirect(url_for('admin_productos_masivo'))
+        # Índices presentes en el form: p0_, p1_, ...
+        indices = sorted({
+            int(m.group(1)) for k in request.form.keys()
+            if (m := _re.match(r'^p(\d+)_', k))
+        })
+        creados = actualizados = 0
+        for i in indices:
+            prefijo = f'p{i}_'
+            pid = (request.form.get(prefijo + 'id_producto') or '').strip()
+            if pid.isdigit():
+                prod = db.session.get(Producto, int(pid))
+                if not prod:
+                    continue
+                actualizados += 1
+            else:
+                prod = Producto(id_subcategoria=sub_id)
+                db.session.add(prod)
+                creados += 1
+            prod.id_subcategoria = sub_id
+            prod.nombre = (request.form.get(prefijo + 'nombre') or '').strip() or None
+            _aplicar_specs_producto(prod, request.form, prefix=prefijo)
+            _aplicar_variantes_producto(
+                prod, request.form,
+                etiqueta_key=prefijo + 'var_etiqueta',
+                precio_key=prefijo + 'var_precio',
+            )
+        db.session.commit()
+        flash(f'Lote guardado: {creados} producto(s) nuevo(s), {actualizados} actualizado(s).', 'success')
+        return redirect(url_for('admin_productos_masivo', sub=sub_id))
+
+    productos = Producto.query.filter_by(id_subcategoria=sub_id).all() if sub_id else []
+    return render_template('admin/productos_masivo.html',
+                           subcategorias=subcategorias, sub_id=sub_id, productos=productos,
+                           max_lote=MAX_PRODUCTOS_LOTE)
 
 
 # --- PÁGINAS LEGALES (requeridas por Google OAuth para publicar en producción) ---
