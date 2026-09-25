@@ -39,7 +39,7 @@
             {% if item.categoria or item.subcategoria %}
             <small class="text-muted">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</small><br>
             {% endif %}
-            {{ item.nombre_display() }}
+            {{ item.nombre }}{% if item.variante_etiqueta %} <em class="text-muted">({{ item.variante_etiqueta }})</em>{% endif %}
           </span>
           <strong>x{{ item.cantidad }}</strong>
         </li>

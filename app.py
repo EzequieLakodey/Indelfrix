@@ -389,6 +389,8 @@ class PedidoItem(db.Model):
     categoria = db.Column(db.String(100))
     subcategoria = db.Column(db.String(100))
 
+    variante = db.relationship('VarianteProducto', foreign_keys=[id_variante])
+
 
 class ReglaCalculadora(db.Model):
     """Reglas del cotizador/calculadora: dadas condiciones técnicas (volumen, temp,

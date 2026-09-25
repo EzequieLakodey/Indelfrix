@@ -45,6 +45,10 @@
           <small class="text-muted d-block">{{ item.categoria }}{% if item.categoria and item.subcategoria %} › {% endif %}{{ item.subcategoria }}</small>
           {% endif %}
           {{ item.nombre }}
+          {% if item.variante %}
+          <span class="badge text-bg-primary ms-1">{{ item.variante.etiqueta }}</span>
+          <span class="badge text-bg-success ms-1">US$ {{ '%.2f' % item.variante.precio }}</span>
+          {% endif %}
         </span>
         <span class="badge text-bg-secondary">×{{ item.cantidad }}</span>
       </li>
