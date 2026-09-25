@@ -7,4 +7,4 @@ psycopg2-binary==2.9.13
 gunicorn==21.2.0
 requests==2.32.3
 cloudinary==1.38.0
-psycopg[binary]==3.2.9
+psycopg[binary]==3.2.13
