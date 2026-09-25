@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_from_directory, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_from_directory, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from datetime import datetime
@@ -702,19 +702,22 @@ def save_ficha(sub, file_storage):
     if not _is_pdf(file_storage):
         raise ValueError('El archivo debe ser un PDF (.pdf).')
     delete_ficha_file(sub)
+    # Conservar el nombre original del archivo (legible en Cloudinary/disco),
+    # con prefijo de subcategoría para que sea único y rastreable.
+    base = os.path.splitext(secure_filename(file_storage.filename or ''))[0][:80] or 'ficha'
     if _cloudinary_ready():
         result = cloudinary.uploader.upload(
             file_storage,
             resource_type='raw',
             folder='indelfrix/fichas',
-            public_id=f'subcategoria_{sub.id_subcategoria}',
+            public_id=f'subcategoria_{sub.id_subcategoria}_{base}',
             overwrite=True,
             invalidate=True,
         )
         sub.ficha_tecnica_url = result.get('secure_url')
         sub.ficha_tecnica_public_id = result.get('public_id')
         return
-    filename = f'subcategoria_{sub.id_subcategoria}.pdf'
+    filename = f'subcategoria_{sub.id_subcategoria}_{base}.pdf'
     file_storage.save(os.path.join(FICHAS_DIR, filename))
     sub.ficha_tecnica_url = filename
     sub.ficha_tecnica_public_id = None
@@ -1009,9 +1012,21 @@ def ficha_tecnica(sub_id):
     sub = Subcategoria.query.get_or_404(sub_id)
     if not sub.ficha_tecnica_url:
         abort(404)
-    download_name = f"{secure_filename(sub.nombre) or 'ficha'}.pdf"
+    download_name = f"FichaTecnica_{secure_filename(sub.nombre) or 'ficha'}.pdf"
     if str(sub.ficha_tecnica_url).startswith('http'):
-        return redirect(sub.ficha_tecnica_url)
+        # Ficha en Cloudinary: la servimos a través de Flask para poder fijar
+        # el nombre de descarga (Cloudinary no permite extensión en fl_attachment
+        # y el public_id interno es del tipo "subcategoria_27").
+        try:
+            upstream = requests.get(sub.ficha_tecnica_url, timeout=20)
+            upstream.raise_for_status()
+        except requests.RequestException:
+            abort(502)
+        return Response(
+            upstream.content,
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename="{download_name}"'},
+        )
     filename = os.path.basename(sub.ficha_tecnica_url)
     return send_from_directory(
         FICHAS_DIR,
