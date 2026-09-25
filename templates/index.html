@@ -67,17 +67,20 @@
                             Líneas
                         </a>
                         <ul class="dropdown-menu dropdown-menu-scrollable">
-                            {% for cat in categorias %}
+                            {% for item in categorias %}
+                            {% with cat = item.cat, subs = item.subs %}
+                            {% if subs %}
                             <li>
-                                <h6 class="dropdown-header text-uppercase fw-bold small text-primary mb-0">{{
-                                    cat.nombre }}</h6>
+                                <h6 class="dropdown-header text-uppercase fw-bold small text-primary mb-0">{{ cat.nombre }}</h6>
                             </li>
-                            {% for sub in cat.subcategorias %}
+                            {% endif %}
+                            {% for sub in subs %}
                             <li>
                                 <a class="dropdown-item cat-link ps-4" href="#subcategoria-{{ sub.id_subcategoria }}"
                                     data-target="#subcategoria-{{ sub.id_subcategoria }}">{{ sub.nombre }}</a>
                             </li>
                             {% endfor %}
+                            {% endwith %}
                             {% endfor %}
                         </ul>
                     </li>

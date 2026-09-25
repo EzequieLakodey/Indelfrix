@@ -32,9 +32,10 @@
       <a href="{{ url_for('admin_create_subcategoria') }}" class="btn btn-sm btn-primary mb-2">Nueva Subcategoría</a>
       <ul class="list-group">
         {% for sub in subcategorias %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
+        <li class="list-group-item d-flex justify-content-between align-items-center {% if sub.hidden %}opacity-50 bg-light{% endif %}">
           <span>
             {{ sub.nombre }}
+            {% if sub.hidden %}<span class="badge text-bg-dark ms-1"><i class="fas fa-eye-slash"></i> Oculta</span>{% endif %}
             {% if sub.imagenes|length > 0 %}
             <span class="badge text-bg-info ms-1">{{ sub.imagenes|length }} img</span>
             {% endif %}
@@ -47,7 +48,13 @@
             <span class="badge text-white ms-1" style="background-color: {{ t.color or '#6c757d' }}">{{ t.nombre }}</span>
             {% endfor %}
           </span>
-          <div>
+          <div class="d-flex gap-1">
+            <form method="post" action="{{ url_for('admin_toggle_ocultar_subcategoria', id=sub.id_subcategoria) }}" class="d-inline">
+              <button type="submit" class="btn btn-sm {{ 'btn-outline-warning' if sub.hidden else 'btn-outline-info' }}"
+                title="{{ 'Mostrar en catálogo' if sub.hidden else 'Ocultar del catálogo' }}">
+                <i class="fas {{ 'fa-eye' if sub.hidden else 'fa-eye-slash' }}"></i>
+              </button>
+            </form>
             <a href="{{ url_for('admin_edit_subcategoria', id=sub.id_subcategoria) }}"
               class="btn btn-sm btn-outline-secondary">Editar</a>
             <a href="{{ url_for('admin_delete_subcategoria', id=sub.id_subcategoria) }}"
@@ -72,14 +79,21 @@
         <h6 class="text-muted mt-3 mb-1">{{ sub.nombre }}</h6>
         <ul class="list-group mb-2">
           {% for prod in sub.productos %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
+          <li class="list-group-item d-flex justify-content-between align-items-center {% if prod.hidden %}opacity-50 bg-light{% endif %}">
             <span>
               {{ prod.nombre_display() }}
+              {% if prod.hidden %}<span class="badge text-bg-dark ms-1"><i class="fas fa-eye-slash"></i> Oculto</span>{% endif %}
               {% if prod.imagenes|length > 0 %}
               <span class="badge text-bg-info ms-1">{{ prod.imagenes|length }} img</span>
               {% endif %}
             </span>
-            <div>
+            <div class="d-flex gap-1">
+              <form method="post" action="{{ url_for('admin_toggle_ocultar_producto', id=prod.id_producto) }}" class="d-inline">
+                <button type="submit" class="btn btn-sm {{ 'btn-outline-warning' if prod.hidden else 'btn-outline-info' }}"
+                  title="{{ 'Mostrar en catálogo' if prod.hidden else 'Ocultar del catálogo' }}">
+                  <i class="fas {{ 'fa-eye' if prod.hidden else 'fa-eye-slash' }}"></i>
+                </button>
+              </form>
               <a href="{{ url_for('admin_edit_producto', id=prod.id_producto) }}"
                 class="btn btn-sm btn-outline-secondary">Editar</a>
               <a href="{{ url_for('admin_delete_producto', id=prod.id_producto) }}"

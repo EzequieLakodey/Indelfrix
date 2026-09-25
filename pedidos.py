@@ -417,21 +417,24 @@ def _evaluar_reglas(form):
 def _subs_con_equipos(resultado_categoria, resultado_subcategoria):
     """Busca subcategorías que coincidan con el nombre (insensible a mayúsculas)
     y devuelve las que tienen productos dentro."""
-    from app import Subcategoria
+    from app import Subcategoria, Categoria
     if not resultado_categoria:
         return []
-    subs = Subcategoria.query.filter(
-        db.func.lower(Subcategoria.nombre).like(f'%{resultado_subcategoria.lower()}%')
-        if resultado_subcategoria else None
-    )
+    query = Subcategoria.query.filter(Subcategoria.hidden == 0)
+    if resultado_subcategoria:
+        query = query.filter(
+            db.func.lower(Subcategoria.nombre).like(f'%{resultado_subcategoria.lower()}%')
+        )
     if resultado_categoria:
         # Filtrar también por categoría padre
-        from app import Categoria
         cats = Categoria.query.filter(
             db.func.lower(Categoria.nombre).like(f'%{resultado_categoria.lower()}%')
         ).all()
         cat_ids = {c.id_categoria for c in cats}
-        subs = [s for s in subs if any(c.id_categoria in cat_ids for c in s.categorias)]
+        subs = [s for s in query.all() if any(c.id_categoria in cat_ids for c in s.categorias)]
+    else:
+        subs = query.all()
+    # Solo los que tienen productos visibles
     return [s for s in subs if s.productos]
 
 

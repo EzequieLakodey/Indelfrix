@@ -214,17 +214,24 @@ class Categoria(db.Model):
     subcategorias = db.relationship('Subcategoria', secondary=categorias_subcategorias, backref='categorias')
     
 class Subcategoria(db.Model):
-    __tablename__ = 'subcategorias'  # <--- Vincula con tu tabla 'subcategorias'
+    __tablename__ = 'subcategorias'
     id_subcategoria = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column('nombre', db.String(100), nullable=False) # Si en la DB la columna se llama 'subcategoria'
+    nombre = db.Column('nombre', db.String(100), nullable=False)
     descripcion = db.Column(db.Text)
     ficha_tecnica_url = db.Column(db.String(500))
     ficha_tecnica_public_id = db.Column(db.String(255))
+    hidden = db.Column(db.Integer, default=0)  # 0 = visible, 1 = oculta del catálogo público
 
     # Relación muchos a muchos
     imagenes = db.relationship('Imagen', secondary=subcategorias_imagenes, backref='subcategorias')
     tags = db.relationship('Tag', secondary=subcategorias_tags, backref='subcategorias')
     productos = db.relationship('Producto', backref='subcategoria', lazy=True, cascade='all, delete-orphan')
+
+    def productos_catalogo(self):
+        """Productos visibles (hidden=0) ordenados por HP ascendente; sin HP al final."""
+        prods = [p for p in self.productos if not p.hidden]
+        prods.sort(key=lambda p: (p.hp is None, float(p.hp) if p.hp is not None else 0.0))
+        return prods
 
     def tiene_ficha(self):
         return bool(self.ficha_tecnica_url)
@@ -252,7 +259,8 @@ class Tag(db.Model):
 class Producto(db.Model):
     __tablename__ = 'productos'
     id_producto = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(200))  # ahora opcional: se genera auto si está en blanco
+    nombre = db.Column(db.String(200))  # opcional
+    hidden = db.Column(db.Integer, default=0)  # 0 = visible, 1 = oculto del catálogo público
     id_subcategoria = db.Column(db.Integer, db.ForeignKey('subcategorias.id_subcategoria'), nullable=False)
     imagenes = db.relationship('Imagen', secondary=productos_imagenes, backref='productos')
 
@@ -450,7 +458,11 @@ def inicio():
         selectinload(Subcategoria.productos).selectinload(Producto.variantes),
         selectinload(Subcategoria.tags),
     ).all()
+
+    # Tags: solo los que están asignados a alguna subcategoría visible
+    all_subs = [s for cat in categorias_db for s in cat.subcategorias]
     tags_db = Tag.query.order_by(Tag.nombre).all()
+    tags_db = [t for t in tags_db if any(s.hidden == 0 for s in t.subcategorias)]
 
     # Filtro server-side por tags: ?tags=1,3 (AND: la subcategoría debe tener
     # TODOS los seleccionados). Retrocompatible con ?tag=X.
@@ -463,26 +475,41 @@ def inicio():
         sel_ids.add(tag_suelto)
     tags_activos = [t for t in tags_db if t.id_tag in sel_ids]
 
-    categorias_vista = []
-    for cat in categorias_db:
-        if tags_activos:
-            subs = [s for s in cat.subcategorias
-                    if all(t in s.tags for t in tags_activos)]
-        else:
-            subs = list(cat.subcategorias)
-        # Orden alfabético A–Z por nombre de subcategoría
-        subs.sort(key=lambda s: (s.nombre or '').lower())
-        # Productos dentro de cada card ordenados por potencia (HP asc; sin HP al final)
-        for s in subs:
-            s.productos.sort(key=lambda p: (p.hp is None, float(p.hp) if p.hp is not None else 0.0))
-        if subs:
-            categorias_vista.append({'cat': cat, 'subs': subs})
+    categorias_vista = []   # catálogo principal (solo visibles y con tag match)
+    categorias_nav = []     # navbar (todas las cats, pero solo con subs visibles)
 
-    # Pasamos el año actual para el footer
+    for cat in categorias_db:
+        # --- Subcategorías visibles (ocultas excluidas por hidden) 
+        subs_visibles = [s for s in cat.subcategorias if not s.hidden]
+        subs_visibles.sort(key=lambda s: (s.nombre or '').lower())
+
+        # Navbar (índice completo, sin filtro de tags)
+        categorias_nav.append({'cat': cat, 'subs': subs_visibles})
+
+        # Catálogo (aplica filtro de tags)
+        if tags_activos:
+            subs_cat = [s for s in subs_visibles
+                        if all(t in s.tags for t in tags_activos)]
+        else:
+            subs_cat = subs_visibles
+
+        # Orden y filtrado de productos dentro de cada card
+        for s in subs_cat:
+            s.productos_visibles = sorted(
+                (p for p in s.productos if not p.hidden),
+                key=lambda p: (p.hp is None, float(p.hp) if p.hp is not None else 0.0),
+            )
+            s.productos = s.productos_visibles
+        if subs_cat:
+            categorias_vista.append({'cat': cat, 'subs': subs_cat})
+
     current_year = datetime.now().year
-    return render_template('index.html', categorias=categorias_db, subcategorias=subcategorias_db,
-                           categorias_vista=categorias_vista, tags=tags_db,
-                           tags_activos=tags_activos, tag_activo=tags_activos[0] if len(tags_activos) == 1 else None,
+    return render_template('index.html',
+                           categorias=categorias_nav,
+                           categorias_vista=categorias_vista,
+                           tags=tags_db,
+                           tags_activos=tags_activos,
+                           tag_activo=tags_activos[0] if len(tags_activos) == 1 else None,
                            current_year=current_year)
 
 
@@ -500,6 +527,10 @@ def _ensure_schema():
             db.session.execute(text(stmt))
         if statements:
             db.session.commit()
+        # Nuevo campo hidden (ocultar subcategoría del catálogo)
+        if 'hidden' not in cols:
+            db.session.execute(text("ALTER TABLE subcategorias ADD COLUMN hidden INTEGER DEFAULT 0"))
+            db.session.commit()
     if 'imagenes' in inspector.get_table_names():
         cols = {col['name'] for col in inspector.get_columns('imagenes')}
         if 'public_id' not in cols:
@@ -509,6 +540,10 @@ def _ensure_schema():
         cols = {col['name'] for col in inspector.get_columns('productos')}
         if 'nombre' not in cols:
             db.session.execute(text("ALTER TABLE productos ADD COLUMN nombre VARCHAR(200) DEFAULT ''"))
+            db.session.commit()
+        # Nuevo campo hidden (ocultar producto del catálogo)
+        if 'hidden' not in cols:
+            db.session.execute(text("ALTER TABLE productos ADD COLUMN hidden INTEGER DEFAULT 0"))
             db.session.commit()
         else:
             # Remover NOT NULL: el nombre ahora es opcional (se infiere de subcategoría+hp)
@@ -1389,6 +1424,30 @@ def admin_delete_regla(id):
         db.session.commit()
         flash('Regla eliminada', 'info')
     return redirect(url_for('admin_reglas'))
+
+
+# --- RUTAS ADMIN: OCULTAR / MOSTRAR EN CATÁLOGO ---
+@app.route('/admin/subcategorias/<int:id>/toggle-ocultar', methods=['POST'])
+@admin_required
+def admin_toggle_ocultar_subcategoria(id):
+    sub = Subcategoria.query.get_or_404(id)
+    sub.hidden = 0 if sub.hidden else 1
+    db.session.commit()
+    estado = 'ocultada' if sub.hidden else 'visible'
+    # flash para que el dashboard quede claro
+    flash(f'Subcategoría "{sub.nombre}" ahora está {estado} en el catálogo.', 'info')
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/productos/<int:id>/toggle-ocultar', methods=['POST'])
+@admin_required
+def admin_toggle_ocultar_producto(id):
+    prod = Producto.query.get_or_404(id)
+    prod.hidden = 0 if prod.hidden else 1
+    db.session.commit()
+    estado = 'ocultado' if prod.hidden else 'visible'
+    flash(f'Producto "{prod.nombre_display()}" ahora está {estado} en el catálogo.', 'info')
+    return redirect(url_for('admin_dashboard'))
 
 
 # --- RUTAS ADMIN: PEDIDOS ---
