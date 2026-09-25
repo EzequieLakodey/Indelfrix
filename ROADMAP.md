@@ -265,9 +265,13 @@ el panel de Render, nunca en el repo — la plantilla está en `.env.example`):
 | `CLOUDINARY_URL` | Credenciales de Cloudinary (imágenes/PDFs) |
 | `SECRET_KEY` | Clave de sesiones Flask (string largo aleatorio) |
 
-> **Python en Render**: la versión queda fijada en `runtime.txt` (`python-3.12.8`,
-> la misma que desarrollo). Sin ese archivo Render usa el Python más nuevo
-> disponible, y `psycopg2-binary` falló con Python 3.14 (16/09/2026).
+> **Python en Render**: la versión queda fijada en `.python-version` (`3.12.8`, la
+> misma que desarrollo). ⚠️ Render **NO** soporta `runtime.txt` (es convención de
+> Heroku); usa `.python-version` o la env var `PYTHON_VERSION`. Sin fijarla, Render
+> usa el Python más nuevo (3.14) y varios paquetes fallan por falta de wheels.
+> Historial: psycopg2-binary sin wheel cp314 (16/09) y psycopg[binary] 3.2.9 (17/09).
+> Drivers de Postgres instalados: `psycopg2-binary` (v2) y `psycopg[binary]` (v3),
+> para tolerar ambos esquemas de URL (`postgresql://` y `postgresql+psycopg://`).
 
 Checklist post-deploy:
 1. Verificar home OK → login con Google OK (cuenta de prueba) → agregar producto
