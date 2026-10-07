@@ -760,21 +760,49 @@
 
                 let formData = new FormData(form);
 
+                // Timeout: si el servidor no contesta en 30s avisamos en vez de
+                // dejar al usuario esperando una alerta que nunca llega.
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 30000);
+                const btn = form.querySelector('[type="submit"]');
+                if (btn) { btn.disabled = true; btn.dataset.prev = btn.innerHTML; btn.innerHTML = 'Enviando…'; }
+
+                const liberar = () => {
+                    clearTimeout(timer);
+                    if (btn) { btn.disabled = false; if (btn.dataset.prev) btn.innerHTML = btn.dataset.prev; }
+                };
+
                 fetch('/enviar_mail', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 })
-                    .then(response => response.text())
-                    .then(data => {
-                        alert(data); // Muestra el mensaje real del servidor (éxito o error)
-                        if (data.includes("éxito")) {
-                            form.reset(); // Solo limpia si fue exitoso
+                    .then(response => response.text().then(text => {
+                        // El servidor devuelve JSON {ok, mensaje}; si caemos en una
+                        // página de error (HTML) mostramos un texto útil igual.
+                        let data;
+                        try { data = JSON.parse(text); } catch (_) { data = null; }
+                        if (data && typeof data.mensaje === 'string') {
+                            alert(data.mensaje);
+                            if (data.ok) form.reset();
+                            return;
                         }
-                    })
+                        if (response.ok) {
+                            alert('¡Mensaje enviado con éxito! Nos contactaremos a la brevedad.');
+                            form.reset();
+                        } else {
+                            console.error('Respuesta no JSON:', response.status, text.slice(0, 300));
+                            alert('El servidor respondió con un error (' + response.status + '). '
+                                + 'Intentá de nuevo en unos minutos.');
+                        }
+                    }))
                     .catch(error => {
                         console.error('Error:', error);
-                        alert("Error de conexión al intentar enviar el mensaje.");
-                    });
+                        alert(error.name === 'AbortError'
+                            ? 'El servidor tardó demasiado en responder (30s). Intentá de nuevo.'
+                            : 'Error de conexión al intentar enviar el mensaje.');
+                    })
+                    .finally(liberar);
             });
 
             // Show/hide tipo_envoltorio based on producto_envoltorio

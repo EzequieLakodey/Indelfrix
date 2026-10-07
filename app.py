@@ -16,6 +16,7 @@ import json
 import socket
 import threading
 import base64
+import logging
 import requests
 import cloudinary
 import cloudinary.uploader
@@ -44,6 +45,9 @@ cloudinary.config(secure=True)
 FICHA_EDITOR_EMAIL = os.getenv('FICHA_EDITOR_EMAIL', 'indelfrix.ventas@gmail.com').strip().lower()
 
 app = Flask(__name__)
+# Sin esto el logger hereda WARNING del root y Render descarta todos los INFO
+# (BOOT OK, veredictos del formulario, transporte del mail).
+app.logger.setLevel(logging.INFO)
 import sys
 sys.modules['app'] = sys.modules[__name__]
 app.secret_key = os.getenv('FLASK_SECRET', 'dev-secret')
@@ -107,6 +111,16 @@ def _enviar_email(destinatario, asunto, cuerpo, reply_to=None, attachment=None):
     """
     brevo_key = os.environ.get('BREVO_API_KEY', '').strip()
     remitente = os.environ.get('MAIL_USERNAME') or 'indelfrix.ventas@gmail.com'
+    # Visible en los logs de Render: confirma qué transporte se usa y si falta la API key.
+    app.logger.info(
+        'MAIL transporte=%s destinatario=%s',
+        'Brevo API' if brevo_key else 'SMTP/Gmail (fallback)',
+        destinatario,
+    )
+    if not brevo_key:
+        app.logger.warning(
+            'MAIL BREVO_API_KEY no está seteada: se usará SMTP, que Render puede bloquear.'
+        )
     if brevo_key:
         payload = {
             'sender': {'email': remitente, 'name': 'Indelfrix Web'},
@@ -147,8 +161,9 @@ def enviar_mail_async(destinatario, asunto, cuerpo, reply_to=None, attachment=No
         with app.app_context():
             try:
                 _enviar_email(destinatario, asunto, cuerpo, reply_to=reply_to, attachment=attachment)
+                app.logger.info('FORMULARIO mail enviado OK asunto=%r', asunto)
             except Exception:
-                app.logger.exception('Error al enviar email en background')
+                app.logger.exception('FORMULARIO mail falló asunto=%r', asunto)
     threading.Thread(target=_job, daemon=True).start()
 
 # --- ANTI-SPAM: rate limiting in-memory (por IP, ventana 60s, máx 3 envíos) ---
@@ -167,6 +182,16 @@ def _is_rate_limited(ip):
         return True
     dq.append(now)
     return False
+
+
+def _respuesta_form(ok, mensaje, http_status=200):
+    """Respuesta del formulario de contacto como JSON.
+
+    El front parsea {ok, mensaje} y muestra `mensaje` tal cual. Siempre se loguea
+    el veredicto para que el motivo de un "no llegó el mail" sea visible en los
+    logs de Render sin tener que adivinar.
+    """
+    return jsonify(ok=bool(ok), mensaje=mensaje), http_status
 
 
 # --- MODELO DE DATOS ---
@@ -798,6 +823,24 @@ with app.app_context():
     _ensure_schema()
 
 
+def _log_arranque():
+    """Una línea en los logs de Render que responde en 2 segundos: ¿arrancó bien
+    y cómo va a mandarse el mail?"""
+    brevo = os.environ.get('BREVO_API_KEY', '').strip()
+    db_url = app.config.get('SQLALCHEMY_DATABASE_URI') or ''
+    app.logger.info(
+        'BOOT OK | db=%s | mail=%s | google_oauth=%s',
+        'postgres' if db_url.startswith(('postgresql', 'postgres')) else db_url.split('://')[0] or 'sqlite',
+        'Brevo API' if brevo else 'SMTP/Gmail (FALLA en Render: falta BREVO_API_KEY)',
+        'listo' if google_ready() else 'desconfigurado',
+    )
+    if not brevo:
+        app.logger.warning(
+            'BOOT: falta la env var BREVO_API_KEY en Render → los mails van por SMTP '
+            'y Render los bloquea. Agregarla en Settings → Environment.'
+        )
+
+
 # ------------------ RUTAS DE ADMIN ------------------
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -918,13 +961,33 @@ def admin_dashboard():
 @app.route('/enviar_mail', methods=['POST'])
 def enviar_mail():
     if request.method == 'POST':
+        ip = request.remote_addr
         # --- Anti-spam: honeypot ---
         if request.form.get('website'):
             # Los bots rellenan el campo oculto; los humanos no lo ven.
-            return "¡Mensaje enviado con éxito! Nos contactaremos a la brevedad."
+            # Devolvemos el mismo mensaje de éxito que a un humano (para no
+            # delatar el trampa), pero lo dejamos marcado en el log: si aparece
+            # con un nombre/email reales, un humano disparó el honeypot.
+            app.logger.warning(
+                'FORMULARIO honeypot descartado ip=%s nombre=%r email=%r '
+                '(no se guardó solicitud ni se envió mail)',
+                ip, request.form.get('nombre', ''), request.form.get('email', ''),
+            )
+            return _respuesta_form(
+                True, '¡Mensaje enviado con éxito! Nos contactaremos a la brevedad.'
+            )
         # --- Anti-spam: rate limiting ---
-        if _is_rate_limited(request.remote_addr):
-            return "Demasiados envíos en poco tiempo. Por favor esperá un minuto e intentá de nuevo."
+        if _is_rate_limited(ip):
+            app.logger.warning(
+                'FORMULARIO rate-limit ip=%s (más de %s envíos en %ss) '
+                '(no se guardó solicitud ni se envió mail)',
+                ip, CONTACT_RATE_LIMIT, CONTACT_RATE_WINDOW,
+            )
+            return _respuesta_form(
+                False,
+                'Demasiados envíos en poco tiempo. Por favor esperá un minuto e intentá de nuevo.',
+                429,
+            )
         # 1. Capturar los datos del formulario
         nombre = request.form.get('nombre', '')
         email_usuario = request.form.get('email', '') # Coincide con 'name="email"'
@@ -958,9 +1021,20 @@ def enviar_mail():
             productos_seleccionados = []
 
         # 2. Guardar en DB para generar el número secuencial
-        nueva_solicitud = Solicitud(tipo=asunto_form)
-        db.session.add(nueva_solicitud)
-        db.session.commit()
+        try:
+            nueva_solicitud = Solicitud(tipo=asunto_form)
+            db.session.add(nueva_solicitud)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            app.logger.exception(
+                'FORMULARIO error DB al guardar solicitud ip=%s (no se envió mail)', ip
+            )
+            return _respuesta_form(
+                False,
+                'No pudimos registrar tu consulta. Probá de nuevo en unos minutos.',
+                500,
+            )
 
         # 3. Formatear los datos para el Asunto
         numero_solicitud = f"{nueva_solicitud.id:05d}"
@@ -1028,7 +1102,14 @@ def enviar_mail():
             reply_to=email_usuario,  # Si le dan a "Responder", le llega al cliente
             attachment=attachment,
         )
-        return "¡Mensaje enviado con éxito! Nos contactaremos a la brevedad."
+        app.logger.info(
+            'FORMULARIO aceptado solicitud #%s ip=%s asunto=%r email=%r '
+            '(mail en background: ver "FORMULARIO mail" si falla)',
+            numero_solicitud, ip, asunto_form, email_usuario,
+        )
+        return _respuesta_form(
+            True, '¡Mensaje enviado con éxito! Nos contactaremos a la brevedad.'
+        )
 
 
 # --- RUTAS CRUD (ejemplo: crear/editar/eliminar Categoría) ---
@@ -1616,6 +1697,9 @@ def api_productos(sub_id):
 
 
 import pedidos  # noqa: E402,F401  — registra login Google y rutas de pedido
+
+# Al final del módulo: `google_ready()` recién existe acá.
+_log_arranque()
 
 
 if __name__ == '__main__':
