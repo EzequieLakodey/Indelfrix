@@ -109,7 +109,9 @@ def _verificar_evento_brevo(message_id):
     """
     if not message_id:
         return None, None
-    for espera in (3, 4):
+    # El rechazo de remitente tarda ~8.5s en aparecer: con (3, 4) se consultaba
+    # a los 7s y devolvía "sin confirmación" -> se logueaba falso "enviado OK".
+    for espera in (3, 4, 5, 5):
         time.sleep(espera)
         try:
             resp = requests.get(
@@ -192,13 +194,21 @@ def _enviar_email(destinatario, asunto, cuerpo, reply_to=None, attachment=None):
                 'MAIL rechazado por Brevo evento=%s motivo=%s', evento, motivo
             )
             raise RuntimeError(f'Brevo rechazó el envío ({evento}): {motivo}')
-        app.logger.info('MAIL brevo evento=%s', evento or 'sin confirmación aún')
-        return
+        if not evento:
+            app.logger.warning(
+                'MAIL brevo sin confirmación tras 17s (eventId ausente). '
+                'Verificar en Brevo → Email → Statistics con messageId=%s',
+                message_id,
+            )
+            return False
+        app.logger.info('MAIL brevo evento=%s', evento)
+        return True
     # Fallback SMTP (Gmail) — desarrollo local
     msg = Message(subject=asunto, recipients=[destinatario], body=cuerpo, reply_to=reply_to)
     if attachment:
         msg.attach(attachment[0], attachment[2], attachment[1])
-    mail.send(msg)
+    mail.send(msg)  # Flask-Mail lanza excepción si falla
+    return True
 
 
 def enviar_mail_async(destinatario, asunto, cuerpo, reply_to=None, attachment=None):
@@ -211,8 +221,15 @@ def enviar_mail_async(destinatario, asunto, cuerpo, reply_to=None, attachment=No
     def _job():
         with app.app_context():
             try:
-                _enviar_email(destinatario, asunto, cuerpo, reply_to=reply_to, attachment=attachment)
-                app.logger.info('FORMULARIO mail enviado OK asunto=%r', asunto)
+                verificado = _enviar_email(
+                    destinatario, asunto, cuerpo, reply_to=reply_to, attachment=attachment
+                )
+                if verificado:
+                    app.logger.info('FORMULARIO mail verificado OK asunto=%r', asunto)
+                else:
+                    app.logger.warning(
+                        'FORMULARIO mail sin verificación de entrega asunto=%r', asunto
+                    )
             except Exception:
                 app.logger.exception('FORMULARIO mail falló asunto=%r', asunto)
     threading.Thread(target=_job, daemon=True).start()
