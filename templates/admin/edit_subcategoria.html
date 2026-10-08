@@ -46,11 +46,8 @@
         {% for img in subcategoria.imagenes %}
         <div class="col-md-4 col-6">
           <div class="card position-relative">
-            {% if img.url.startswith('http') %}
-            <img src="{{ img.url }}" class="card-img-top" alt="Imagen" style="max-height:150px; object-fit:cover;">
-            {% else %}
-            <img src="{{ url_for('static', filename='img/' + img.url) }}" class="card-img-top" alt="Imagen" style="max-height:150px; object-fit:cover;">
-            {% endif %}
+            <img src="{{ img.url|cdn(300) }}" class="card-img-top" alt="Imagen"
+                style="max-height:150px; object-fit:cover;" loading="lazy" decoding="async">
             <div class="form-check m-2">
               <input class="form-check-input" type="checkbox" name="eliminar_imagen" value="{{ img.id_imagen }}" id="elim-img-{{ img.id_imagen }}">
               <label class="form-check-label small text-danger" for="elim-img-{{ img.id_imagen }}">Eliminar</label>

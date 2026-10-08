@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, send_from_directory, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
-from datetime import datetime
+from flask_compress import Compress
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from functools import wraps
 from sqlalchemy import inspect, text
@@ -53,6 +54,38 @@ sys.modules['app'] = sys.modules[__name__]
 app.secret_key = os.getenv('FLASK_SECRET', 'dev-secret')
 app.config['MAX_CONTENT_LENGTH'] = 25 * 1024 * 1024  # 25 MB para fichas técnicas PDF
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+# Compresión (brotli/gzip) de las respuestas: la home server-rendered pesa
+# ~690 KB de HTML; comprimida baja a decenas de KB. Sin esto Render/envía cruda.
+Compress(app)
+
+
+# --- Caché de estáticos ---
+# Los assets de /static cambian poco: cache larga en el navegador para no
+# volver a bajarlos en cada visita. style.css se versiona con ?v=<mtime>.
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = timedelta(days=365)
+
+
+def _asset_v():
+    try:
+        return str(int(os.path.getmtime(os.path.join(app.static_folder, 'style.css'))))
+    except OSError:
+        return '1'
+
+
+@app.context_processor
+def _inyectar_asset_v():
+    return {'asset_v': _asset_v()}
+
+
+@app.after_request
+def _headers_cache(resp):
+    if request.path.startswith('/static/'):
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    elif resp.mimetype == 'text/html':
+        resp.headers.setdefault('Cache-Control', 'no-cache')
+    return resp
+
 app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
 
@@ -546,6 +579,38 @@ def _precio_ars(producto_o_tupla):
     if hasattr(producto_o_tupla, 'precio_formateado'):
         return producto_o_tupla.precio_formateado() or ''
     return str(producto_o_tupla)
+
+
+def _cdn_base():
+    return f"https://res.cloudinary.com/{cloudinary.config().cloud_name}/image/upload"
+
+
+@app.template_filter('cdn')
+def _cdn(src, w=None, h=None, crop=None):
+    """Filtro Jinja: optimiza una imagen vía Cloudinary (f_auto,q_auto + ancho).
+
+    Acepta una URL completa de Cloudinary o un public_id. Devuelve la URL con
+    los transforms insertados; las URLs que no son de Cloudinary pasan intactas.
+
+    Ej:  {{ img.url|cdn(600) }}   {{ 'indelfrix/static/header'|cdn(400) }}
+    """
+    if not src:
+        return ''
+    src = str(src)
+    partes = ['f_auto', 'q_auto']
+    if w:
+        partes.append(f'w_{int(w)}')
+    if h:
+        partes.append(f'h_{int(h)}')
+    if crop:
+        partes.append(f'c_{crop}')
+    tr = ','.join(partes)
+    if src.startswith('http'):
+        if '/upload/' not in src or 'res.cloudinary.com' not in src:
+            return src
+        base, resto = src.split('/upload/', 1)
+        return f'{base}/upload/{tr}/{resto}'
+    return f'{_cdn_base()}/{tr}/{src}'
 
 
 @app.route('/')

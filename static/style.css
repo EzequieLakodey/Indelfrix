@@ -22,7 +22,7 @@
 
 body {
     min-height: 100vh;
-    background-image: url('/static/img/background.webp');
+    background-image: url('https://res.cloudinary.com/n6cdhomz/image/upload/f_auto,q_auto,w_1920/indelfrix/static/background.webp');
     background-attachment: scroll;
     background-position: center;
     background-repeat: repeat;
