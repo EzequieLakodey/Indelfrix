@@ -102,19 +102,52 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'indel
 mail = Mail(app)
 
 
+def _verificar_evento_brevo(message_id):
+    """Brevo devuelve 201 aunque RECHACE el envío después (evento `error`).
+    Consulta el evento real asociado al messageId y devuelve (evento, motivo).
+    Sin esto el código cree que el mail salió cuando nunca salió.
+    """
+    if not message_id:
+        return None, None
+    for espera in (3, 4):
+        time.sleep(espera)
+        try:
+            resp = requests.get(
+                'https://api.brevo.com/v3/smtp/statistics/events',
+                headers={'api-key': os.environ.get('BREVO_API_KEY', '').strip()},
+                params={'messageId': message_id, 'limit': 1},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            events = resp.json().get('events') or []
+            if events:
+                return events[0].get('event'), events[0].get('reason')
+        except Exception as exc:
+            app.logger.warning('MAIL no se pudo verificar el evento de Brevo: %s', exc)
+    return None, None
+
+
+# Eventos de Brevo que significan que el mail NUNCA llegó al destino.
+BREVO_EVENTOS_FALLO = {
+    'error', 'blocked', 'bounces', 'hardBounces', 'softBounces', 'invalid', 'spam',
+}
+
+
 def _enviar_email(destinatario, asunto, cuerpo, reply_to=None, attachment=None):
     """Envía un email. Si hay BREVO_API_KEY usa la API HTTP de Brevo (puerto 443,
     funciona en Render free que bloquea SMTP); si no, cae a Flask-Mail/SMTP (Gmail),
     útil en desarrollo local.
 
     attachment: tupla (filename, content_bytes, mimetype) o None.
+    Lanza excepción si Brevo acepta el pedido pero rechaza el envío.
     """
     brevo_key = os.environ.get('BREVO_API_KEY', '').strip()
     remitente = os.environ.get('MAIL_USERNAME') or 'indelfrix.ventas@gmail.com'
     # Visible en los logs de Render: confirma qué transporte se usa y si falta la API key.
     app.logger.info(
-        'MAIL transporte=%s destinatario=%s',
+        'MAIL transporte=%s remitente=%s destinatario=%s',
         'Brevo API' if brevo_key else 'SMTP/Gmail (fallback)',
+        remitente,
         destinatario,
     )
     if not brevo_key:
@@ -141,7 +174,25 @@ def _enviar_email(destinatario, asunto, cuerpo, reply_to=None, attachment=None):
             json=payload,
             timeout=15,
         )
+        # El messageId es lo que hay que buscar en Brevo → Email → Statistics
+        # para saber si quedó "delivered", "queued", "bounced" o "blocked".
+        try:
+            brevo_body = resp.json()
+        except ValueError:
+            brevo_body = {}
         resp.raise_for_status()
+        message_id = brevo_body.get('messageId')
+        app.logger.info(
+            'MAIL brevo aceptado status=%s messageId=%s', resp.status_code, message_id
+        )
+        # 201 ≠ entregado: Brevo rechaza después si el remitente no está validado.
+        evento, motivo = _verificar_evento_brevo(message_id)
+        if evento in BREVO_EVENTOS_FALLO:
+            app.logger.error(
+                'MAIL rechazado por Brevo evento=%s motivo=%s', evento, motivo
+            )
+            raise RuntimeError(f'Brevo rechazó el envío ({evento}): {motivo}')
+        app.logger.info('MAIL brevo evento=%s', evento or 'sin confirmación aún')
         return
     # Fallback SMTP (Gmail) — desarrollo local
     msg = Message(subject=asunto, recipients=[destinatario], body=cuerpo, reply_to=reply_to)
