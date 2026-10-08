@@ -45,20 +45,7 @@
                 <ul class="navbar-nav align-items-lg-center gap-2 nav-categories">
 
 
-                    <!-- Tipo: categorías -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            Tipo
-                        </a>
-                        <ul class="dropdown-menu">
-                            {% for cat in categorias %}
-                            <li>
-                                <a class="dropdown-item cat-link" href="#categoria-{{ cat.id_categoria }}"
-                                    data-target="#categoria-{{ cat.id_categoria }}">{{ cat.nombre }}</a>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </li>
+
 
                     <!-- Líneas: subcategorías (líneas de productos) agrupadas por categoría -->
                     <li class="nav-item dropdown">
