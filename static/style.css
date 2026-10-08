@@ -165,14 +165,15 @@ main,
     /* Ajuste para que la imagen cubra el área del hero */
 }
 
-/* Logo: imagen sin recortes, se ajusta dinámicamente */
+/* Logo: ocupa todo el ancho disponible; el alto lo limita la proporción
+   de la imagen (1914x544) y max-height para pantallas bajas */
 .hero-logo {
     width: 100%;
-    max-width: min(95vw, 1100px);
+    max-width: 100%;
     height: auto;
-    max-height: 75vh;
+    max-height: 85vh;
     object-fit: contain;
-    padding: 1rem;
+    padding: 0;
 }
 
 /* Sección de contenido debajo del banner */
@@ -439,7 +440,7 @@ Para que la imagen ocupe todo el espacio de la card
 
     .hero-logo {
         max-height: 40vh;
-        padding: 0.5rem;
+        padding: 0;
     }
 
     /* Hacer visible el h1 reservado para accesibilidad dentro de sobre-nosotros */
