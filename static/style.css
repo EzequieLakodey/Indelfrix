@@ -90,6 +90,32 @@ body {
     font-style: normal;
 }
 
+/* Título del navbar (centrado): degradado blanco → celeste → negro,
+   contorno negro fino para legibilidad sobre cualquier fondo y
+   glow celeste. El contorno hace que se lea bien en los extremos
+   (blanco arriba y negro abajo). */
+#navbar-title {
+    font-family: 'Bungee Shade', cursive;
+    font-weight: 400;
+    font-size: clamp(1.1rem, 2vw, 1.45rem);
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    color: #0a0a0a;
+    /* fallback si el navegador no soporta background-clip:text */
+    background: linear-gradient(180deg, #ffffff 0%, #a0e0ff 52%, #0a0a0a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 1px rgba(10, 10, 10, 0.9);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 10px rgba(160, 224, 255, 0.5));
+    transition: filter 0.25s ease;
+}
+
+#navbar-title:hover {
+    text-decoration: none;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 16px rgba(160, 224, 255, 0.9));
+}
+
 
 .snowflakes {
     position: fixed;
